@@ -19,33 +19,82 @@ public class ScoreboardService {
 
     private final UserRepository userRepository;
     private final ScoreboardRepository scoreboardRepository;
+    private final PuzzleCalendar puzzleCalendar;
 
-    public ScoreboardService(UserRepository userRepository, ScoreboardRepository scoreboardRepository) {
+    public ScoreboardService(UserRepository userRepository,
+                             ScoreboardRepository scoreboardRepository,
+                             PuzzleCalendar puzzleCalendar) {
         this.userRepository = userRepository;
         this.scoreboardRepository = scoreboardRepository;
+        this.puzzleCalendar = puzzleCalendar;
     }
 
     @Transactional
-    public void saveResult(String channelId, String personName, String discordUserId, GameResult result) {
+    public SaveOutcome saveResult(String channelId, String personName, String discordUserId, GameResult result) {
+        LocalDate today = puzzleCalendar.today();
+
+        // Validate puzzle number / date
+        SaveOutcome validation = validate(result, today);
+        if (validation != SaveOutcome.SAVED) {
+            log.info("Rejected {} result for {}: {}", result.getClass().getSimpleName(), personName, validation);
+            return validation;
+        }
+
         User user = userRepository.findByChannelId(channelId)
                 .orElseGet(() -> userRepository.save(new User(channelId, personName, discordUserId)));
 
-        LocalDate date = deriveDate(result);
+        Scoreboard scoreboard = scoreboardRepository.findByUserAndDate(user, today)
+                .orElseGet(() -> scoreboardRepository.save(new Scoreboard(user, today)));
 
-        Scoreboard scoreboard = scoreboardRepository.findByUserAndDate(user, date)
-                .orElseGet(() -> scoreboardRepository.save(new Scoreboard(user, date)));
+        // Check for duplicate submission
+        if (isAlreadySubmitted(scoreboard, result)) {
+            log.info("Duplicate {} result for {} on {}", result.getClass().getSimpleName(), personName, today);
+            return SaveOutcome.ALREADY_SUBMITTED;
+        }
 
         applyResult(scoreboard, result);
         scoreboardRepository.save(scoreboard);
 
-        log.info("Saved {} result for {} on {}", result.getClass().getSimpleName(), personName, date);
+        log.info("Saved {} result for {} on {}", result.getClass().getSimpleName(), personName, today);
+        return SaveOutcome.SAVED;
     }
 
-    private LocalDate deriveDate(GameResult result) {
-        if (result instanceof CrosswordResult cw && cw.getDate() != null) {
-            return cw.getDate();
+    private SaveOutcome validate(GameResult result, LocalDate today) {
+        if (result instanceof WordleResult r) {
+            if (r.getPuzzleNumber() != puzzleCalendar.expectedWordle()) {
+                return SaveOutcome.WRONG_PUZZLE_NUMBER;
+            }
+        } else if (result instanceof ConnectionsResult r) {
+            if (r.getPuzzleNumber() != puzzleCalendar.expectedConnections()) {
+                return SaveOutcome.WRONG_PUZZLE_NUMBER;
+            }
+        } else if (result instanceof StrandsResult r) {
+            if (r.getPuzzleNumber() != puzzleCalendar.expectedStrands()) {
+                return SaveOutcome.WRONG_PUZZLE_NUMBER;
+            }
+        } else if (result instanceof CrosswordResult r) {
+            if (r.getDate() != null && !r.getDate().equals(today)) {
+                return SaveOutcome.WRONG_DATE;
+            }
         }
-        return LocalDate.now();
+        return SaveOutcome.SAVED;
+    }
+
+    private boolean isAlreadySubmitted(Scoreboard scoreboard, GameResult result) {
+        if (result instanceof WordleResult) {
+            return scoreboard.getWordleResult() != null;
+        } else if (result instanceof ConnectionsResult) {
+            return scoreboard.getConnectionsResult() != null;
+        } else if (result instanceof StrandsResult) {
+            return scoreboard.getStrandsResult() != null;
+        } else if (result instanceof CrosswordResult r) {
+            return switch (r.getType()) {
+                case MINI  -> scoreboard.getMiniCrosswordResult() != null;
+                case MIDI  -> scoreboard.getMidiCrosswordResult() != null;
+                case DAILY -> scoreboard.getDailyCrosswordResult() != null;
+            };
+        }
+        return false;
     }
 
     private void applyResult(Scoreboard scoreboard, GameResult result) {
