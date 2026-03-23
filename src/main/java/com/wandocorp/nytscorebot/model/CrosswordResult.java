@@ -1,13 +1,21 @@
 package com.wandocorp.nytscorebot.model;
 
+import jakarta.persistence.Embeddable;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+
 import java.time.LocalDate;
 
+@Embeddable
 public class CrosswordResult extends GameResult {
 
-    private final CrosswordType type;
-    private final String timeString;
-    private final int totalSeconds;
-    private final LocalDate date;
+    @Enumerated(EnumType.STRING)
+    private CrosswordType type;
+    private String timeString;
+    private int totalSeconds;
+    private LocalDate crosswordDate;
+
+    protected CrosswordResult() {}
 
     public CrosswordResult(String rawContent, String discordAuthor, String comment,
                            CrosswordType type, String timeString, int totalSeconds, LocalDate date) {
@@ -15,17 +23,18 @@ public class CrosswordResult extends GameResult {
         this.type = type;
         this.timeString = timeString;
         this.totalSeconds = totalSeconds;
-        this.date = date;
+        this.crosswordDate = date;
     }
 
     public CrosswordType getType() { return type; }
     public String getTimeString() { return timeString; }
     public int getTotalSeconds() { return totalSeconds; }
-    public LocalDate getDate() { return date; }
+    public LocalDate getDate() { return crosswordDate; }
 
     @Override
     public String toString() {
         return "CrosswordResult{type=%s, date=%s, time='%s' (%ds), comment='%s', author='%s'}"
-                .formatted(type, date, timeString, totalSeconds, getComment(), getDiscordAuthor());
+                .formatted(type, crosswordDate, timeString, totalSeconds, getComment(), getDiscordAuthor());
     }
 }
+

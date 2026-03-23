@@ -1,11 +1,16 @@
 package com.wandocorp.nytscorebot.model;
 
+import jakarta.persistence.Embeddable;
+
+@Embeddable
 public class WordleResult extends GameResult {
 
-    private final int puzzleNumber;
-    private final int attempts;
-    private final boolean completed;
-    private final boolean hardMode;
+    private int puzzleNumber;
+    private int attempts;
+    private boolean completed;
+    private boolean hardMode;
+
+    protected WordleResult() {}
 
     public WordleResult(String rawContent, String discordAuthor, String comment,
                         int puzzleNumber, int attempts, boolean completed, boolean hardMode) {
@@ -27,3 +32,4 @@ public class WordleResult extends GameResult {
                 .formatted(puzzleNumber, completed ? attempts : "X", completed, hardMode, getComment(), getDiscordAuthor());
     }
 }
+

@@ -1,22 +1,22 @@
 package com.wandocorp.nytscorebot.model;
 
+import jakarta.persistence.Convert;
+import jakarta.persistence.Embeddable;
+import com.wandocorp.nytscorebot.entity.StringListConverter;
+
 import java.util.List;
 
+@Embeddable
 public class ConnectionsResult extends GameResult {
 
-    private final int puzzleNumber;
+    private int puzzleNumber;
+    private int mistakes;
+    private boolean completed;
 
-    /** Number of incorrect guesses (total rows − correctly solved rows). */
-    private final int mistakes;
+    @Convert(converter = StringListConverter.class)
+    private List<String> solveOrder;
 
-    /** True when all 4 groups were found. */
-    private final boolean completed;
-
-    /**
-     * The color emoji for each correctly solved group, in the order solved.
-     * E.g. ["🟨", "🟦", "🟩", "🟪"]
-     */
-    private final List<String> solveOrder;
+    protected ConnectionsResult() {}
 
     public ConnectionsResult(String rawContent, String discordAuthor, String comment,
                              int puzzleNumber, int mistakes, boolean completed,
@@ -39,3 +39,4 @@ public class ConnectionsResult extends GameResult {
                 .formatted(puzzleNumber, mistakes, completed, solveOrder, getComment(), getDiscordAuthor());
     }
 }
+

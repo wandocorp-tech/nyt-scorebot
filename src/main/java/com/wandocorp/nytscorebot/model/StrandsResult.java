@@ -1,9 +1,14 @@
 package com.wandocorp.nytscorebot.model;
 
+import jakarta.persistence.Embeddable;
+
+@Embeddable
 public class StrandsResult extends GameResult {
 
-    private final int puzzleNumber;
-    private final int hintsUsed;
+    private int puzzleNumber;
+    private int hintsUsed;
+
+    protected StrandsResult() {}
 
     public StrandsResult(String rawContent, String discordAuthor, String comment,
                          int puzzleNumber, int hintsUsed) {
@@ -21,3 +26,4 @@ public class StrandsResult extends GameResult {
                 .formatted(puzzleNumber, hintsUsed, getComment(), getDiscordAuthor());
     }
 }
+
