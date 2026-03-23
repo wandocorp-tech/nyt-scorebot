@@ -160,4 +160,68 @@ class ScoreboardServiceTest {
                 expectedConnections, 0, true, List.of("🟩", "🟨", "🟦", "🟪"));
         assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, connections)).isEqualTo(SaveOutcome.SAVED);
     }
+
+    // ── applyResult branches ─────────────────────────────────────────────────
+
+    @Test
+    void correctStrandsResultIsSaved() {
+        int expected = calendar.expectedStrands();
+        StrandsResult result = new StrandsResult("raw", PERSON, null, expected, 0);
+
+        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result)).isEqualTo(SaveOutcome.SAVED);
+        verify(scoreboardRepo).save(any(Scoreboard.class));
+    }
+
+    @Test
+    void midiCrosswordWithTodaysDateIsSaved() {
+        CrosswordResult result = new CrosswordResult("raw", PERSON, null,
+                CrosswordType.MIDI, "3:00", 180, TODAY);
+
+        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result)).isEqualTo(SaveOutcome.SAVED);
+    }
+
+    @Test
+    void miniCrosswordWithTodaysDateIsSaved() {
+        CrosswordResult result = new CrosswordResult("raw", PERSON, null,
+                CrosswordType.MINI, "0:30", 30, TODAY);
+
+        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result)).isEqualTo(SaveOutcome.SAVED);
+    }
+
+    @Test
+    void crosswordWithNullDateIsAlwaysSaved() {
+        // A crossword result with no extracted date (null) skips date validation
+        CrosswordResult result = new CrosswordResult("raw", PERSON, null,
+                CrosswordType.MINI, "0:30", 30, null);
+
+        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result)).isEqualTo(SaveOutcome.SAVED);
+    }
+
+    // ── Entity creation paths ────────────────────────────────────────────────
+
+    @Test
+    void newUserIsCreatedWhenNoneExists() {
+        when(userRepo.findByChannelId(CHANNEL)).thenReturn(Optional.empty());
+        when(userRepo.save(any(User.class))).thenReturn(user);
+        when(scoreboardRepo.findByUserAndDate(user, TODAY)).thenReturn(Optional.of(scoreboard));
+
+        int expected = calendar.expectedWordle();
+        WordleResult result = new WordleResult("raw", PERSON, null, expected, 3, true, false);
+
+        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result)).isEqualTo(SaveOutcome.SAVED);
+        verify(userRepo).save(any(User.class));
+    }
+
+    @Test
+    void newScoreboardIsCreatedWhenNoneExists() {
+        when(scoreboardRepo.findByUserAndDate(user, TODAY)).thenReturn(Optional.empty());
+        when(scoreboardRepo.save(any(Scoreboard.class))).thenReturn(scoreboard);
+
+        int expected = calendar.expectedWordle();
+        WordleResult result = new WordleResult("raw", PERSON, null, expected, 3, true, false);
+
+        // First save creates the scoreboard, second save persists the result
+        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result)).isEqualTo(SaveOutcome.SAVED);
+        verify(scoreboardRepo, times(2)).save(any(Scoreboard.class));
+    }
 }

@@ -110,8 +110,6 @@ public class ScoreboardService {
                 case MIDI  -> scoreboard.setMidiCrosswordResult(r);
                 case DAILY -> scoreboard.setDailyCrosswordResult(r);
             }
-        } else {
-            log.warn("Unknown GameResult type: {}", result.getClass().getName());
         }
     }
 }

@@ -8,15 +8,17 @@ import com.wandocorp.nytscorebot.service.ScoreboardService;
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.domain.message.MessageCreateEvent;
-import discord4j.core.object.entity.Message;
+import discord4j.core.object.entity.channel.MessageChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 import jakarta.annotation.PostConstruct;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Component
@@ -27,8 +29,8 @@ public class MessageListener {
     private final GatewayDiscordClient client;
     private final GameResultParser parser;
     private final ScoreboardService scoreboardService;
-    private final Map<Snowflake, String> channelPersonMap;
-    private final Map<Snowflake, String> channelUserIdMap;
+    final Map<Snowflake, String> channelPersonMap;
+    final Map<Snowflake, String> channelUserIdMap;
 
     public MessageListener(GatewayDiscordClient client,
                            DiscordChannelProperties channelProperties,
@@ -57,54 +59,57 @@ public class MessageListener {
         return channelPersonMap.containsKey(channelId);
     }
 
+    boolean isFromConfiguredUser(Snowflake channelId, Optional<String> authorId) {
+        String configuredUserId = channelUserIdMap.get(channelId);
+        return authorId.map(configuredUserId::equals).orElse(false);
+    }
+
+    Mono<?> processMessage(Snowflake channelId, String content, Mono<MessageChannel> channelMono) {
+        String personName = channelPersonMap.get(channelId);
+        String discordUserId = channelUserIdMap.get(channelId);
+        return parser.parse(content, personName)
+                .map(result -> {
+                    log.info("Parsed game result for {}: {}", personName, result);
+                    SaveOutcome outcome = scoreboardService.saveResult(
+                            channelId.asString(), personName, discordUserId, result);
+                    return replyForOutcome(channelMono, outcome);
+                })
+                .orElseGet(() -> {
+                    log.debug("Unrecognised message from channel {}: {}", channelId.asString(), content);
+                    return Mono.empty();
+                });
+    }
+
     @PostConstruct
     public void subscribe() {
-        client.on(MessageCreateEvent.class)
-                .filter(event -> channelPersonMap.containsKey(event.getMessage().getChannelId()))
-                .filter(event -> {
-                    String configuredUserId = channelUserIdMap.get(event.getMessage().getChannelId());
-                    return event.getMessage().getAuthor()
-                            .map(u -> u.getId().asString().equals(configuredUserId))
-                            .orElse(false);
-                })
-                .flatMap(event -> {
-                    Snowflake channelId = event.getMessage().getChannelId();
-                    String personName = channelPersonMap.get(channelId);
-                    String discordUserId = channelUserIdMap.get(channelId);
-                    String content = event.getMessage().getContent();
-                    Message message = event.getMessage();
+        listenToEvents(client.on(MessageCreateEvent.class));
+    }
 
-                    return parser.parse(content, personName)
-                            .map(result -> {
-                                log.info("Parsed game result for {}: {}", personName, result);
-                                SaveOutcome outcome = scoreboardService.saveResult(
-                                        channelId.asString(), personName, discordUserId, result);
-                                return replyForOutcome(message, outcome);
-                            })
-                            .orElseGet(() -> {
-                                log.debug("Unrecognised message from channel {}: {}",
-                                        channelId.asString(), content);
-                                return Mono.empty();
-                            });
-                })
+    void listenToEvents(Flux<MessageCreateEvent> events) {
+        events
+                .filter(event -> isChannelMonitored(event.getMessage().getChannelId()))
+                .filter(event -> isFromConfiguredUser(
+                        event.getMessage().getChannelId(),
+                        event.getMessage().getAuthor().map(u -> u.getId().asString())))
+                .flatMap(event -> processMessage(
+                        event.getMessage().getChannelId(),
+                        event.getMessage().getContent(),
+                        event.getMessage().getChannel().subscribeOn(Schedulers.boundedElastic())))
                 .subscribe();
     }
 
-    private Mono<?> replyForOutcome(Message message, SaveOutcome outcome) {
+    Mono<?> replyForOutcome(Mono<MessageChannel> channelMono, SaveOutcome outcome) {
         return switch (outcome) {
             case SAVED -> Mono.empty();
-            case WRONG_PUZZLE_NUMBER -> message.getChannel()
+            case WRONG_PUZZLE_NUMBER -> channelMono
                     .flatMap(ch -> ch.createMessage("⚠️ That doesn't look like today's puzzle number. " +
-                            "Result was not saved."))
-                    .subscribeOn(Schedulers.boundedElastic());
-            case WRONG_DATE -> message.getChannel()
+                            "Result was not saved."));
+            case WRONG_DATE -> channelMono
                     .flatMap(ch -> ch.createMessage("⚠️ That crossword date doesn't match today. " +
-                            "Result was not saved."))
-                    .subscribeOn(Schedulers.boundedElastic());
-            case ALREADY_SUBMITTED -> message.getChannel()
+                            "Result was not saved."));
+            case ALREADY_SUBMITTED -> channelMono
                     .flatMap(ch -> ch.createMessage("ℹ️ You've already submitted this game type today. " +
-                            "Result was not saved."))
-                    .subscribeOn(Schedulers.boundedElastic());
+                            "Result was not saved."));
         };
     }
 }

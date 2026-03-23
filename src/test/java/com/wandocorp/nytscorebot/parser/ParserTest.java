@@ -11,7 +11,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Unit tests for all four game parsers.
  * No Spring context is required — parsers are instantiated directly.
- *
  * Each parser is exercised with three real samples covering a mix of outcomes
  * (different attempt counts, comments, failures, game types, etc.).
  * Assertions cover every parsed field including rawContent and comment extraction.
@@ -212,11 +211,6 @@ class ParserTest {
             "I solved the 3/23/2026 New York Times Midi Crossword in 2:13! " +
             "https://www.nytimes.com/crosswords/game/midi";
 
-    /** Mini — URL on same line followed by a user comment on the next line */
-    private static final String CROSSWORD_MINI =
-            "I solved the 3/23/2026 New York Times Mini Crossword in 0:24! " +
-            "https://www.nytimes.com/crosswords/game/mini\nthat was a fun one";
-
     @Test
     void crosswordDaily() {
         Optional<GameResult> result = crosswordParser.parse(CROSSWORD_DAILY, AUTHOR);
@@ -243,16 +237,19 @@ class ParserTest {
         assertThat(cr.getComment()).isNull();
     }
 
+    /** Daily — date extracted from URL path (/daily/YYYY/M/DD) — no text date in message */
+    private static final String CROSSWORD_DAILY_URL_DATE =
+            "I solved the New York Times Daily Crossword in 10:00! " +
+            "https://www.nytimes.com/crosswords/daily/2026/3/23";
+
     @Test
-    void crosswordMini() {
-        Optional<GameResult> result = crosswordParser.parse(CROSSWORD_MINI, AUTHOR);
+    void crosswordDailyUrlDate() {
+        Optional<GameResult> result = crosswordParser.parse(CROSSWORD_DAILY_URL_DATE, AUTHOR);
         assertThat(result).isPresent();
         CrosswordResult cr = (CrosswordResult) result.get();
-        assertThat(cr.getType()).isEqualTo(CrosswordType.MINI);
-        assertThat(cr.getTimeString()).isEqualTo("0:24");
-        assertThat(cr.getTotalSeconds()).isEqualTo(24);
+        assertThat(cr.getType()).isEqualTo(CrosswordType.DAILY);
         assertThat(cr.getDate()).isEqualTo(LocalDate.of(2026, 3, 23));
-        assertThat(cr.getRawContent()).isEqualTo(CROSSWORD_MINI);
-        assertThat(cr.getComment()).isEqualTo("that was a fun one");
+        assertThat(cr.getComment()).isNull();
     }
 }
+
