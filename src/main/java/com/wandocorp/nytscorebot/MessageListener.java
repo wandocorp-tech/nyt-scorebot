@@ -18,7 +18,6 @@ import reactor.core.scheduler.Schedulers;
 
 import jakarta.annotation.PostConstruct;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Component
@@ -59,9 +58,9 @@ public class MessageListener {
         return channelPersonMap.containsKey(channelId);
     }
 
-    boolean isFromConfiguredUser(Snowflake channelId, Optional<String> authorId) {
+    boolean isFromConfiguredUser(Snowflake channelId, String authorId) {
         String configuredUserId = channelUserIdMap.get(channelId);
-        return authorId.map(configuredUserId::equals).orElse(false);
+        return authorId != null && configuredUserId.equals(authorId);
     }
 
     Mono<?> processMessage(Snowflake channelId, String content, Mono<MessageChannel> channelMono) {
@@ -90,7 +89,7 @@ public class MessageListener {
                 .filter(event -> isChannelMonitored(event.getMessage().getChannelId()))
                 .filter(event -> isFromConfiguredUser(
                         event.getMessage().getChannelId(),
-                        event.getMessage().getAuthor().map(u -> u.getId().asString())))
+                        event.getMessage().getAuthor().map(u -> u.getId().asString()).orElse(null)))
                 .flatMap(event -> processMessage(
                         event.getMessage().getChannelId(),
                         event.getMessage().getContent(),

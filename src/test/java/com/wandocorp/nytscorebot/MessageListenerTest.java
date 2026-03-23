@@ -18,7 +18,6 @@ import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
@@ -70,17 +69,17 @@ class MessageListenerTest {
 
     @Test
     void matchingUserReturnsTrue() {
-        assertThat(listener.isFromConfiguredUser(CHANNEL_SNOWFLAKE, Optional.of(USER_ID))).isTrue();
+        assertThat(listener.isFromConfiguredUser(CHANNEL_SNOWFLAKE, USER_ID)).isTrue();
     }
 
     @Test
     void wrongUserReturnsFalse() {
-        assertThat(listener.isFromConfiguredUser(CHANNEL_SNOWFLAKE, Optional.of("wrong"))).isFalse();
+        assertThat(listener.isFromConfiguredUser(CHANNEL_SNOWFLAKE, "wrong")).isFalse();
     }
 
     @Test
     void emptyAuthorReturnsFalse() {
-        assertThat(listener.isFromConfiguredUser(CHANNEL_SNOWFLAKE, Optional.empty())).isFalse();
+        assertThat(listener.isFromConfiguredUser(CHANNEL_SNOWFLAKE, null)).isFalse();
     }
 
     // ── replyForOutcome ───────────────────────────────────────────────────────
@@ -164,10 +163,7 @@ class MessageListenerTest {
         when(parser.parse(anyString(), eq(NAME))).thenReturn(Optional.of(result));
         when(scoreboardService.saveResult(any(), any(), any(), any())).thenReturn(SaveOutcome.SAVED);
 
-        AtomicBoolean completed = new AtomicBoolean();
-        listener.listenToEvents(
-                Flux.just(buildEvent(CHANNEL_ID, USER_ID))
-                    .doOnComplete(() -> completed.set(true)));
+        listener.listenToEvents(Flux.just(buildEvent(CHANNEL_ID, USER_ID)));
 
         verify(scoreboardService).saveResult(eq(CHANNEL_ID), eq(NAME), eq(USER_ID), eq(result));
     }
