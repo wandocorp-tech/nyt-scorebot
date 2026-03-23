@@ -60,7 +60,7 @@ public class MessageListener {
 
     boolean isFromConfiguredUser(Snowflake channelId, String authorId) {
         String configuredUserId = channelUserIdMap.get(channelId);
-        return authorId != null && configuredUserId.equals(authorId);
+        return configuredUserId.equals(authorId);
     }
 
     Mono<?> processMessage(Snowflake channelId, String content, Mono<MessageChannel> channelMono) {
