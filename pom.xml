@@ -54,6 +54,76 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!-- Allow ByteBuddy to load its instrumentation agent at runtime,
+                         which Mockito inline mock maker requires on Java 21+. -->
+                    <argLine>-XX:+EnableDynamicAgentLoading --add-opens java.base/java.lang=ALL-UNNAMED -Dnet.bytebuddy.experimental=true @{argLine}</argLine>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.12</version>
+                <configuration>
+                    <excludes>
+                        <!-- Pure data classes: no logic to test -->
+                        <exclude>com/wandocorp/nytscorebot/model/**</exclude>
+                        <exclude>com/wandocorp/nytscorebot/entity/User.class</exclude>
+                        <exclude>com/wandocorp/nytscorebot/entity/Scoreboard.class</exclude>
+                        <!-- Spring Data interfaces: no implementation code -->
+                        <exclude>com/wandocorp/nytscorebot/repository/**</exclude>
+                        <!-- Pure enums: JaCoCo generates synthetic values()/valueOf() methods -->
+                        <exclude>com/wandocorp/nytscorebot/service/SaveOutcome.class</exclude>
+                        <!-- Bootstrap / infrastructure: requires live Discord connection -->
+                        <exclude>com/wandocorp/nytscorebot/NytScorebotApplication.class</exclude>
+                        <exclude>com/wandocorp/nytscorebot/DiscordConfig.class</exclude>
+                    </excludes>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>prepare-agent</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>check</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <rule>
+                                    <element>BUNDLE</element>
+                                    <limits>
+                                        <limit>
+                                            <counter>INSTRUCTION</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.80</minimum>
+                                        </limit>
+                                        <limit>
+                                            <counter>BRANCH</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.80</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 
