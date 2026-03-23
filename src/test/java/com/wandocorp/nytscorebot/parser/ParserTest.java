@@ -140,15 +140,19 @@ class ParserTest {
 
     /** #700 — 1 hint used (💡 in grid), no user comment */
     private static final String STRANDS_1 =
-            "NYT Strands #700\n\"It's a gift\"\n💡🔵🔵🟡🔵🔵🔵🔵";
+            "Strands #700\n\"It's a gift\"\n💡🔵🔵🟡🔵🔵🔵🔵";
 
     /** #698 — no hints, user comment "that sucked" after the grid */
     private static final String STRANDS_2 =
-            "NYT Strands #698\n\"We're not lost ...\"\n🟡🔵🔵🔵🔵🔵🔵\nthat sucked";
+            "Strands #698\n\"We're not lost ...\"\n🟡🔵🔵🔵🔵🔵🔵\nthat sucked";
 
     /** #695 — no hints, no comment */
     private static final String STRANDS_3 =
-            "NYT Strands #695\n\"Canine classics\"\n🔵🔵🔵🟡🔵🔵🔵🔵🔵";
+            "Strands #695\n\"Canine classics\"\n🔵🔵🔵🟡🔵🔵🔵🔵🔵";
+
+    /** #750 — multi-line grid, no hints, no comment */
+    private static final String STRANDS_4 =
+            "Strands #750\n\"In pieces\"\n🔵🔵🟡🔵\n🔵🔵🔵";
 
     @Test
     void strandsWithHint() {
@@ -180,6 +184,17 @@ class ParserTest {
         assertThat(sr.getPuzzleNumber()).isEqualTo(695);
         assertThat(sr.getHintsUsed()).isEqualTo(0);
         assertThat(sr.getRawContent()).isEqualTo(STRANDS_3);
+        assertThat(sr.getComment()).isNull();
+    }
+
+    @Test
+    void strandsMultiLineGrid() {
+        Optional<GameResult> result = strandsParser.parse(STRANDS_4, AUTHOR);
+        assertThat(result).isPresent();
+        StrandsResult sr = (StrandsResult) result.get();
+        assertThat(sr.getPuzzleNumber()).isEqualTo(750);
+        assertThat(sr.getHintsUsed()).isEqualTo(0);
+        assertThat(sr.getRawContent()).isEqualTo(STRANDS_4);
         assertThat(sr.getComment()).isNull();
     }
 
@@ -223,7 +238,7 @@ class ParserTest {
         assertThat(cr.getType()).isEqualTo(CrosswordType.MIDI);
         assertThat(cr.getTimeString()).isEqualTo("2:13");
         assertThat(cr.getTotalSeconds()).isEqualTo(2 * 60 + 13);
-        assertThat(cr.getDate()).isNull();
+        assertThat(cr.getDate()).isEqualTo(LocalDate.of(2026, 3, 23));
         assertThat(cr.getRawContent()).isEqualTo(CROSSWORD_MIDI);
         assertThat(cr.getComment()).isNull();
     }
@@ -236,7 +251,7 @@ class ParserTest {
         assertThat(cr.getType()).isEqualTo(CrosswordType.MINI);
         assertThat(cr.getTimeString()).isEqualTo("0:24");
         assertThat(cr.getTotalSeconds()).isEqualTo(24);
-        assertThat(cr.getDate()).isNull();
+        assertThat(cr.getDate()).isEqualTo(LocalDate.of(2026, 3, 23));
         assertThat(cr.getRawContent()).isEqualTo(CROSSWORD_MINI);
         assertThat(cr.getComment()).isEqualTo("that was a fun one");
     }

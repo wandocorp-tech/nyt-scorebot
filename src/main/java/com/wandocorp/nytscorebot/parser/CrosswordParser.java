@@ -43,10 +43,16 @@ public class CrosswordParser implements GameParser {
     @Override
     public Optional<GameResult> parse(String content, String discordAuthor) {
         Matcher mini = MINI.matcher(content);
-        if (mini.find()) return Optional.of(build(content, discordAuthor, CrosswordType.MINI, mini.group(1), null, mini));
+        if (mini.find()) {
+            LocalDate date = extractDate(content);
+            return Optional.of(build(content, discordAuthor, CrosswordType.MINI, mini.group(1), date, mini));
+        }
 
         Matcher midi = MIDI.matcher(content);
-        if (midi.find()) return Optional.of(build(content, discordAuthor, CrosswordType.MIDI, midi.group(1), null, midi));
+        if (midi.find()) {
+            LocalDate date = extractDate(content);
+            return Optional.of(build(content, discordAuthor, CrosswordType.MIDI, midi.group(1), date, midi));
+        }
 
         Matcher daily = DAILY.matcher(content);
         if (daily.find()) {
