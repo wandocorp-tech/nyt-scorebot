@@ -16,7 +16,7 @@ import java.util.regex.Pattern;
 @Order(4)
 public class StrandsParser implements GameParser {
 
-    private static final Pattern HEADER = Pattern.compile("NYT Strands #(\\d+)");
+    private static final Pattern HEADER = Pattern.compile("Strands #(\\d+)");
     private static final String HINT_BULB = "💡";
 
     // Emoji used in the Strands result grid: coloured circles + hint bulb

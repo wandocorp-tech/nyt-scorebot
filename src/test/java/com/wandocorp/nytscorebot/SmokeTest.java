@@ -2,7 +2,9 @@ package com.wandocorp.nytscorebot;
 
 import com.wandocorp.nytscorebot.entity.Scoreboard;
 import com.wandocorp.nytscorebot.entity.User;
+import com.wandocorp.nytscorebot.model.ConnectionsResult;
 import com.wandocorp.nytscorebot.model.CrosswordResult;
+import com.wandocorp.nytscorebot.model.StrandsResult;
 import com.wandocorp.nytscorebot.model.WordleResult;
 import com.wandocorp.nytscorebot.repository.ScoreboardRepository;
 import com.wandocorp.nytscorebot.repository.UserRepository;
@@ -17,6 +19,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -175,6 +178,61 @@ class SmokeTest {
         User player2 = userRepository.findByChannelId(PLAYER_2_CHANNEL.asString()).orElseThrow();
         assertThat(player2.getName()).isEqualTo("Player Two (Smoke Test)");
         assertThat(scoreboardRepository.findByUserAndDate(player2, LocalDate.now())).isPresent();
+    }
+
+    // ── All-games ─────────────────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("All-games: One of each game type in a single day lands on one Scoreboard row")
+    void allGameTypesLandOnSingleScoreboard() throws InterruptedException {
+        String today = LocalDate.now().format(DateTimeFormatter.ofPattern("M/d/yyyy"));
+
+        String connections = "Connections\nPuzzle #1016\n🟩🟩🟩🟩\n🟪🟪🟪🟪\n🟨🟨🟨🟨\n🟦🟦🟦🟦";
+        String strands     = "Strands #750\n\"In pieces\"\n🔵🔵🟡🔵\n🔵🔵🔵";
+        String mini        = "I solved the " + today + " New York Times Mini Crossword in 1:23!";
+        String midi        = "I solved the " + today + " New York Times Midi Crossword in 3:45!";
+        String daily       = "I solved the " + today + " New York Times Daily Crossword in 15:00!";
+
+        postTo(PLAYER_1_CHANNEL, WORDLE_SAMPLE);
+        postTo(PLAYER_1_CHANNEL, connections);
+        postTo(PLAYER_1_CHANNEL, strands);
+        postTo(PLAYER_1_CHANNEL, mini);
+        postTo(PLAYER_1_CHANNEL, midi);
+        postTo(PLAYER_1_CHANNEL, daily);
+        sleep(10);
+
+        assertThat(userRepository.count()).isEqualTo(1);
+        assertThat(scoreboardRepository.count()).as("all same-day results on one Scoreboard").isEqualTo(1);
+
+        Scoreboard scoreboard = scoreboardRepository.findAll().get(0);
+        assertThat(scoreboard.getDate()).isEqualTo(LocalDate.now());
+
+        WordleResult wr = scoreboard.getWordleResult();
+        assertThat(wr).isNotNull();
+        assertThat(wr.getPuzzleNumber()).isEqualTo(1736);
+        assertThat(wr.getAttempts()).isEqualTo(3);
+
+        ConnectionsResult cr = scoreboard.getConnectionsResult();
+        assertThat(cr).isNotNull();
+        assertThat(cr.getPuzzleNumber()).isEqualTo(1016);
+        assertThat(cr.getMistakes()).isEqualTo(0);
+
+        StrandsResult sr = scoreboard.getStrandsResult();
+        assertThat(sr).isNotNull();
+        assertThat(sr.getPuzzleNumber()).isEqualTo(750);
+        assertThat(sr.getHintsUsed()).isEqualTo(0);
+
+        CrosswordResult miniResult = scoreboard.getMiniCrosswordResult();
+        assertThat(miniResult).isNotNull();
+        assertThat(miniResult.getTimeString()).isEqualTo("1:23");
+
+        CrosswordResult midiResult = scoreboard.getMidiCrosswordResult();
+        assertThat(midiResult).isNotNull();
+        assertThat(midiResult.getTimeString()).isEqualTo("3:45");
+
+        CrosswordResult dailyResult = scoreboard.getDailyCrosswordResult();
+        assertThat(dailyResult).isNotNull();
+        assertThat(dailyResult.getTimeString()).isEqualTo("15:00");
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────
