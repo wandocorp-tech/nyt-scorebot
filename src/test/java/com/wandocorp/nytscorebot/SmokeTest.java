@@ -26,15 +26,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Live smoke tests — require a real Discord connection and the test channels to exist in the server.
- *
+ * <p>
  * Channels configured in application-test.properties:
- *   - Player One (Smoke Test) : 1358128555384377360  ← configured, bot posts here
- *   - Player Two (Smoke Test) : 1485602399182913586  ← configured, bot posts here
- *   - ignored-channel         : 1485602440287092806  ← NOT configured, used for 5.4
- *
+ * - Player One (Smoke Test) : 1358128555384377360  ← configured, bot posts here
+ * - Player Two (Smoke Test) : 1485602399182913586  ← configured, bot posts here
+ * - ignored-channel         : 1485602440287092806  ← NOT configured, used for 5.4
+ * <p>
  * Both configured channels use the bot's own user-id (1485298372637102101) so that messages
  * the bot posts to those channels pass the userId filter and are processed normally.
- *
+ * <p>
  * Run with: mvn test
  */
 @SpringBootTest
@@ -44,12 +44,14 @@ class SmokeTest {
     // Real sample data — captured from the NYT games.
     // The Wordle grid has no trailing comment; the Crossword has "No lookups" as a comment.
     private static final String WORDLE_SAMPLE =
-            "Wordle 1,736 3/6\n\n🟨⬛⬛⬛⬛\n🟩⬛🟩🟩🟩\n🟩🟩🟩🟩🟩";
+            "Wordle 1,738 3/6\n\n🟨⬛⬛⬛⬛\n🟩⬛🟩🟩🟩\n🟩🟩🟩🟩🟩";
 
     private static final String CROSSWORD_SAMPLE =
-            "https://www.nytimes.com/crosswords/game/by-id/23772\n" +
-            "I solved the Saturday 3/21/2026 New York Times Daily Crossword in 22:02!\n\n" +
-            "No lookups";
+            """
+                https://www.nytimes.com/crosswords/game/by-id/23772
+                I solved the Saturday 3/21/2026 New York Times Daily Crossword in 22:02!
+        
+                No lookups""";
 
     // Configured channels — messages posted here ARE processed
     private static final Snowflake PLAYER_1_CHANNEL = Snowflake.of("1358128555384377360");
@@ -82,7 +84,7 @@ class SmokeTest {
 
     @Test
     @DisplayName("5.2: Message on configured channel creates a User and a Scoreboard in H2")
-    void configuredChannelMessagePersistsUserAndScoreboard() throws InterruptedException {
+    void configuredChannelMessagePersistsUserAndScoreboard() {
         postTo(PLAYER_1_CHANNEL, WORDLE_SAMPLE);
         sleep(5);
 
@@ -98,7 +100,7 @@ class SmokeTest {
 
         WordleResult wr = scoreboard.getWordleResult();
         assertThat(wr).isNotNull();
-        assertThat(wr.getPuzzleNumber()).isEqualTo(1736);
+        assertThat(wr.getPuzzleNumber()).isEqualTo(1738);
         assertThat(wr.getAttempts()).isEqualTo(3);
         assertThat(wr.isCompleted()).isTrue();
         assertThat(wr.isHardMode()).isFalse();
@@ -110,7 +112,7 @@ class SmokeTest {
 
     @Test
     @DisplayName("5.3: Second message from same channel reuses the existing User and adds a new Scoreboard")
-    void secondMessageReusesUserAndAddsScoreboard() throws InterruptedException {
+    void secondMessageReusesUserAndAddsScoreboard() {
         postTo(PLAYER_1_CHANNEL, WORDLE_SAMPLE);
         sleep(5);
 
@@ -145,7 +147,7 @@ class SmokeTest {
 
     @Test
     @DisplayName("5.4: Message on unconfigured channel is silently ignored")
-    void unconfiguredChannelIsIgnored() throws InterruptedException {
+    void unconfiguredChannelIsIgnored() {
         assertThat(messageListener.isChannelMonitored(IGNORED_CHANNEL))
                 .as("ignored-channel must not be in the monitored set")
                 .isFalse();
@@ -163,7 +165,7 @@ class SmokeTest {
 
     @Test
     @DisplayName("Multi-channel: Player Two channel creates its own User and Scoreboard independently")
-    void playerTwoChannelPersistsIndependently() throws InterruptedException {
+    void playerTwoChannelPersistsIndependently() {
         postTo(PLAYER_1_CHANNEL, WORDLE_SAMPLE);
         postTo(PLAYER_2_CHANNEL, WORDLE_SAMPLE);
         sleep(5);
@@ -184,14 +186,14 @@ class SmokeTest {
 
     @Test
     @DisplayName("All-games: One of each game type in a single day lands on one Scoreboard row")
-    void allGameTypesLandOnSingleScoreboard() throws InterruptedException {
+    void allGameTypesLandOnSingleScoreboard() {
         String today = LocalDate.now().format(DateTimeFormatter.ofPattern("M/d/yyyy"));
 
         String connections = "Connections\nPuzzle #1016\n🟩🟩🟩🟩\n🟪🟪🟪🟪\n🟨🟨🟨🟨\n🟦🟦🟦🟦";
-        String strands     = "Strands #750\n\"In pieces\"\n🔵🔵🟡🔵\n🔵🔵🔵";
-        String mini        = "I solved the " + today + " New York Times Mini Crossword in 1:23!";
-        String midi        = "I solved the " + today + " New York Times Midi Crossword in 3:45!";
-        String daily       = "I solved the " + today + " New York Times Daily Crossword in 15:00!";
+        String strands = "Strands #750\n\"In pieces\"\n🔵🔵🟡🔵\n🔵🔵🔵";
+        String mini = "I solved the " + today + " New York Times Mini Crossword in 1:23!";
+        String midi = "I solved the " + today + " New York Times Midi Crossword in 3:45!";
+        String daily = "I solved the " + today + " New York Times Daily Crossword in 15:00!";
 
         postTo(PLAYER_1_CHANNEL, WORDLE_SAMPLE);
         postTo(PLAYER_1_CHANNEL, connections);
@@ -209,7 +211,7 @@ class SmokeTest {
 
         WordleResult wr = scoreboard.getWordleResult();
         assertThat(wr).isNotNull();
-        assertThat(wr.getPuzzleNumber()).isEqualTo(1736);
+        assertThat(wr.getPuzzleNumber()).isEqualTo(1738);
         assertThat(wr.getAttempts()).isEqualTo(3);
 
         ConnectionsResult cr = scoreboard.getConnectionsResult();

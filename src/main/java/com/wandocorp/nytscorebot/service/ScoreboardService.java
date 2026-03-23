@@ -33,18 +33,22 @@ public class ScoreboardService {
     public SaveOutcome saveResult(String channelId, String personName, String discordUserId, GameResult result) {
         LocalDate today = puzzleCalendar.today();
 
-        // Validate puzzle number / date
-        SaveOutcome validation = validate(result, today);
+        // Validate puzzle number (numbered games only)
+        SaveOutcome validation = validate(result);
         if (validation != SaveOutcome.SAVED) {
             log.info("Rejected {} result for {}: {}", result.getClass().getSimpleName(), personName, validation);
             return validation;
         }
 
+        // Crosswords are stored against their own embedded date; all other results use today
+        LocalDate resultDate = (result instanceof CrosswordResult r && r.getDate() != null)
+                ? r.getDate() : today;
+
         User user = userRepository.findByChannelId(channelId)
                 .orElseGet(() -> userRepository.save(new User(channelId, personName, discordUserId)));
 
-        Scoreboard scoreboard = scoreboardRepository.findByUserAndDate(user, today)
-                .orElseGet(() -> scoreboardRepository.save(new Scoreboard(user, today)));
+        Scoreboard scoreboard = scoreboardRepository.findByUserAndDate(user, resultDate)
+                .orElseGet(() -> scoreboardRepository.save(new Scoreboard(user, resultDate)));
 
         // Check for duplicate submission
         if (isAlreadySubmitted(scoreboard, result)) {
@@ -59,7 +63,7 @@ public class ScoreboardService {
         return SaveOutcome.SAVED;
     }
 
-    private SaveOutcome validate(GameResult result, LocalDate today) {
+    private SaveOutcome validate(GameResult result) {
         if (result instanceof WordleResult r) {
             if (r.getPuzzleNumber() != puzzleCalendar.expectedWordle()) {
                 return SaveOutcome.WRONG_PUZZLE_NUMBER;
@@ -72,29 +76,28 @@ public class ScoreboardService {
             if (r.getPuzzleNumber() != puzzleCalendar.expectedStrands()) {
                 return SaveOutcome.WRONG_PUZZLE_NUMBER;
             }
-        } else if (result instanceof CrosswordResult r) {
-            if (r.getDate() != null && !r.getDate().equals(today)) {
-                return SaveOutcome.WRONG_DATE;
-            }
         }
         return SaveOutcome.SAVED;
     }
 
     private boolean isAlreadySubmitted(Scoreboard scoreboard, GameResult result) {
+        GameResult existing;
         if (result instanceof WordleResult) {
-            return scoreboard.getWordleResult() != null;
+            existing = scoreboard.getWordleResult();
         } else if (result instanceof ConnectionsResult) {
-            return scoreboard.getConnectionsResult() != null;
+            existing = scoreboard.getConnectionsResult();
         } else if (result instanceof StrandsResult) {
-            return scoreboard.getStrandsResult() != null;
+            existing = scoreboard.getStrandsResult();
         } else if (result instanceof CrosswordResult r) {
-            return switch (r.getType()) {
-                case MINI  -> scoreboard.getMiniCrosswordResult() != null;
-                case MIDI  -> scoreboard.getMidiCrosswordResult() != null;
-                case DAILY -> scoreboard.getDailyCrosswordResult() != null;
+            existing = switch (r.getType()) {
+                case MINI  -> scoreboard.getMiniCrosswordResult();
+                case MIDI  -> scoreboard.getMidiCrosswordResult();
+                case DAILY -> scoreboard.getDailyCrosswordResult();
             };
+        } else {
+            return false;
         }
-        return false;
+        return existing != null && existing.getRawContent() != null;
     }
 
     private void applyResult(Scoreboard scoreboard, GameResult result) {

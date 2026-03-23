@@ -118,12 +118,16 @@ class ScoreboardServiceTest {
     }
 
     @Test
-    void crosswordWithWrongDateIsRejected() {
-        CrosswordResult result = new CrosswordResult("raw", PERSON, null,
-                CrosswordType.DAILY, "5:00", 300, TODAY.minusDays(1));
+    void crosswordWithPreviousDateIsAccepted() {
+        LocalDate yesterday = TODAY.minusDays(1);
+        Scoreboard yesterdayBoard = new Scoreboard(user, yesterday);
+        when(scoreboardRepo.findByUserAndDate(user, yesterday)).thenReturn(Optional.of(yesterdayBoard));
 
-        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result)).isEqualTo(SaveOutcome.WRONG_DATE);
-        verify(scoreboardRepo, never()).save(any(Scoreboard.class));
+        CrosswordResult result = new CrosswordResult("raw", PERSON, null,
+                CrosswordType.DAILY, "5:00", 300, yesterday);
+
+        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result)).isEqualTo(SaveOutcome.SAVED);
+        verify(scoreboardRepo).save(any(Scoreboard.class));
     }
 
     // ── Deduplication ────────────────────────────────────────────────────────
