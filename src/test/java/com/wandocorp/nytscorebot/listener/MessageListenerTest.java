@@ -1,4 +1,4 @@
-package com.wandocorp.nytscorebot;
+package com.wandocorp.nytscorebot.listener;
 
 import com.wandocorp.nytscorebot.config.DiscordChannelProperties;
 import com.wandocorp.nytscorebot.config.DiscordChannelProperties.ChannelConfig;

@@ -30,6 +30,23 @@ public class ScoreboardService {
     }
 
     @Transactional
+    public MarkCompleteOutcome markComplete(String discordUserId, LocalDate date) {
+        return userRepository.findByUserId(discordUserId)
+                .map(user -> scoreboardRepository.findByUserAndDate(user, date)
+                        .map(scoreboard -> {
+                            if (scoreboard.isComplete()) {
+                                return MarkCompleteOutcome.ALREADY_COMPLETE;
+                            }
+                            scoreboard.setComplete(true);
+                            scoreboardRepository.save(scoreboard);
+                            log.info("Marked scoreboard complete for user {} on {}", discordUserId, date);
+                            return MarkCompleteOutcome.MARKED_COMPLETE;
+                        })
+                        .orElse(MarkCompleteOutcome.NO_SCOREBOARD_FOR_DATE))
+                .orElse(MarkCompleteOutcome.USER_NOT_FOUND);
+    }
+
+    @Transactional
     public SaveOutcome saveResult(String channelId, String personName, String discordUserId, GameResult result) {
         LocalDate today = puzzleCalendar.today();
 

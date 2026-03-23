@@ -6,8 +6,11 @@ import com.wandocorp.nytscorebot.model.ConnectionsResult;
 import com.wandocorp.nytscorebot.model.CrosswordResult;
 import com.wandocorp.nytscorebot.model.StrandsResult;
 import com.wandocorp.nytscorebot.model.WordleResult;
+import com.wandocorp.nytscorebot.listener.MessageListener;
 import com.wandocorp.nytscorebot.repository.ScoreboardRepository;
 import com.wandocorp.nytscorebot.repository.UserRepository;
+import com.wandocorp.nytscorebot.service.MarkCompleteOutcome;
+import com.wandocorp.nytscorebot.service.ScoreboardService;
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.object.entity.channel.MessageChannel;
@@ -71,6 +74,9 @@ class SmokeTest {
 
     @Autowired
     private MessageListener messageListener;
+
+    @Autowired
+    private ScoreboardService scoreboardService;
 
     @BeforeEach
     void cleanDb() throws InterruptedException {
@@ -235,6 +241,50 @@ class SmokeTest {
         CrosswordResult dailyResult = scoreboard.getDailyCrosswordResult();
         assertThat(dailyResult).isNotNull();
         assertThat(dailyResult.getTimeString()).isEqualTo("15:00");
+    }
+
+    // ── /finished ────────────────────────────────────────────────────────────
+
+    /**
+     * The bot Discord user ID used in all configured smoke-test channels.
+     * Matches discord.channels[*].user-id in application-test.properties.
+     */
+    private static final String BOT_USER_ID = "1485298372637102101";
+
+    @Test
+    @DisplayName("/finished: marks Player One's scoreboard as complete and persists the change")
+    void finishedCommandMarksScoreboardComplete() {
+        postTo(PLAYER_1_CHANNEL, WORDLE_SAMPLE);
+        sleep(5);
+
+        assertThat(scoreboardRepository.count()).isEqualTo(1);
+        Scoreboard before = scoreboardRepository.findAll().get(0);
+        assertThat(before.isComplete()).isFalse();
+
+        MarkCompleteOutcome outcome = scoreboardService.markComplete(BOT_USER_ID, LocalDate.now());
+        assertThat(outcome).isEqualTo(MarkCompleteOutcome.MARKED_COMPLETE);
+
+        Scoreboard after = scoreboardRepository.findAll().get(0);
+        assertThat(after.isComplete()).isTrue();
+    }
+
+    @Test
+    @DisplayName("/finished: returns NO_SCOREBOARD_FOR_DATE when user has no results today")
+    void finishedCommandReturnsNoScoreboardWhenNoneExists() {
+        // Ensure the user record exists by posting a result first, then delete scoreboards only
+        postTo(PLAYER_1_CHANNEL, WORDLE_SAMPLE);
+        sleep(5);
+        scoreboardRepository.deleteAll();
+
+        MarkCompleteOutcome outcome = scoreboardService.markComplete(BOT_USER_ID, LocalDate.now());
+        assertThat(outcome).isEqualTo(MarkCompleteOutcome.NO_SCOREBOARD_FOR_DATE);
+    }
+
+    @Test
+    @DisplayName("/finished: returns USER_NOT_FOUND for an untracked Discord user ID")
+    void finishedCommandReturnsUserNotFoundForUnknownUser() {
+        MarkCompleteOutcome outcome = scoreboardService.markComplete("unknown-discord-id", LocalDate.now());
+        assertThat(outcome).isEqualTo(MarkCompleteOutcome.USER_NOT_FOUND);
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────

@@ -66,6 +66,7 @@ class ScoreboardServiceTest {
         scoreboard = new Scoreboard(user, TODAY);
 
         when(userRepo.findByChannelId(CHANNEL)).thenReturn(Optional.of(user));
+        when(userRepo.findByUserId(USER_ID)).thenReturn(Optional.of(user));
         when(scoreboardRepo.findByUserAndDate(user, TODAY)).thenReturn(Optional.of(scoreboard));
         when(scoreboardRepo.save(any(Scoreboard.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -227,5 +228,34 @@ class ScoreboardServiceTest {
         // First save creates the scoreboard, second save persists the result
         assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result)).isEqualTo(SaveOutcome.SAVED);
         verify(scoreboardRepo, times(2)).save(any(Scoreboard.class));
+    }
+
+    // ── markComplete ─────────────────────────────────────────────────────────
+
+    @Test
+    void markCompleteReturnsMarkedCompleteWhenScoreboardExists() {
+        assertThat(service.markComplete(USER_ID, TODAY)).isEqualTo(MarkCompleteOutcome.MARKED_COMPLETE);
+        assertThat(scoreboard.isComplete()).isTrue();
+        verify(scoreboardRepo).save(scoreboard);
+    }
+
+    @Test
+    void markCompleteReturnsAlreadyCompleteWhenAlreadyDone() {
+        scoreboard.setComplete(true);
+        assertThat(service.markComplete(USER_ID, TODAY)).isEqualTo(MarkCompleteOutcome.ALREADY_COMPLETE);
+        verify(scoreboardRepo, never()).save(any(Scoreboard.class));
+    }
+
+    @Test
+    void markCompleteReturnsNoScoreboardWhenNoneForDate() {
+        LocalDate tomorrow = TODAY.plusDays(1);
+        when(scoreboardRepo.findByUserAndDate(user, tomorrow)).thenReturn(Optional.empty());
+        assertThat(service.markComplete(USER_ID, tomorrow)).isEqualTo(MarkCompleteOutcome.NO_SCOREBOARD_FOR_DATE);
+    }
+
+    @Test
+    void markCompleteReturnsUserNotFoundForUnknownDiscordId() {
+        when(userRepo.findByUserId("unknown-id")).thenReturn(Optional.empty());
+        assertThat(service.markComplete("unknown-id", TODAY)).isEqualTo(MarkCompleteOutcome.USER_NOT_FOUND);
     }
 }

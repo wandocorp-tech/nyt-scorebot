@@ -1,4 +1,4 @@
-package com.wandocorp.nytscorebot;
+package com.wandocorp.nytscorebot.listener;
 
 import com.wandocorp.nytscorebot.config.DiscordChannelProperties;
 import com.wandocorp.nytscorebot.config.DiscordChannelProperties.ChannelConfig;
@@ -54,16 +54,16 @@ public class MessageListener {
                         .collect(Collectors.joining(", ")));
     }
 
-    boolean isChannelMonitored(Snowflake channelId) {
+    public boolean isChannelMonitored(Snowflake channelId) {
         return channelPersonMap.containsKey(channelId);
     }
 
-    boolean isFromConfiguredUser(Snowflake channelId, String authorId) {
+    public boolean isFromConfiguredUser(Snowflake channelId, String authorId) {
         String configuredUserId = channelUserIdMap.get(channelId);
         return configuredUserId.equals(authorId);
     }
 
-    Mono<?> processMessage(Snowflake channelId, String content, Mono<MessageChannel> channelMono) {
+    public Mono<?> processMessage(Snowflake channelId, String content, Mono<MessageChannel> channelMono) {
         String personName = channelPersonMap.get(channelId);
         String discordUserId = channelUserIdMap.get(channelId);
         return parser.parse(content, personName)
@@ -84,7 +84,7 @@ public class MessageListener {
         listenToEvents(client.on(MessageCreateEvent.class));
     }
 
-    void listenToEvents(Flux<MessageCreateEvent> events) {
+    public void listenToEvents(Flux<MessageCreateEvent> events) {
         events
                 .filter(event -> isChannelMonitored(event.getMessage().getChannelId()))
                 .filter(event -> isFromConfiguredUser(
@@ -97,7 +97,7 @@ public class MessageListener {
                 .subscribe();
     }
 
-    Mono<?> replyForOutcome(Mono<MessageChannel> channelMono, SaveOutcome outcome) {
+    public Mono<?> replyForOutcome(Mono<MessageChannel> channelMono, SaveOutcome outcome) {
         return switch (outcome) {
             case SAVED -> Mono.empty();
             case WRONG_PUZZLE_NUMBER -> channelMono
