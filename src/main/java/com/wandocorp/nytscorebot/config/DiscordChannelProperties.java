@@ -14,6 +14,11 @@ public class DiscordChannelProperties {
     @PostConstruct
     public void validate() {
         Assert.notEmpty(channels, "At least one discord.channels entry must be configured");
+        channels.forEach(c -> {
+            Assert.hasText(c.getId(), "Each discord.channels entry must have an 'id'");
+            Assert.hasText(c.getName(), "Each discord.channels entry must have a 'name'");
+            Assert.hasText(c.getUserId(), "Each discord.channels entry must have a 'user-id'");
+        });
     }
 
     public List<ChannelConfig> getChannels() {

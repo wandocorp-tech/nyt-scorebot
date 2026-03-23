@@ -12,7 +12,7 @@ public class CrosswordResult extends GameResult {
     @Enumerated(EnumType.STRING)
     private CrosswordType type;
     private String timeString;
-    private int totalSeconds;
+    private Integer totalSeconds;
     private LocalDate crosswordDate;
 
     protected CrosswordResult() {}
@@ -28,8 +28,7 @@ public class CrosswordResult extends GameResult {
 
     public CrosswordType getType() { return type; }
     public String getTimeString() { return timeString; }
-    public int getTotalSeconds() { return totalSeconds; }
-    public LocalDate getDate() { return crosswordDate; }
+    public int getTotalSeconds() { return totalSeconds; }    public LocalDate getDate() { return crosswordDate; }
 
     @Override
     public String toString() {

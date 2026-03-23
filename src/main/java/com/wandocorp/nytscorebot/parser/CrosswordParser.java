@@ -16,16 +16,20 @@ import java.util.regex.Pattern;
 public class CrosswordParser implements GameParser {
 
     private static final Pattern MINI = Pattern.compile(
-            "I solved the .+? Mini Crossword in (\\d+:\\d{2})",
+            "I solved the .+? Mini Crossword in (\\d+:\\d{2})!?",
             Pattern.CASE_INSENSITIVE
     );
     private static final Pattern MIDI = Pattern.compile(
-            "I solved the .+?[Mm]idi.+? in (\\d+:\\d{2})",
+            "I solved the .+?[Mm]idi.+? in (\\d+:\\d{2})!?",
             Pattern.CASE_INSENSITIVE
     );
     private static final Pattern DAILY = Pattern.compile(
-            "I solved the .+? Crossword in (\\d+:\\d{2})",
+            "I solved the .+? Crossword in (\\d+:\\d{2})!?",
             Pattern.CASE_INSENSITIVE
+    );
+
+    private static final Pattern NYT_CROSSWORD_URL = Pattern.compile(
+            "https://www\\.nytimes\\.com/crosswords/\\S+"
     );
 
     // Date formats: M/D/YYYY, MM/DD/YYYY, or in URL path /daily/YYYY/M/DD
@@ -85,6 +89,9 @@ public class CrosswordParser implements GameParser {
         int endIdx = matcher.end();
         if (endIdx >= content.length()) return null;
         String remaining = content.substring(endIdx).trim();
+        if (remaining.isEmpty()) return null;
+        // The NYT share URL is already captured in rawContent; strip it from the comment
+        remaining = NYT_CROSSWORD_URL.matcher(remaining).replaceFirst("").trim();
         return remaining.isEmpty() ? null : remaining;
     }
 

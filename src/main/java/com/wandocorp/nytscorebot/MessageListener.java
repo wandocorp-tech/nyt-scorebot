@@ -50,11 +50,20 @@ public class MessageListener {
                         .collect(Collectors.joining(", ")));
     }
 
+    boolean isChannelMonitored(Snowflake channelId) {
+        return channelPersonMap.containsKey(channelId);
+    }
+
     @PostConstruct
     public void subscribe() {
         client.on(MessageCreateEvent.class)
                 .filter(event -> channelPersonMap.containsKey(event.getMessage().getChannelId()))
-                .filter(event -> event.getMessage().getAuthor().map(u -> !u.isBot()).orElse(false))
+                .filter(event -> {
+                    String configuredUserId = channelUserIdMap.get(event.getMessage().getChannelId());
+                    return event.getMessage().getAuthor()
+                            .map(u -> u.getId().asString().equals(configuredUserId))
+                            .orElse(false);
+                })
                 .flatMap(event -> {
                     Snowflake channelId = event.getMessage().getChannelId();
                     String personName = channelPersonMap.get(channelId);

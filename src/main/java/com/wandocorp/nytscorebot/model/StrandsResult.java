@@ -5,8 +5,8 @@ import jakarta.persistence.Embeddable;
 @Embeddable
 public class StrandsResult extends GameResult {
 
-    private int puzzleNumber;
-    private int hintsUsed;
+    private Integer puzzleNumber;
+    private Integer hintsUsed;
 
     protected StrandsResult() {}
 
@@ -19,7 +19,6 @@ public class StrandsResult extends GameResult {
 
     public int getPuzzleNumber() { return puzzleNumber; }
     public int getHintsUsed() { return hintsUsed; }
-
     @Override
     public String toString() {
         return "StrandsResult{puzzle=%d, hintsUsed=%d, comment='%s', author='%s'}"

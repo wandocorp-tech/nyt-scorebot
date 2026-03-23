@@ -9,9 +9,9 @@ import java.util.List;
 @Embeddable
 public class ConnectionsResult extends GameResult {
 
-    private int puzzleNumber;
-    private int mistakes;
-    private boolean completed;
+    private Integer puzzleNumber;
+    private Integer mistakes;
+    private Boolean completed;
 
     @Convert(converter = StringListConverter.class)
     private List<String> solveOrder;
@@ -30,8 +30,7 @@ public class ConnectionsResult extends GameResult {
 
     public int getPuzzleNumber() { return puzzleNumber; }
     public int getMistakes() { return mistakes; }
-    public boolean isCompleted() { return completed; }
-    public List<String> getSolveOrder() { return solveOrder; }
+    public boolean isCompleted() { return completed; }    public List<String> getSolveOrder() { return solveOrder; }
 
     @Override
     public String toString() {

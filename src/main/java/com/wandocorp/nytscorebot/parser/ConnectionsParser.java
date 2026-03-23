@@ -45,7 +45,7 @@ public class ConnectionsParser implements GameParser {
             if (!isConnectionsRow(codepoints)) continue;
 
             totalRows++;
-            lastRowEnd = Math.max(lastRowEnd, content.indexOf(line) + line.length());
+            lastRowEnd = Math.max(lastRowEnd, content.lastIndexOf(line) + line.length());
             if (isPureRow(codepoints)) {
                 solveOrder.add(new String(codepoints, 0, 1));
             }
