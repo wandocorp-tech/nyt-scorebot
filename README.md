@@ -10,6 +10,8 @@ The bot monitors one or more Discord channels and recognizes when users post the
 - **Strands** — daily semantic word puzzle
 - **Crossword** — daily, mini, and midi crossword variants
 
+Users can also invoke the `/finished` slash command to mark their daily scoreboard as complete, signaling that they've finished submitting results for the day.
+
 Results are validated against the expected puzzle numbers for the current date (in GMT), deduplicated to prevent duplicate submissions, and persisted to an H2 database for leaderboards and analysis.
 
 ## Architecture & Design Decisions
@@ -243,7 +245,29 @@ spring:
 
 ### Data Entities
 - **User** — (channel_id, name, discord_user_id); one per monitored channel
-- **Scoreboard** — (user_id, date); one per user+date combination, embeds all game results
+- **Scoreboard** — (user_id, date); one per user+date combination, embeds all game results, includes `complete` flag
+
+### 7. **Slash Command: `/finished`**
+
+**Purpose:** Allow users to explicitly mark their daily scoreboard as complete.
+
+**Behavior:**
+- Global slash command `/finished` registered on bot startup
+- When invoked, sets the `complete` flag to `true` on the invoking user's Scoreboard for today's date
+- Replies with an ephemeral message (visible only to the user) indicating the outcome:
+  - ✅ Success: "Your scoreboard for today has been marked as complete!"
+  - ℹ️ Already complete: "Your scoreboard was already marked complete for today."
+  - ℹ️ No scoreboard: "You haven't submitted any results for today yet."
+  - ℹ️ Not tracked: "You are not a tracked user in this bot."
+
+**Implementation:**
+- `SlashCommandRegistrar` handles global command registration via Discord's ApplicationService
+- `SlashCommandListener` subscribes to `ChatInputInteractionEvent` and dispatches to the service layer
+- `ScoreboardService.markComplete()` performs the database operation and returns `MarkCompleteOutcome` enum
+- Reorganized into `com.wandocorp.nytscorebot.listener` package for separation of concerns
+
+**Use Case:**
+- Users can signal completion before the end of the submission window, enabling the bot to process rankings with incomplete result sets when needed
 
 ## Design Trade-offs
 
