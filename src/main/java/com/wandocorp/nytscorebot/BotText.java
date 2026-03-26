@@ -52,10 +52,10 @@ public final class BotText {
 
     public static final String GAME_LABEL_WORDLE      = "Wordle";
     public static final String GAME_LABEL_CONNECTIONS = "Connections";
-    public static final String GAME_LABEL_STRANDS     = "Strands";
-    public static final String GAME_LABEL_MINI        = "Mini";
-    public static final String GAME_LABEL_MIDI        = "Midi";
-    public static final String GAME_LABEL_MAIN        = "Main";
+    public static final String GAME_LABEL_STRANDS     = "strands";
+    public static final String GAME_LABEL_MINI        = "mini";
+    public static final String GAME_LABEL_MIDI        = "midi";
+    public static final String GAME_LABEL_MAIN        = "main";
 
     private BotText() {}
 }

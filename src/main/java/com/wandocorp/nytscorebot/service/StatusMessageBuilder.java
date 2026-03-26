@@ -131,7 +131,7 @@ public class StatusMessageBuilder {
         int extra = 0;
         for (int i = 0; i < s.length(); i++) {
             char c = s.charAt(i);
-            if (c == '\u2705' || c == '\u23F3') extra++; // ✅ ⏳ render 2-wide in Discord monospace
+            if (c == '\u2705' || c == '\u23F3' || c == '\u274C') extra++; // ✅ ⏳ ❌ render 2-wide in Discord monospace
         }
         return s.length() + extra;
     }
