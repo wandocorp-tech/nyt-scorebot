@@ -1,8 +1,11 @@
 package com.wandocorp.nytscorebot.listener;
 
-import com.wandocorp.nytscorebot.service.MarkCompleteOutcome;
+import com.wandocorp.nytscorebot.config.DiscordChannelProperties;
+import com.wandocorp.nytscorebot.config.DiscordChannelProperties.ChannelConfig;
+import com.wandocorp.nytscorebot.service.MarkFinishedOutcome;
 import com.wandocorp.nytscorebot.service.PuzzleCalendar;
 import com.wandocorp.nytscorebot.service.ScoreboardService;
+import com.wandocorp.nytscorebot.service.StatusChannelService;
 import discord4j.common.util.Snowflake;
 import discord4j.core.event.domain.interaction.ChatInputInteractionEvent;
 import discord4j.core.object.command.Interaction;
@@ -13,70 +16,83 @@ import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 
 import java.time.LocalDate;
+import java.util.List;
 
 import static com.wandocorp.nytscorebot.listener.SlashCommandListener.replyMessageFor;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 class SlashCommandListenerTest {
 
     private static final String DISCORD_USER_ID = "123456789";
+    private static final String PLAYER_NAME     = "TestPlayer";
     private static final LocalDate TODAY = LocalDate.of(2026, 3, 23);
 
     private ScoreboardService scoreboardService;
     private PuzzleCalendar puzzleCalendar;
+    private StatusChannelService statusChannelService;
+    private DiscordChannelProperties channelProperties;
     private SlashCommandListener listener;
 
     @BeforeEach
     void setUp() {
         scoreboardService = mock(ScoreboardService.class);
         puzzleCalendar = mock(PuzzleCalendar.class);
+        statusChannelService = mock(StatusChannelService.class);
         when(puzzleCalendar.today()).thenReturn(TODAY);
 
+        channelProperties = new DiscordChannelProperties();
+        ChannelConfig ch = new ChannelConfig();
+        ch.setId("ch1");
+        ch.setName(PLAYER_NAME);
+        ch.setUserId(DISCORD_USER_ID);
+        channelProperties.setChannels(List.of(ch));
+
         // GatewayDiscordClient only used in subscribe() — not needed in unit tests
-        listener = new SlashCommandListener(null, scoreboardService, puzzleCalendar);
+        listener = new SlashCommandListener(null, scoreboardService, puzzleCalendar, statusChannelService, channelProperties);
     }
 
     // ── replyMessageFor ───────────────────────────────────────────────────────
 
     @Test
-    void markedCompleteReplyContainsConfirmation() {
-        assertThat(replyMessageFor(MarkCompleteOutcome.MARKED_COMPLETE)).contains("marked as complete");
+    void markedFinishedReplyContainsConfirmation() {
+        assertThat(replyMessageFor(MarkFinishedOutcome.MARKED_FINISHED)).contains("marked as finished");
     }
 
     @Test
-    void alreadyCompleteReplyIndicatesAlreadyDone() {
-        assertThat(replyMessageFor(MarkCompleteOutcome.ALREADY_COMPLETE)).contains("already marked complete");
+    void alreadyFinishedReplyIndicatesAlreadyDone() {
+        assertThat(replyMessageFor(MarkFinishedOutcome.ALREADY_FINISHED)).contains("already marked as finished");
     }
 
     @Test
     void noScoreboardReplyIndicatesNoResults() {
-        assertThat(replyMessageFor(MarkCompleteOutcome.NO_SCOREBOARD_FOR_DATE)).contains("haven't submitted");
+        assertThat(replyMessageFor(MarkFinishedOutcome.NO_SCOREBOARD_FOR_DATE)).contains("haven't submitted");
     }
 
     @Test
     void userNotFoundReplyIndicatesNotTracked() {
-        assertThat(replyMessageFor(MarkCompleteOutcome.USER_NOT_FOUND)).contains("not a tracked user");
+        assertThat(replyMessageFor(MarkFinishedOutcome.USER_NOT_FOUND)).contains("not a tracked user");
     }
 
     // ── handleFinished ────────────────────────────────────────────────────────
 
     @Test
-    void handleFinishedCallsMarkCompleteWithCorrectArgs() {
-        when(scoreboardService.markComplete(DISCORD_USER_ID, TODAY))
-                .thenReturn(MarkCompleteOutcome.MARKED_COMPLETE);
+    void handleFinishedCallsMarkFinishedWithCorrectArgs() {
+        when(scoreboardService.markFinished(DISCORD_USER_ID, TODAY))
+                .thenReturn(MarkFinishedOutcome.MARKED_FINISHED);
 
         ChatInputInteractionEvent event = buildEvent(DISCORD_USER_ID);
         listener.handleFinished(event).subscribe();
 
-        verify(scoreboardService).markComplete(eq(DISCORD_USER_ID), eq(TODAY));
+        verify(scoreboardService).markFinished(eq(DISCORD_USER_ID), eq(TODAY));
     }
 
     @Test
     void handleFinishedRepliesEphemerallyOnSuccess() {
-        when(scoreboardService.markComplete(any(), any())).thenReturn(MarkCompleteOutcome.MARKED_COMPLETE);
+        when(scoreboardService.markFinished(any(), any())).thenReturn(MarkFinishedOutcome.MARKED_FINISHED);
 
         InteractionApplicationCommandCallbackReplyMono replySpec =
                 mock(InteractionApplicationCommandCallbackReplyMono.class);
@@ -92,10 +108,20 @@ class SlashCommandListenerTest {
         listener.handleFinished(event).subscribe();
 
         verify(replySpec).withEphemeral(true);
-        verify(withEphemeralSpec).withContent((String) argThat(s -> s.toString().contains("marked as complete")));
+        verify(withEphemeralSpec).withContent((String) argThat(s -> s.toString().contains("marked as finished")));
     }
 
     // ── listenToEvents filter ─────────────────────────────────────────────────
+
+    @Test
+    void handleFinishedCallsRefreshOnMarkedFinished() {
+        when(scoreboardService.markFinished(any(), any())).thenReturn(MarkFinishedOutcome.MARKED_FINISHED);
+
+        ChatInputInteractionEvent event = buildEvent(DISCORD_USER_ID);
+        listener.handleFinished(event).subscribe();
+
+        verify(statusChannelService).refresh(anyString());
+    }
 
     @Test
     void nonFinishedCommandIsIgnored() {
@@ -104,17 +130,17 @@ class SlashCommandListenerTest {
 
         listener.listenToEvents(Flux.just(event));
 
-        verify(scoreboardService, never()).markComplete(any(), any());
+        verify(scoreboardService, never()).markFinished(any(), any());
     }
 
     @Test
     void finishedCommandIsHandled() {
-        when(scoreboardService.markComplete(any(), any())).thenReturn(MarkCompleteOutcome.MARKED_COMPLETE);
+        when(scoreboardService.markFinished(any(), any())).thenReturn(MarkFinishedOutcome.MARKED_FINISHED);
 
         ChatInputInteractionEvent event = buildEvent(DISCORD_USER_ID);
         listener.listenToEvents(Flux.just(event));
 
-        verify(scoreboardService).markComplete(eq(DISCORD_USER_ID), eq(TODAY));
+        verify(scoreboardService).markFinished(eq(DISCORD_USER_ID), eq(TODAY));
     }
 
     // ── helpers ───────────────────────────────────────────────────────────────

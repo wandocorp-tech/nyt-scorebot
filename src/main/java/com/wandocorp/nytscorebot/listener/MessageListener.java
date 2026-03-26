@@ -1,10 +1,18 @@
 package com.wandocorp.nytscorebot.listener;
 
+import com.wandocorp.nytscorebot.BotText;
 import com.wandocorp.nytscorebot.config.DiscordChannelProperties;
 import com.wandocorp.nytscorebot.config.DiscordChannelProperties.ChannelConfig;
+import com.wandocorp.nytscorebot.model.ConnectionsResult;
+import com.wandocorp.nytscorebot.model.CrosswordResult;
+import com.wandocorp.nytscorebot.model.CrosswordType;
+import com.wandocorp.nytscorebot.model.GameResult;
+import com.wandocorp.nytscorebot.model.StrandsResult;
+import com.wandocorp.nytscorebot.model.WordleResult;
 import com.wandocorp.nytscorebot.parser.GameResultParser;
 import com.wandocorp.nytscorebot.service.SaveOutcome;
 import com.wandocorp.nytscorebot.service.ScoreboardService;
+import com.wandocorp.nytscorebot.service.StatusChannelService;
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.domain.message.MessageCreateEvent;
@@ -28,16 +36,19 @@ public class MessageListener {
     private final GatewayDiscordClient client;
     private final GameResultParser parser;
     private final ScoreboardService scoreboardService;
+    private final StatusChannelService statusChannelService;
     final Map<Snowflake, String> channelPersonMap;
     final Map<Snowflake, String> channelUserIdMap;
 
     public MessageListener(GatewayDiscordClient client,
                            DiscordChannelProperties channelProperties,
                            GameResultParser parser,
-                           ScoreboardService scoreboardService) {
+                           ScoreboardService scoreboardService,
+                           StatusChannelService statusChannelService) {
         this.client = client;
         this.parser = parser;
         this.scoreboardService = scoreboardService;
+        this.statusChannelService = statusChannelService;
         this.channelPersonMap = channelProperties.getChannels().stream()
                 .collect(Collectors.toMap(
                         c -> Snowflake.of(c.getId()),
@@ -71,6 +82,9 @@ public class MessageListener {
                     log.info("Parsed game result for {}: {}", personName, result);
                     SaveOutcome outcome = scoreboardService.saveResult(
                             channelId.asString(), personName, discordUserId, result);
+                    if (outcome == SaveOutcome.SAVED) {
+                        statusChannelService.refresh(personName + " submitted " + gameLabel(result));
+                    }
                     return replyForOutcome(channelMono, outcome);
                 })
                 .orElseGet(() -> {
@@ -100,15 +114,23 @@ public class MessageListener {
     public Mono<?> replyForOutcome(Mono<MessageChannel> channelMono, SaveOutcome outcome) {
         return switch (outcome) {
             case SAVED -> Mono.empty();
-            case WRONG_PUZZLE_NUMBER -> channelMono
-                    .flatMap(ch -> ch.createMessage("⚠️ That doesn't look like today's puzzle number. " +
-                            "Result was not saved."));
-            case WRONG_DATE -> channelMono
-                    .flatMap(ch -> ch.createMessage("⚠️ That crossword date doesn't match today. " +
-                            "Result was not saved."));
-            case ALREADY_SUBMITTED -> channelMono
-                    .flatMap(ch -> ch.createMessage("ℹ️ You've already submitted this game type today. " +
-                            "Result was not saved."));
+            case WRONG_PUZZLE_NUMBER -> channelMono.flatMap(ch -> ch.createMessage(BotText.MSG_WRONG_PUZZLE_NUMBER));
+            case WRONG_DATE          -> channelMono.flatMap(ch -> ch.createMessage(BotText.MSG_WRONG_DATE));
+            case ALREADY_SUBMITTED   -> channelMono.flatMap(ch -> ch.createMessage(BotText.MSG_ALREADY_SUBMITTED));
         };
+    }
+
+    static String gameLabel(GameResult result) {
+        if (result instanceof WordleResult)      return BotText.GAME_LABEL_WORDLE;
+        if (result instanceof ConnectionsResult) return BotText.GAME_LABEL_CONNECTIONS;
+        if (result instanceof StrandsResult)     return BotText.GAME_LABEL_STRANDS;
+        if (result instanceof CrosswordResult r) {
+            return switch (r.getType()) {
+                case MINI -> BotText.GAME_LABEL_MINI;
+                case MIDI -> BotText.GAME_LABEL_MIDI;
+                case MAIN -> BotText.GAME_LABEL_MAIN;
+            };
+        }
+        return "game";
     }
 }

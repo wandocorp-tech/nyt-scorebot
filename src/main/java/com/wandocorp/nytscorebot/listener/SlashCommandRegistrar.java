@@ -1,5 +1,6 @@
 package com.wandocorp.nytscorebot.listener;
 
+import com.wandocorp.nytscorebot.BotText;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.discordjson.json.ApplicationCommandRequest;
 import jakarta.annotation.PostConstruct;
@@ -23,8 +24,8 @@ public class SlashCommandRegistrar {
         long applicationId = client.getRestClient().getApplicationId().block();
 
         ApplicationCommandRequest finishedCommand = ApplicationCommandRequest.builder()
-                .name("finished")
-                .description("Mark your scorecard as complete for today")
+                .name(BotText.CMD_FINISHED)
+                .description(BotText.CMD_FINISHED_DESCRIPTION)
                 .build();
 
         client.getRestClient().getApplicationService()

@@ -199,6 +199,7 @@ Create `application.yml`:
 ```yaml
 discord:
   token: "your-bot-token"
+  # statusChannelId: "345678901"   # Optional: channel ID for the live status board
   channels:
     - id: "123456789"
       name: "Player One"

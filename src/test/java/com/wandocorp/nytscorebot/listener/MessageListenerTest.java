@@ -6,6 +6,7 @@ import com.wandocorp.nytscorebot.model.WordleResult;
 import com.wandocorp.nytscorebot.parser.GameResultParser;
 import com.wandocorp.nytscorebot.service.SaveOutcome;
 import com.wandocorp.nytscorebot.service.ScoreboardService;
+import com.wandocorp.nytscorebot.service.StatusChannelService;
 import discord4j.common.util.Snowflake;
 import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.object.entity.Message;
@@ -33,12 +34,14 @@ class MessageListenerTest {
 
     private GameResultParser parser;
     private ScoreboardService scoreboardService;
+    private StatusChannelService statusChannelService;
     private MessageListener listener;
 
     @BeforeEach
     void setUp() {
         parser            = mock(GameResultParser.class);
         scoreboardService = mock(ScoreboardService.class);
+        statusChannelService = mock(StatusChannelService.class);
 
         DiscordChannelProperties props = new DiscordChannelProperties();
         ChannelConfig ch = new ChannelConfig();
@@ -47,10 +50,7 @@ class MessageListenerTest {
         ch.setUserId(USER_ID);
         props.setChannels(List.of(ch));
 
-        // GatewayDiscordClient is only used in subscribe() → client.on(...)
-        // Tests call listenToEvents(Flux) or the extracted methods directly,
-        // so we never need a real client here.
-        listener = new MessageListener(null, props, parser, scoreboardService);
+        listener = new MessageListener(null, props, parser, scoreboardService, statusChannelService);
     }
 
     // ── isChannelMonitored ────────────────────────────────────────────────────
@@ -131,6 +131,28 @@ class MessageListenerTest {
         listener.processMessage(CHANNEL_SNOWFLAKE, "Wordle 100 3/6", Mono.empty()).block();
 
         verify(scoreboardService).saveResult(eq(CHANNEL_ID), eq(NAME), eq(USER_ID), eq(result));
+    }
+
+    @Test
+    void savedOutcomeCallsRefresh() {
+        WordleResult result = new WordleResult("raw", NAME, null, 100, 3, true, false);
+        when(parser.parse(anyString(), eq(NAME))).thenReturn(Optional.of(result));
+        when(scoreboardService.saveResult(any(), any(), any(), any())).thenReturn(SaveOutcome.SAVED);
+
+        listener.processMessage(CHANNEL_SNOWFLAKE, "Wordle 100 3/6", Mono.empty()).block();
+
+        verify(statusChannelService).refresh(anyString());
+    }
+
+    @Test
+    void nonSavedOutcomeDoesNotCallRefresh() {
+        WordleResult result = new WordleResult("raw", NAME, null, 100, 3, true, false);
+        when(parser.parse(anyString(), eq(NAME))).thenReturn(Optional.of(result));
+        when(scoreboardService.saveResult(any(), any(), any(), any())).thenReturn(SaveOutcome.ALREADY_SUBMITTED);
+
+        listener.processMessage(CHANNEL_SNOWFLAKE, "Wordle 100 3/6", Mono.empty()).block();
+
+        verify(statusChannelService, never()).refresh(anyString());
     }
 
     @Test

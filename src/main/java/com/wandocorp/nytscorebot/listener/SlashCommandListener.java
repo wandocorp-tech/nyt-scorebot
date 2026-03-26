@@ -1,8 +1,11 @@
 package com.wandocorp.nytscorebot.listener;
 
-import com.wandocorp.nytscorebot.service.MarkCompleteOutcome;
+import com.wandocorp.nytscorebot.BotText;
+import com.wandocorp.nytscorebot.config.DiscordChannelProperties;
+import com.wandocorp.nytscorebot.service.MarkFinishedOutcome;
 import com.wandocorp.nytscorebot.service.PuzzleCalendar;
 import com.wandocorp.nytscorebot.service.ScoreboardService;
+import com.wandocorp.nytscorebot.service.StatusChannelService;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.domain.interaction.ChatInputInteractionEvent;
 import jakarta.annotation.PostConstruct;
@@ -20,13 +23,19 @@ public class SlashCommandListener {
     private final GatewayDiscordClient client;
     private final ScoreboardService scoreboardService;
     private final PuzzleCalendar puzzleCalendar;
+    private final StatusChannelService statusChannelService;
+    private final DiscordChannelProperties channelProperties;
 
     public SlashCommandListener(GatewayDiscordClient client,
                                 ScoreboardService scoreboardService,
-                                PuzzleCalendar puzzleCalendar) {
+                                PuzzleCalendar puzzleCalendar,
+                                StatusChannelService statusChannelService,
+                                DiscordChannelProperties channelProperties) {
         this.client = client;
         this.scoreboardService = scoreboardService;
         this.puzzleCalendar = puzzleCalendar;
+        this.statusChannelService = statusChannelService;
+        this.channelProperties = channelProperties;
     }
 
     @PostConstruct
@@ -36,7 +45,7 @@ public class SlashCommandListener {
 
     void listenToEvents(Flux<ChatInputInteractionEvent> events) {
         events
-                .filter(event -> "finished".equals(event.getCommandName()))
+                .filter(event -> BotText.CMD_FINISHED.equals(event.getCommandName()))
                 .flatMap(this::handleFinished)
                 .subscribe();
     }
@@ -45,7 +54,15 @@ public class SlashCommandListener {
         String discordUserId = event.getInteraction().getUser().getId().asString();
         log.info("Received /finished from Discord user {}", discordUserId);
 
-        MarkCompleteOutcome outcome = scoreboardService.markComplete(discordUserId, puzzleCalendar.today());
+        MarkFinishedOutcome outcome = scoreboardService.markFinished(discordUserId, puzzleCalendar.today());
+        if (outcome == MarkFinishedOutcome.MARKED_FINISHED || outcome == MarkFinishedOutcome.ALREADY_FINISHED) {
+            String playerName = channelProperties.getChannels().stream()
+                    .filter(c -> c.getUserId().equals(discordUserId))
+                    .map(DiscordChannelProperties.ChannelConfig::getName)
+                    .findFirst()
+                    .orElse(discordUserId);
+            statusChannelService.refresh(playerName + " is done for today");
+        }
         String reply = replyMessageFor(outcome);
 
         return event.reply()
@@ -53,12 +70,12 @@ public class SlashCommandListener {
                 .withContent(reply);
     }
 
-    static String replyMessageFor(MarkCompleteOutcome outcome) {
+    static String replyMessageFor(MarkFinishedOutcome outcome) {
         return switch (outcome) {
-            case MARKED_COMPLETE -> "✅ Your scoreboard for today has been marked as complete!";
-            case ALREADY_COMPLETE -> "Your scoreboard was already marked complete for today.";
-            case NO_SCOREBOARD_FOR_DATE -> "You haven't submitted any results for today yet.";
-            case USER_NOT_FOUND -> "You are not a tracked user in this bot.";
+            case MARKED_FINISHED       -> BotText.MSG_MARKED_FINISHED;
+            case ALREADY_FINISHED      -> BotText.MSG_ALREADY_FINISHED;
+            case NO_SCOREBOARD_FOR_DATE -> BotText.MSG_NO_SCOREBOARD_TODAY;
+            case USER_NOT_FOUND        -> BotText.MSG_USER_NOT_FOUND;
         };
     }
 }

@@ -113,7 +113,7 @@ class ScoreboardServiceTest {
     @Test
     void crosswordWithTodaysDateIsSaved() {
         CrosswordResult result = new CrosswordResult("raw", PERSON, null,
-                CrosswordType.DAILY, "5:00", 300, TODAY);
+                CrosswordType.MAIN, "5:00", 300, TODAY);
 
         assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result)).isEqualTo(SaveOutcome.SAVED);
     }
@@ -125,7 +125,7 @@ class ScoreboardServiceTest {
         when(scoreboardRepo.findByUserAndDate(user, yesterday)).thenReturn(Optional.of(yesterdayBoard));
 
         CrosswordResult result = new CrosswordResult("raw", PERSON, null,
-                CrosswordType.DAILY, "5:00", 300, yesterday);
+                CrosswordType.MAIN, "5:00", 300, yesterday);
 
         assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result)).isEqualTo(SaveOutcome.SAVED);
         verify(scoreboardRepo).save(any(Scoreboard.class));
@@ -230,32 +230,32 @@ class ScoreboardServiceTest {
         verify(scoreboardRepo, times(2)).save(any(Scoreboard.class));
     }
 
-    // ── markComplete ─────────────────────────────────────────────────────────
+    // ── markFinished ─────────────────────────────────────────────────────────
 
     @Test
-    void markCompleteReturnsMarkedCompleteWhenScoreboardExists() {
-        assertThat(service.markComplete(USER_ID, TODAY)).isEqualTo(MarkCompleteOutcome.MARKED_COMPLETE);
-        assertThat(scoreboard.isComplete()).isTrue();
+    void markFinishedReturnsMarkedFinishedWhenScoreboardExists() {
+        assertThat(service.markFinished(USER_ID, TODAY)).isEqualTo(MarkFinishedOutcome.MARKED_FINISHED);
+        assertThat(scoreboard.isFinished()).isTrue();
         verify(scoreboardRepo).save(scoreboard);
     }
 
     @Test
-    void markCompleteReturnsAlreadyCompleteWhenAlreadyDone() {
-        scoreboard.setComplete(true);
-        assertThat(service.markComplete(USER_ID, TODAY)).isEqualTo(MarkCompleteOutcome.ALREADY_COMPLETE);
+    void markFinishedReturnsAlreadyFinishedWhenAlreadyDone() {
+        scoreboard.setFinished(true);
+        assertThat(service.markFinished(USER_ID, TODAY)).isEqualTo(MarkFinishedOutcome.ALREADY_FINISHED);
         verify(scoreboardRepo, never()).save(any(Scoreboard.class));
     }
 
     @Test
-    void markCompleteReturnsNoScoreboardWhenNoneForDate() {
+    void markFinishedReturnsNoScoreboardWhenNoneForDate() {
         LocalDate tomorrow = TODAY.plusDays(1);
         when(scoreboardRepo.findByUserAndDate(user, tomorrow)).thenReturn(Optional.empty());
-        assertThat(service.markComplete(USER_ID, tomorrow)).isEqualTo(MarkCompleteOutcome.NO_SCOREBOARD_FOR_DATE);
+        assertThat(service.markFinished(USER_ID, tomorrow)).isEqualTo(MarkFinishedOutcome.NO_SCOREBOARD_FOR_DATE);
     }
 
     @Test
-    void markCompleteReturnsUserNotFoundForUnknownDiscordId() {
+    void markFinishedReturnsUserNotFoundForUnknownDiscordId() {
         when(userRepo.findByUserId("unknown-id")).thenReturn(Optional.empty());
-        assertThat(service.markComplete("unknown-id", TODAY)).isEqualTo(MarkCompleteOutcome.USER_NOT_FOUND);
+        assertThat(service.markFinished("unknown-id", TODAY)).isEqualTo(MarkFinishedOutcome.USER_NOT_FOUND);
     }
 }

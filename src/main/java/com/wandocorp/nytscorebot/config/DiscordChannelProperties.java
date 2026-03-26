@@ -10,6 +10,7 @@ import java.util.List;
 public class DiscordChannelProperties {
 
     private List<ChannelConfig> channels = List.of();
+    private String statusChannelId;
 
     @PostConstruct
     public void validate() {
@@ -28,6 +29,9 @@ public class DiscordChannelProperties {
     public void setChannels(List<ChannelConfig> channels) {
         this.channels = channels;
     }
+
+    public String getStatusChannelId() { return statusChannelId; }
+    public void setStatusChannelId(String statusChannelId) { this.statusChannelId = statusChannelId; }
 
     public static class ChannelConfig {
         private String id;

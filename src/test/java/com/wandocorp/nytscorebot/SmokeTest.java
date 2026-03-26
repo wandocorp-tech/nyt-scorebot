@@ -9,7 +9,7 @@ import com.wandocorp.nytscorebot.model.WordleResult;
 import com.wandocorp.nytscorebot.listener.MessageListener;
 import com.wandocorp.nytscorebot.repository.ScoreboardRepository;
 import com.wandocorp.nytscorebot.repository.UserRepository;
-import com.wandocorp.nytscorebot.service.MarkCompleteOutcome;
+import com.wandocorp.nytscorebot.service.MarkFinishedOutcome;
 import com.wandocorp.nytscorebot.service.ScoreboardService;
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
@@ -252,20 +252,20 @@ class SmokeTest {
     private static final String BOT_USER_ID = "1485298372637102101";
 
     @Test
-    @DisplayName("/finished: marks Player One's scoreboard as complete and persists the change")
-    void finishedCommandMarksScoreboardComplete() {
+    @DisplayName("/finished: marks Player One's scoreboard as finished and persists the change")
+    void finishedCommandMarksScoreboardFinished() {
         postTo(PLAYER_1_CHANNEL, WORDLE_SAMPLE);
         sleep(5);
 
         assertThat(scoreboardRepository.count()).isEqualTo(1);
         Scoreboard before = scoreboardRepository.findAll().get(0);
-        assertThat(before.isComplete()).isFalse();
+        assertThat(before.isFinished()).isFalse();
 
-        MarkCompleteOutcome outcome = scoreboardService.markComplete(BOT_USER_ID, LocalDate.now());
-        assertThat(outcome).isEqualTo(MarkCompleteOutcome.MARKED_COMPLETE);
+        MarkFinishedOutcome outcome = scoreboardService.markFinished(BOT_USER_ID, LocalDate.now());
+        assertThat(outcome).isEqualTo(MarkFinishedOutcome.MARKED_FINISHED);
 
         Scoreboard after = scoreboardRepository.findAll().get(0);
-        assertThat(after.isComplete()).isTrue();
+        assertThat(after.isFinished()).isTrue();
     }
 
     @Test
@@ -276,15 +276,15 @@ class SmokeTest {
         sleep(5);
         scoreboardRepository.deleteAll();
 
-        MarkCompleteOutcome outcome = scoreboardService.markComplete(BOT_USER_ID, LocalDate.now());
-        assertThat(outcome).isEqualTo(MarkCompleteOutcome.NO_SCOREBOARD_FOR_DATE);
+        MarkFinishedOutcome outcome = scoreboardService.markFinished(BOT_USER_ID, LocalDate.now());
+        assertThat(outcome).isEqualTo(MarkFinishedOutcome.NO_SCOREBOARD_FOR_DATE);
     }
 
     @Test
     @DisplayName("/finished: returns USER_NOT_FOUND for an untracked Discord user ID")
     void finishedCommandReturnsUserNotFoundForUnknownUser() {
-        MarkCompleteOutcome outcome = scoreboardService.markComplete("unknown-discord-id", LocalDate.now());
-        assertThat(outcome).isEqualTo(MarkCompleteOutcome.USER_NOT_FOUND);
+        MarkFinishedOutcome outcome = scoreboardService.markFinished("unknown-discord-id", LocalDate.now());
+        assertThat(outcome).isEqualTo(MarkFinishedOutcome.USER_NOT_FOUND);
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────

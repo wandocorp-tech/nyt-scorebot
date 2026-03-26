@@ -216,7 +216,7 @@ class ParserTest {
         Optional<GameResult> result = crosswordParser.parse(CROSSWORD_DAILY, AUTHOR);
         assertThat(result).isPresent();
         CrosswordResult cr = (CrosswordResult) result.get();
-        assertThat(cr.getType()).isEqualTo(CrosswordType.DAILY);
+        assertThat(cr.getType()).isEqualTo(CrosswordType.MAIN);
         assertThat(cr.getTimeString()).isEqualTo("6:25");
         assertThat(cr.getTotalSeconds()).isEqualTo(6 * 60 + 25);
         assertThat(cr.getDate()).isEqualTo(LocalDate.of(2026, 3, 23));
@@ -247,7 +247,7 @@ class ParserTest {
         Optional<GameResult> result = crosswordParser.parse(CROSSWORD_DAILY_URL_DATE, AUTHOR);
         assertThat(result).isPresent();
         CrosswordResult cr = (CrosswordResult) result.get();
-        assertThat(cr.getType()).isEqualTo(CrosswordType.DAILY);
+        assertThat(cr.getType()).isEqualTo(CrosswordType.MAIN);
         assertThat(cr.getDate()).isEqualTo(LocalDate.of(2026, 3, 23));
         assertThat(cr.getComment()).isNull();
     }

@@ -24,7 +24,7 @@ public class Scoreboard {
     private LocalDate date;
 
     @Column(nullable = false)
-    private boolean complete = false;
+    private boolean finished = false;
 
     @Embedded
     @AttributeOverrides({
@@ -106,8 +106,8 @@ public class Scoreboard {
     public Long getId() { return id; }
     public User getUser() { return user; }
     public LocalDate getDate() { return date; }
-    public boolean isComplete() { return complete; }
-    public void setComplete(boolean complete) { this.complete = complete; }
+    public boolean isFinished() { return finished; }
+    public void setFinished(boolean finished) { this.finished = finished; }
 
     public WordleResult getWordleResult() { return wordleResult; }
     public void setWordleResult(WordleResult wordleResult) { this.wordleResult = wordleResult; }

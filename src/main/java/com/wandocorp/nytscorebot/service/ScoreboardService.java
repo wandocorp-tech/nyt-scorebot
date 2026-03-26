@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Service
 public class ScoreboardService {
@@ -29,21 +30,25 @@ public class ScoreboardService {
         this.puzzleCalendar = puzzleCalendar;
     }
 
+    public List<Scoreboard> getTodayScoreboards() {
+        return scoreboardRepository.findAllByDateWithUser(puzzleCalendar.today());
+    }
+
     @Transactional
-    public MarkCompleteOutcome markComplete(String discordUserId, LocalDate date) {
+    public MarkFinishedOutcome markFinished(String discordUserId, LocalDate date) {
         return userRepository.findByUserId(discordUserId)
                 .map(user -> scoreboardRepository.findByUserAndDate(user, date)
                         .map(scoreboard -> {
-                            if (scoreboard.isComplete()) {
-                                return MarkCompleteOutcome.ALREADY_COMPLETE;
+                            if (scoreboard.isFinished()) {
+                                return MarkFinishedOutcome.ALREADY_FINISHED;
                             }
-                            scoreboard.setComplete(true);
+                            scoreboard.setFinished(true);
                             scoreboardRepository.save(scoreboard);
-                            log.info("Marked scoreboard complete for user {} on {}", discordUserId, date);
-                            return MarkCompleteOutcome.MARKED_COMPLETE;
+                            log.info("Marked scoreboard finished for user {} on {}", discordUserId, date);
+                            return MarkFinishedOutcome.MARKED_FINISHED;
                         })
-                        .orElse(MarkCompleteOutcome.NO_SCOREBOARD_FOR_DATE))
-                .orElse(MarkCompleteOutcome.USER_NOT_FOUND);
+                        .orElse(MarkFinishedOutcome.NO_SCOREBOARD_FOR_DATE))
+                .orElse(MarkFinishedOutcome.USER_NOT_FOUND);
     }
 
     @Transactional
@@ -109,7 +114,7 @@ public class ScoreboardService {
             existing = switch (r.getType()) {
                 case MINI  -> scoreboard.getMiniCrosswordResult();
                 case MIDI  -> scoreboard.getMidiCrosswordResult();
-                case DAILY -> scoreboard.getDailyCrosswordResult();
+                case MAIN  -> scoreboard.getDailyCrosswordResult();
             };
         } else {
             return false;
@@ -128,7 +133,7 @@ public class ScoreboardService {
             switch (r.getType()) {
                 case MINI  -> scoreboard.setMiniCrosswordResult(r);
                 case MIDI  -> scoreboard.setMidiCrosswordResult(r);
-                case DAILY -> scoreboard.setDailyCrosswordResult(r);
+                case MAIN  -> scoreboard.setDailyCrosswordResult(r);
             }
         }
     }

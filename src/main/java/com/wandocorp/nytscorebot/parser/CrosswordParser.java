@@ -57,7 +57,7 @@ public class CrosswordParser implements GameParser {
         Matcher daily = DAILY.matcher(content);
         if (daily.find()) {
             LocalDate date = extractDate(content);
-            return Optional.of(build(content, discordAuthor, CrosswordType.DAILY, daily.group(1), date, daily));
+            return Optional.of(build(content, discordAuthor, CrosswordType.MAIN, daily.group(1), date, daily));
         }
 
         return Optional.empty();
