@@ -45,6 +45,11 @@ public final class BotText {
     public static final String STATUS_CODE_BLOCK_CLOSE = "```";
     public static final String STATUS_COL_SEPARATOR    = "-+-";
 
+    // ── Status header context messages (configurable for tweaking) ────────────
+    // %s placeholders: %1$s = player name, %2$s = game label
+    public static final String STATUS_CONTEXT_GAME_SUBMITTED    = "%s submitted %s";
+    public static final String STATUS_CONTEXT_PLAYER_FINISHED   = "%s is done for today";
+
     public static final String GAME_LABEL_WORDLE      = "Wordle";
     public static final String GAME_LABEL_CONNECTIONS = "Connections";
     public static final String GAME_LABEL_STRANDS     = "Strands";

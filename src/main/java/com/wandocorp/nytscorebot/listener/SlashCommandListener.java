@@ -61,7 +61,8 @@ public class SlashCommandListener {
                     .map(DiscordChannelProperties.ChannelConfig::getName)
                     .findFirst()
                     .orElse(discordUserId);
-            statusChannelService.refresh(playerName + " is done for today");
+            String contextMessage = String.format(BotText.STATUS_CONTEXT_PLAYER_FINISHED, playerName);
+            statusChannelService.refresh(contextMessage);
         }
         String reply = replyMessageFor(outcome);
 

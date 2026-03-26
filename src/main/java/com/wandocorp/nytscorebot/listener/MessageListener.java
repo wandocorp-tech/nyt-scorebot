@@ -83,7 +83,8 @@ public class MessageListener {
                     SaveOutcome outcome = scoreboardService.saveResult(
                             channelId.asString(), personName, discordUserId, result);
                     if (outcome == SaveOutcome.SAVED) {
-                        statusChannelService.refresh(personName + " submitted " + gameLabel(result));
+                        String contextMessage = String.format(BotText.STATUS_CONTEXT_GAME_SUBMITTED, personName, gameLabel(result));
+                        statusChannelService.refresh(contextMessage);
                     }
                     return replyForOutcome(channelMono, outcome);
                 })
