@@ -10,6 +10,7 @@ import com.wandocorp.nytscorebot.listener.MessageListener;
 import com.wandocorp.nytscorebot.repository.ScoreboardRepository;
 import com.wandocorp.nytscorebot.repository.UserRepository;
 import com.wandocorp.nytscorebot.service.MarkFinishedOutcome;
+import com.wandocorp.nytscorebot.service.PuzzleCalendar;
 import com.wandocorp.nytscorebot.service.ScoreboardService;
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
@@ -24,6 +25,7 @@ import org.springframework.test.context.ActiveProfiles;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Locale;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -44,10 +46,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ActiveProfiles("test")
 class SmokeTest {
 
-    // Real sample data — captured from the NYT games.
+    // Computed in @BeforeEach using today's expected puzzle numbers via PuzzleCalendar.
     // The Wordle grid has no trailing comment; the Crossword has "No lookups" as a comment.
-    private static final String WORDLE_SAMPLE =
-            "Wordle 1,738 3/6\n\n🟨⬛⬛⬛⬛\n🟩⬛🟩🟩🟩\n🟩🟩🟩🟩🟩";
+    private String wordleSample;
 
     private static final String CROSSWORD_SAMPLE =
             """
@@ -78,12 +79,17 @@ class SmokeTest {
     @Autowired
     private ScoreboardService scoreboardService;
 
+    @Autowired
+    private PuzzleCalendar puzzleCalendar;
+
     @BeforeEach
     void cleanDb() throws InterruptedException {
         // Let any in-flight events from the previous test settle before clearing the DB.
         Thread.sleep(1_000);
         scoreboardRepository.deleteAll();
         userRepository.deleteAll();
+        wordleSample = "Wordle " + String.format(Locale.US, "%,d", puzzleCalendar.expectedWordle()) +
+                " 3/6\n\n🟨⬛⬛⬛⬛\n🟩⬛🟩🟩🟩\n🟩🟩🟩🟩🟩";
     }
 
     // ── 5.2 ──────────────────────────────────────────────────────────────────
@@ -91,7 +97,7 @@ class SmokeTest {
     @Test
     @DisplayName("5.2: Message on configured channel creates a User and a Scoreboard in H2")
     void configuredChannelMessagePersistsUserAndScoreboard() {
-        postTo(PLAYER_1_CHANNEL, WORDLE_SAMPLE);
+        postTo(PLAYER_1_CHANNEL, wordleSample);
         sleep(5);
 
         assertThat(userRepository.count()).isEqualTo(1);
@@ -106,11 +112,11 @@ class SmokeTest {
 
         WordleResult wr = scoreboard.getWordleResult();
         assertThat(wr).isNotNull();
-        assertThat(wr.getPuzzleNumber()).isEqualTo(1738);
+        assertThat(wr.getPuzzleNumber()).isEqualTo(puzzleCalendar.expectedWordle());
         assertThat(wr.getAttempts()).isEqualTo(3);
         assertThat(wr.isCompleted()).isTrue();
         assertThat(wr.isHardMode()).isFalse();
-        assertThat(wr.getRawContent()).isEqualTo(WORDLE_SAMPLE);
+        assertThat(wr.getRawContent()).isEqualTo(wordleSample);
         assertThat(wr.getComment()).isNull();
     }
 
@@ -119,7 +125,7 @@ class SmokeTest {
     @Test
     @DisplayName("5.3: Second message from same channel reuses the existing User and adds a new Scoreboard")
     void secondMessageReusesUserAndAddsScoreboard() {
-        postTo(PLAYER_1_CHANNEL, WORDLE_SAMPLE);
+        postTo(PLAYER_1_CHANNEL, wordleSample);
         sleep(5);
 
         // Daily Crossword dated 3/21/2026 — CrosswordParser extracts that date, so
@@ -160,7 +166,7 @@ class SmokeTest {
 
         // Post a valid game message to the ignored channel — the bot receives the Discord event
         // but its channel filter rejects it, so nothing should be persisted.
-        postTo(IGNORED_CHANNEL, WORDLE_SAMPLE);
+        postTo(IGNORED_CHANNEL, wordleSample);
         sleep(5);
 
         assertThat(userRepository.count()).as("no User created for unconfigured channel").isZero();
@@ -172,8 +178,8 @@ class SmokeTest {
     @Test
     @DisplayName("Multi-channel: Player Two channel creates its own User and Scoreboard independently")
     void playerTwoChannelPersistsIndependently() {
-        postTo(PLAYER_1_CHANNEL, WORDLE_SAMPLE);
-        postTo(PLAYER_2_CHANNEL, WORDLE_SAMPLE);
+        postTo(PLAYER_1_CHANNEL, wordleSample);
+        postTo(PLAYER_2_CHANNEL, wordleSample);
         sleep(5);
 
         assertThat(userRepository.count()).as("one User per channel").isEqualTo(2);
@@ -195,13 +201,14 @@ class SmokeTest {
     void allGameTypesLandOnSingleScoreboard() {
         String today = LocalDate.now().format(DateTimeFormatter.ofPattern("M/d/yyyy"));
 
-        String connections = "Connections\nPuzzle #1016\n🟩🟩🟩🟩\n🟪🟪🟪🟪\n🟨🟨🟨🟨\n🟦🟦🟦🟦";
-        String strands = "Strands #750\n\"In pieces\"\n🔵🔵🟡🔵\n🔵🔵🔵";
+        String connections = "Connections\nPuzzle #" + puzzleCalendar.expectedConnections() +
+                "\n🟩🟩🟩🟩\n🟪🟪🟪🟪\n🟨🟨🟨🟨\n🟦🟦🟦🟦";
+        String strands = "Strands #" + puzzleCalendar.expectedStrands() + "\n\"In pieces\"\n🔵🔵🟡🔵\n🔵🔵🔵";
         String mini = "I solved the " + today + " New York Times Mini Crossword in 1:23!";
         String midi = "I solved the " + today + " New York Times Midi Crossword in 3:45!";
         String daily = "I solved the " + today + " New York Times Daily Crossword in 15:00!";
 
-        postTo(PLAYER_1_CHANNEL, WORDLE_SAMPLE);
+        postTo(PLAYER_1_CHANNEL, wordleSample);
         postTo(PLAYER_1_CHANNEL, connections);
         postTo(PLAYER_1_CHANNEL, strands);
         postTo(PLAYER_1_CHANNEL, mini);
@@ -217,17 +224,17 @@ class SmokeTest {
 
         WordleResult wr = scoreboard.getWordleResult();
         assertThat(wr).isNotNull();
-        assertThat(wr.getPuzzleNumber()).isEqualTo(1738);
+        assertThat(wr.getPuzzleNumber()).isEqualTo(puzzleCalendar.expectedWordle());
         assertThat(wr.getAttempts()).isEqualTo(3);
 
         ConnectionsResult cr = scoreboard.getConnectionsResult();
         assertThat(cr).isNotNull();
-        assertThat(cr.getPuzzleNumber()).isEqualTo(1016);
+        assertThat(cr.getPuzzleNumber()).isEqualTo(puzzleCalendar.expectedConnections());
         assertThat(cr.getMistakes()).isEqualTo(0);
 
         StrandsResult sr = scoreboard.getStrandsResult();
         assertThat(sr).isNotNull();
-        assertThat(sr.getPuzzleNumber()).isEqualTo(750);
+        assertThat(sr.getPuzzleNumber()).isEqualTo(puzzleCalendar.expectedStrands());
         assertThat(sr.getHintsUsed()).isEqualTo(0);
 
         CrosswordResult miniResult = scoreboard.getMiniCrosswordResult();
@@ -254,7 +261,7 @@ class SmokeTest {
     @Test
     @DisplayName("/finished: marks Player One's scoreboard as finished and persists the change")
     void finishedCommandMarksScoreboardFinished() {
-        postTo(PLAYER_1_CHANNEL, WORDLE_SAMPLE);
+        postTo(PLAYER_1_CHANNEL, wordleSample);
         sleep(5);
 
         assertThat(scoreboardRepository.count()).isEqualTo(1);
@@ -272,7 +279,7 @@ class SmokeTest {
     @DisplayName("/finished: returns NO_SCOREBOARD_FOR_DATE when user has no results today")
     void finishedCommandReturnsNoScoreboardWhenNoneExists() {
         // Ensure the user record exists by posting a result first, then delete scoreboards only
-        postTo(PLAYER_1_CHANNEL, WORDLE_SAMPLE);
+        postTo(PLAYER_1_CHANNEL, wordleSample);
         sleep(5);
         scoreboardRepository.deleteAll();
 
