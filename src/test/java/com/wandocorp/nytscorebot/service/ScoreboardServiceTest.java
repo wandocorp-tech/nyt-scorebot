@@ -262,9 +262,13 @@ class ScoreboardServiceTest {
     @Test
     void allSixGamesAutoSetsFinished() {
         // Save one of each game type; the last save should trigger auto-finish
-        WordleResult wordle = new WordleResult(1741, 3, true, false, "Wordle 1,741 3/6\n\n🟩🟩🟩🟩🟩");
-        ConnectionsResult connections = new ConnectionsResult(1019, 0, "Connections\nPuzzle #1019\n🟩🟩🟩🟩\n🟪🟪🟪🟪\n🟨🟨🟨🟨\n🟦🟦🟦🟦");
-        StrandsResult strands = new StrandsResult(753, 0, "Strands #753\n\"...\"\n🔵🔵🔵");
+        int expectedWordle = calendar.expectedWordle();
+        int expectedConnections = calendar.expectedConnections();
+        int expectedStrands = calendar.expectedStrands();
+
+        WordleResult wordle = new WordleResult("raw", PERSON, null, expectedWordle, 3, true, false);
+        ConnectionsResult connections = new ConnectionsResult("raw", PERSON, null, expectedConnections, 0, true, List.of());
+        StrandsResult strands = new StrandsResult("raw", PERSON, null, expectedStrands, 0);
         CrosswordResult mini = new CrosswordResult("raw", PERSON, null, CrosswordType.MINI, "1:23", 83, TODAY);
         CrosswordResult midi = new CrosswordResult("raw", PERSON, null, CrosswordType.MIDI, "3:45", 225, TODAY);
         CrosswordResult main = new CrosswordResult("raw", PERSON, null, CrosswordType.MAIN, "15:00", 900, TODAY);
