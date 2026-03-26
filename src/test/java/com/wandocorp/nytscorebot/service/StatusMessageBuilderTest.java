@@ -141,7 +141,30 @@ class StatusMessageBuilderTest {
         String footerLine = table.lines()
                 .filter(l -> l.contains(BotText.STATUS_FOOTER_DONE_LABEL))
                 .findFirst().orElse("");
-        assertThat(footerLine).contains(BotText.SUBMITTED);
+        assertThat(footerLine).contains(BotText.CHECK_MARK);
+    }
+
+    @Test
+    void buildShowsUnfinishedCrossmarkInFooter() {
+        User user = mock(User.class);
+        when(user.getName()).thenReturn(NAME_ALICE);
+
+        Scoreboard s = mock(Scoreboard.class);
+        when(s.getUser()).thenReturn(user);
+        when(s.isFinished()).thenReturn(false);
+        when(s.getWordleResult()).thenReturn(null);
+        when(s.getConnectionsResult()).thenReturn(null);
+        when(s.getStrandsResult()).thenReturn(null);
+        when(s.getMiniCrosswordResult()).thenReturn(null);
+        when(s.getMidiCrosswordResult()).thenReturn(null);
+        when(s.getDailyCrosswordResult()).thenReturn(null);
+
+        StatusMessageBuilder builder = new StatusMessageBuilder(List.of(s), List.of(NAME_ALICE, NAME_BOB), CONTEXT);
+        String table = builder.build();
+        String footerLine = table.lines()
+                .filter(l -> l.contains(BotText.STATUS_FOOTER_DONE_LABEL))
+                .findFirst().orElse("");
+        assertThat(footerLine).contains(BotText.CROSS_MARK);
     }
 
     // ── renderedLength ────────────────────────────────────────────────────────
@@ -170,6 +193,18 @@ class StatusMessageBuilderTest {
     void renderedLengthCountsHourglassAsTwo() {
         // ⏳ is U+23F3, Java length 1, renders 2-wide
         assertThat(StatusMessageBuilder.renderedLength(BotText.PENDING)).isEqualTo(2);
+    }
+
+    @Test
+    void renderedLengthCountsCheckMarkAsTwo() {
+        // ✅ is U+2705, Java length 1, renders 2-wide
+        assertThat(StatusMessageBuilder.renderedLength(BotText.CHECK_MARK)).isEqualTo(2);
+    }
+
+    @Test
+    void renderedLengthCountsCrossmarkAsTwo() {
+        // ❌ is U+274C, Java length 1, renders 2-wide
+        assertThat(StatusMessageBuilder.renderedLength(BotText.CROSS_MARK)).isEqualTo(2);
     }
 
     @Test

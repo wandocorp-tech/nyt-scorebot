@@ -81,6 +81,13 @@ public class ScoreboardService {
         applyResult(scoreboard, result);
         scoreboardRepository.save(scoreboard);
 
+        // Auto-set finished flag if all 6 games are now present
+        if (allGamesPresent(scoreboard)) {
+            scoreboard.setFinished(true);
+            scoreboardRepository.save(scoreboard);
+            log.info("Auto-marked scoreboard finished for {} on {} (all 6 games present)", personName, resultDate);
+        }
+
         log.info("Saved {} result for {} on {}", result.getClass().getSimpleName(), personName, today);
         return SaveOutcome.SAVED;
     }
@@ -136,5 +143,14 @@ public class ScoreboardService {
                 case MAIN  -> scoreboard.setDailyCrosswordResult(r);
             }
         }
+    }
+
+    private boolean allGamesPresent(Scoreboard scoreboard) {
+        return scoreboard.getWordleResult() != null
+            && scoreboard.getConnectionsResult() != null
+            && scoreboard.getStrandsResult() != null
+            && scoreboard.getMiniCrosswordResult() != null
+            && scoreboard.getMidiCrosswordResult() != null
+            && scoreboard.getDailyCrosswordResult() != null;
     }
 }

@@ -248,6 +248,8 @@ class SmokeTest {
         CrosswordResult dailyResult = scoreboard.getDailyCrosswordResult();
         assertThat(dailyResult).isNotNull();
         assertThat(dailyResult.getTimeString()).isEqualTo("15:00");
+
+        assertThat(scoreboard.isFinished()).as("auto-marked finished when all 6 games present").isTrue();
     }
 
     // ── /finished ────────────────────────────────────────────────────────────

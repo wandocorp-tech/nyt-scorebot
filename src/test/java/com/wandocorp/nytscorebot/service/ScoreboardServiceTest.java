@@ -258,4 +258,38 @@ class ScoreboardServiceTest {
         when(userRepo.findByUserId("unknown-id")).thenReturn(Optional.empty());
         assertThat(service.markFinished("unknown-id", TODAY)).isEqualTo(MarkFinishedOutcome.USER_NOT_FOUND);
     }
+
+    @Test
+    void allSixGamesAutoSetsFinished() {
+        // Save one of each game type; the last save should trigger auto-finish
+        WordleResult wordle = new WordleResult(1741, 3, true, false, "Wordle 1,741 3/6\n\n🟩🟩🟩🟩🟩");
+        ConnectionsResult connections = new ConnectionsResult(1019, 0, "Connections\nPuzzle #1019\n🟩🟩🟩🟩\n🟪🟪🟪🟪\n🟨🟨🟨🟨\n🟦🟦🟦🟦");
+        StrandsResult strands = new StrandsResult(753, 0, "Strands #753\n\"...\"\n🔵🔵🔵");
+        CrosswordResult mini = new CrosswordResult(CrosswordType.MINI, "1:23", TODAY, "mini puzzle");
+        CrosswordResult midi = new CrosswordResult(CrosswordType.MIDI, "3:45", TODAY, "midi puzzle");
+        CrosswordResult main = new CrosswordResult(CrosswordType.MAIN, "15:00", TODAY, "main puzzle");
+
+        Scoreboard scoreboard = new Scoreboard(user, TODAY);
+        when(scoreboardRepo.findByUserAndDate(user, TODAY)).thenReturn(Optional.of(scoreboard));
+
+        // Save first 5 games — finished should remain false
+        service.saveResult(CHANNEL_ID, USER_NAME, USER_ID, wordle);
+        assertThat(scoreboard.isFinished()).isFalse();
+
+        service.saveResult(CHANNEL_ID, USER_NAME, USER_ID, connections);
+        assertThat(scoreboard.isFinished()).isFalse();
+
+        service.saveResult(CHANNEL_ID, USER_NAME, USER_ID, strands);
+        assertThat(scoreboard.isFinished()).isFalse();
+
+        service.saveResult(CHANNEL_ID, USER_NAME, USER_ID, mini);
+        assertThat(scoreboard.isFinished()).isFalse();
+
+        service.saveResult(CHANNEL_ID, USER_NAME, USER_ID, midi);
+        assertThat(scoreboard.isFinished()).isFalse();
+
+        // Save 6th game — should auto-set finished
+        service.saveResult(CHANNEL_ID, USER_NAME, USER_ID, main);
+        assertThat(scoreboard.isFinished()).isTrue();
+    }
 }
