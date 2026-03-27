@@ -1,5 +1,7 @@
 # Wordle Scoreboard Design
 
+### Note: these codeblocks have the correct spacing on emoji and non-emoji lines in discord  on ios. there are no alignment issues
+
 ## Scenario 1 - Tie by win
 ```
  Wordle #1234
