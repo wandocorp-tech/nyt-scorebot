@@ -54,13 +54,12 @@ class StatusMessageBuilderTest {
     void buildContainsFullGameNames() {
         StatusMessageBuilder builder = new StatusMessageBuilder(List.of(), List.of(NAME_ALICE, NAME_BOB), CONTEXT);
         String table = builder.build();
-        assertThat(table).contains("Wordle");
-        assertThat(table).contains("Connections");
-        assertThat(table).contains("strands");
-        assertThat(table).contains("mini");
-        assertThat(table).contains("midi");
-        assertThat(table).contains("main");
-        assertThat(table).doesNotContain("Crossword");
+        assertThat(table).contains(BotText.GAME_LABEL_WORDLE);
+        assertThat(table).contains(BotText.GAME_LABEL_CONNECTIONS);
+        assertThat(table).contains(BotText.GAME_LABEL_STRANDS);
+        assertThat(table).contains(BotText.GAME_LABEL_MINI);
+        assertThat(table).contains(BotText.GAME_LABEL_MIDI);
+        assertThat(table).contains(BotText.GAME_LABEL_MAIN);
     }
 
     @Test

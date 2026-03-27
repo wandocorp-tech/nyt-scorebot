@@ -5,8 +5,8 @@ public final class BotText {
     public static final int MAX_LINE_WIDTH = 35;
 
     // ── Emojis ───────────────────────────────────────────────────────────────
-    public static final String SUBMITTED = "🟢";
-    public static final String PENDING   = "⚪️";
+    public static final String SUBMITTED = "✅";
+    public static final String PENDING   = "⏳";
     public static final String WARNING   = "⚠️";
     public static final String INFO      = "ℹ️";
 
@@ -15,8 +15,8 @@ public final class BotText {
     public static final String ORANGE = "🟠";
     public static final String RED    = "🔴";
 
-    public static final String CHECK_MARK = "✅";
-    public static final String CROSS_MARK = "❌";
+    public static final String CHECK_MARK = "🟢";
+    public static final String CROSS_MARK = "🔴";
 
     // ── Reply messages ────────────────────────────────────────────────────────
     public static final String MSG_WRONG_PUZZLE_NUMBER =
@@ -52,10 +52,10 @@ public final class BotText {
 
     public static final String GAME_LABEL_WORDLE      = "Wordle";
     public static final String GAME_LABEL_CONNECTIONS = "Connections";
-    public static final String GAME_LABEL_STRANDS     = "strands";
-    public static final String GAME_LABEL_MINI        = "mini";
-    public static final String GAME_LABEL_MIDI        = "midi";
-    public static final String GAME_LABEL_MAIN        = "main";
+    public static final String GAME_LABEL_STRANDS     = "Strands";
+    public static final String GAME_LABEL_MINI        = "Mini";
+    public static final String GAME_LABEL_MIDI        = "Midi";
+    public static final String GAME_LABEL_MAIN        = "Main";
 
     private BotText() {}
 }
