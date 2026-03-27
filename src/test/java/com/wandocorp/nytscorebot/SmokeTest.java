@@ -40,7 +40,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Both configured channels use the bot's own user-id (1485298372637102101) so that messages
  * the bot posts to those channels pass the userId filter and are processed normally.
  * <p>
- * Run with: mvn test
+ * Requires: DISCORD_TOKEN environment variable set in application-test.properties.
  */
 @SpringBootTest
 @ActiveProfiles("test")

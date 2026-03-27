@@ -12,6 +12,7 @@ import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.User;
 import discord4j.core.object.entity.channel.MessageChannel;
+import discord4j.core.spec.MessageCreateMono;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
@@ -95,11 +96,11 @@ class MessageListenerTest {
      * Verifies that createMessage is called with the expected text.
      * We subscribe without blocking: Mono.just(channel) emits synchronously so
      * createMessage() is invoked before the subscriber receives the result.
-     * The unstubbed mock returns null, which Reactor's flatMap converts to an
-     * onError (discarded); the important thing is the invocation was recorded.
      */
     private void assertReplyMessage(SaveOutcome outcome, String expectedFragment) {
         MessageChannel channel = mock(MessageChannel.class);
+        MessageCreateMono messageCreateMono = mock(MessageCreateMono.class);
+        when(channel.createMessage(anyString())).thenReturn(messageCreateMono);
         // subscribe (non-blocking) — createMessage() is called synchronously
         listener.replyForOutcome(Mono.just(channel), outcome).subscribe();
         verify(channel).createMessage(contains(expectedFragment));

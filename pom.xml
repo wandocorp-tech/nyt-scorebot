@@ -80,6 +80,9 @@
                         <!-- Bootstrap / infrastructure: requires live Discord connection -->
                         <exclude>com/wandocorp/nytscorebot/NytScorebotApplication.class</exclude>
                         <exclude>com/wandocorp/nytscorebot/DiscordConfig.class</exclude>
+                        <!-- Hibernate-generated proxy classes: cause JaCoCo instrumentation errors -->
+                        <exclude>**/entity/**$HibernateProxy*</exclude>
+                        <exclude>**/entity/**$HibernateInstantiator*</exclude>
                     </excludes>
                 </configuration>
                 <executions>
