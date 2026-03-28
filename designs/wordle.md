@@ -1,6 +1,8 @@
 # Wordle Scoreboard Design
 
-### Note: these codeblocks have the correct spacing on emoji and non-emoji lines in discord  on ios. there are no alignment issues
+### Notes
+- these codeblocks have the correct spacing on emoji and non-emoji lines in discord  on ios. there are no alignment issues
+- if neither player has submitted a result for wordle when the scoreboards are posted, no wordle scoreboard will be posted
 
 ## Scenario 1 - Tie by win
 ```
