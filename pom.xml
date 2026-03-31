@@ -14,45 +14,73 @@
     <groupId>com.wandocorp</groupId>
     <artifactId>nyt-scorebot</artifactId>
     <version>1.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+
+    <modules>
+        <module>nyt-scorebot-domain</module>
+        <module>nyt-scorebot-database</module>
+        <module>nyt-scorebot-service</module>
+        <module>nyt-scorebot-discord</module>
+        <module>nyt-scorebot-app</module>
+    </modules>
 
     <properties>
         <java.version>17</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-
         <discord4j-core.version>3.2.7</discord4j-core.version>
+        <lombok.version>1.18.38</lombok.version>
     </properties>
 
-    <dependencies>
-        <dependency>
-            <groupId>com.discord4j</groupId>
-            <artifactId>discord4j-core</artifactId>
-            <version>${discord4j-core.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-jpa</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.wandocorp</groupId>
+                <artifactId>nyt-scorebot-domain</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.wandocorp</groupId>
+                <artifactId>nyt-scorebot-database</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.wandocorp</groupId>
+                <artifactId>nyt-scorebot-service</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.wandocorp</groupId>
+                <artifactId>nyt-scorebot-discord</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.discord4j</groupId>
+                <artifactId>discord4j-core</artifactId>
+                <version>${discord4j-core.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>${lombok.version}</version>
+                <scope>provided</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <build>
         <plugins>
             <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -61,6 +89,7 @@
                     <!-- Allow ByteBuddy to load its instrumentation agent at runtime,
                          which Mockito inline mock maker requires on Java 21+. -->
                     <argLine>-XX:+EnableDynamicAgentLoading --add-opens java.base/java.lang=ALL-UNNAMED -Dnet.bytebuddy.experimental=true @{argLine}</argLine>
+                    <failIfNoSpecifiedTests>false</failIfNoSpecifiedTests>
                 </configuration>
             </plugin>
             <plugin>
@@ -69,18 +98,16 @@
                 <version>0.8.12</version>
                 <configuration>
                     <excludes>
-                        <!-- Pure data classes: no logic to test -->
                         <exclude>com/wandocorp/nytscorebot/model/**</exclude>
                         <exclude>com/wandocorp/nytscorebot/entity/User.class</exclude>
                         <exclude>com/wandocorp/nytscorebot/entity/Scoreboard.class</exclude>
-                        <!-- Spring Data interfaces: no implementation code -->
                         <exclude>com/wandocorp/nytscorebot/repository/**</exclude>
-                        <!-- Pure enums: JaCoCo generates synthetic values()/valueOf() methods -->
                         <exclude>com/wandocorp/nytscorebot/service/SaveOutcome.class</exclude>
-                        <!-- Bootstrap / infrastructure: requires live Discord connection -->
                         <exclude>com/wandocorp/nytscorebot/NytScorebotApplication.class</exclude>
                         <exclude>com/wandocorp/nytscorebot/DiscordConfig.class</exclude>
-                        <!-- Hibernate-generated proxy classes: cause JaCoCo instrumentation errors -->
+                        <exclude>com/wandocorp/nytscorebot/config/DiscordConfig.class</exclude>
+                        <exclude>com/wandocorp/nytscorebot/config/DiscordChannelProperties*.class</exclude>
+                        <exclude>com/wandocorp/nytscorebot/listener/SlashCommandRegistrar.class</exclude>
                         <exclude>**/entity/**$HibernateProxy*</exclude>
                         <exclude>**/entity/**$HibernateInstantiator*</exclude>
                     </excludes>
