@@ -4,6 +4,7 @@ import com.wandocorp.nytscorebot.config.DiscordChannelProperties;
 import com.wandocorp.nytscorebot.config.DiscordChannelProperties.ChannelConfig;
 import com.wandocorp.nytscorebot.service.MarkFinishedOutcome;
 import com.wandocorp.nytscorebot.service.PuzzleCalendar;
+import com.wandocorp.nytscorebot.service.ResultsChannelService;
 import com.wandocorp.nytscorebot.service.ScoreboardService;
 import com.wandocorp.nytscorebot.service.StatusChannelService;
 import discord4j.common.util.Snowflake;
@@ -34,6 +35,7 @@ class SlashCommandListenerTest {
     private ScoreboardService scoreboardService;
     private PuzzleCalendar puzzleCalendar;
     private StatusChannelService statusChannelService;
+    private ResultsChannelService resultsChannelService;
     private DiscordChannelProperties channelProperties;
     private SlashCommandListener listener;
 
@@ -42,6 +44,7 @@ class SlashCommandListenerTest {
         scoreboardService = mock(ScoreboardService.class);
         puzzleCalendar = mock(PuzzleCalendar.class);
         statusChannelService = mock(StatusChannelService.class);
+        resultsChannelService = mock(ResultsChannelService.class);
         when(puzzleCalendar.today()).thenReturn(TODAY);
 
         channelProperties = new DiscordChannelProperties();
@@ -52,7 +55,7 @@ class SlashCommandListenerTest {
         channelProperties.setChannels(List.of(ch));
 
         // GatewayDiscordClient only used in subscribe() — not needed in unit tests
-        listener = new SlashCommandListener(null, scoreboardService, puzzleCalendar, statusChannelService, channelProperties);
+        listener = new SlashCommandListener(null, scoreboardService, puzzleCalendar, statusChannelService, resultsChannelService, channelProperties);
     }
 
     // ── replyMessageFor ───────────────────────────────────────────────────────

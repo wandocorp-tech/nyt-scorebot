@@ -10,6 +10,7 @@ import com.wandocorp.nytscorebot.model.GameResult;
 import com.wandocorp.nytscorebot.model.StrandsResult;
 import com.wandocorp.nytscorebot.model.WordleResult;
 import com.wandocorp.nytscorebot.parser.GameResultParser;
+import com.wandocorp.nytscorebot.service.ResultsChannelService;
 import com.wandocorp.nytscorebot.service.SaveOutcome;
 import com.wandocorp.nytscorebot.service.ScoreboardService;
 import com.wandocorp.nytscorebot.service.StatusChannelService;
@@ -37,6 +38,7 @@ public class MessageListener {
     private final GameResultParser parser;
     private final ScoreboardService scoreboardService;
     private final StatusChannelService statusChannelService;
+    private final ResultsChannelService resultsChannelService;
     final Map<Snowflake, String> channelPersonMap;
     final Map<Snowflake, String> channelUserIdMap;
 
@@ -44,11 +46,13 @@ public class MessageListener {
                            DiscordChannelProperties channelProperties,
                            GameResultParser parser,
                            ScoreboardService scoreboardService,
-                           StatusChannelService statusChannelService) {
+                           StatusChannelService statusChannelService,
+                           ResultsChannelService resultsChannelService) {
         this.client = client;
         this.parser = parser;
         this.scoreboardService = scoreboardService;
         this.statusChannelService = statusChannelService;
+        this.resultsChannelService = resultsChannelService;
         this.channelPersonMap = channelProperties.getChannels().stream()
                 .collect(Collectors.toMap(
                         c -> Snowflake.of(c.getId()),
@@ -85,6 +89,7 @@ public class MessageListener {
                     if (outcome == SaveOutcome.SAVED) {
                         String contextMessage = String.format(BotText.STATUS_CONTEXT_GAME_SUBMITTED, personName, gameLabel(result));
                         statusChannelService.refresh(contextMessage);
+                        resultsChannelService.refresh();
                     }
                     return replyForOutcome(channelMono, outcome);
                 })

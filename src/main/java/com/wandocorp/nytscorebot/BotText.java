@@ -57,5 +57,11 @@ public final class BotText {
     public static final String GAME_LABEL_MIDI        = "Midi";
     public static final String GAME_LABEL_MAIN        = "Main";
 
+    // ── Scoreboard result messages ────────────────────────────────────────────
+    public static final String SCOREBOARD_TIE            = "🤝 Tie!";
+    public static final String SCOREBOARD_WIN_WITH_DIFF  = "🏆 %s wins! (-%d)";
+    public static final String SCOREBOARD_WIN_NO_DIFF    = "🏆 %s wins!";
+    public static final String SCOREBOARD_WAITING        = "⏳ %s hasn't submitted";
+
     private BotText() {}
 }

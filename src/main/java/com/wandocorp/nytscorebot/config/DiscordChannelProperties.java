@@ -33,6 +33,11 @@ public class DiscordChannelProperties {
     public String getStatusChannelId() { return statusChannelId; }
     public void setStatusChannelId(String statusChannelId) { this.statusChannelId = statusChannelId; }
 
+    private String resultsChannelId;
+
+    public String getResultsChannelId() { return resultsChannelId; }
+    public void setResultsChannelId(String resultsChannelId) { this.resultsChannelId = resultsChannelId; }
+
     public static class ChannelConfig {
         private String id;
         private String name;

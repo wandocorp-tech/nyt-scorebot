@@ -4,6 +4,7 @@ import com.wandocorp.nytscorebot.BotText;
 import com.wandocorp.nytscorebot.config.DiscordChannelProperties;
 import com.wandocorp.nytscorebot.service.MarkFinishedOutcome;
 import com.wandocorp.nytscorebot.service.PuzzleCalendar;
+import com.wandocorp.nytscorebot.service.ResultsChannelService;
 import com.wandocorp.nytscorebot.service.ScoreboardService;
 import com.wandocorp.nytscorebot.service.StatusChannelService;
 import discord4j.core.GatewayDiscordClient;
@@ -24,17 +25,20 @@ public class SlashCommandListener {
     private final ScoreboardService scoreboardService;
     private final PuzzleCalendar puzzleCalendar;
     private final StatusChannelService statusChannelService;
+    private final ResultsChannelService resultsChannelService;
     private final DiscordChannelProperties channelProperties;
 
     public SlashCommandListener(GatewayDiscordClient client,
                                 ScoreboardService scoreboardService,
                                 PuzzleCalendar puzzleCalendar,
                                 StatusChannelService statusChannelService,
+                                ResultsChannelService resultsChannelService,
                                 DiscordChannelProperties channelProperties) {
         this.client = client;
         this.scoreboardService = scoreboardService;
         this.puzzleCalendar = puzzleCalendar;
         this.statusChannelService = statusChannelService;
+        this.resultsChannelService = resultsChannelService;
         this.channelProperties = channelProperties;
     }
 
@@ -63,6 +67,7 @@ public class SlashCommandListener {
                     .orElse(discordUserId);
             String contextMessage = String.format(BotText.STATUS_CONTEXT_PLAYER_FINISHED, playerName);
             statusChannelService.refresh(contextMessage);
+            resultsChannelService.refresh();
         }
         String reply = replyMessageFor(outcome);
 

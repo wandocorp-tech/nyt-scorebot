@@ -160,6 +160,7 @@ class ParserTest {
         StrandsResult sr = (StrandsResult) result.get();
         assertThat(sr.getPuzzleNumber()).isEqualTo(700);
         assertThat(sr.getHintsUsed()).isEqualTo(1);
+        assertThat(sr.getSpangramPosition()).isEqualTo(4); // 💡🔵🔵🟡 → 4th emoji
         assertThat(sr.getRawContent()).isEqualTo(STRANDS_1);
         assertThat(sr.getComment()).isNull();
     }
@@ -171,6 +172,7 @@ class ParserTest {
         StrandsResult sr = (StrandsResult) result.get();
         assertThat(sr.getPuzzleNumber()).isEqualTo(698);
         assertThat(sr.getHintsUsed()).isEqualTo(0);
+        assertThat(sr.getSpangramPosition()).isEqualTo(1); // 🟡🔵🔵🔵🔵🔵🔵 → 1st emoji
         assertThat(sr.getRawContent()).isEqualTo(STRANDS_2);
         assertThat(sr.getComment()).isEqualTo("that sucked");
     }
@@ -182,6 +184,7 @@ class ParserTest {
         StrandsResult sr = (StrandsResult) result.get();
         assertThat(sr.getPuzzleNumber()).isEqualTo(695);
         assertThat(sr.getHintsUsed()).isEqualTo(0);
+        assertThat(sr.getSpangramPosition()).isEqualTo(4); // 🔵🔵🔵🟡 → 4th emoji
         assertThat(sr.getRawContent()).isEqualTo(STRANDS_3);
         assertThat(sr.getComment()).isNull();
     }
@@ -193,6 +196,7 @@ class ParserTest {
         StrandsResult sr = (StrandsResult) result.get();
         assertThat(sr.getPuzzleNumber()).isEqualTo(750);
         assertThat(sr.getHintsUsed()).isEqualTo(0);
+        assertThat(sr.getSpangramPosition()).isEqualTo(3); // 🔵🔵🟡🔵\n🔵🔵🔵 → 3rd emoji
         assertThat(sr.getRawContent()).isEqualTo(STRANDS_4);
         assertThat(sr.getComment()).isNull();
     }

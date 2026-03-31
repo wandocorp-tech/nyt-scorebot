@@ -52,11 +52,12 @@ public class Scoreboard {
 
     @Embedded
     @AttributeOverrides({
-        @AttributeOverride(name = "rawContent",    column = @Column(name = "strands_raw_content")),
-        @AttributeOverride(name = "discordAuthor", column = @Column(name = "strands_discord_author")),
-        @AttributeOverride(name = "comment",       column = @Column(name = "strands_comment")),
-        @AttributeOverride(name = "puzzleNumber",  column = @Column(name = "strands_puzzle_number")),
-        @AttributeOverride(name = "hintsUsed",     column = @Column(name = "strands_hints_used"))
+        @AttributeOverride(name = "rawContent",       column = @Column(name = "strands_raw_content")),
+        @AttributeOverride(name = "discordAuthor",    column = @Column(name = "strands_discord_author")),
+        @AttributeOverride(name = "comment",          column = @Column(name = "strands_comment")),
+        @AttributeOverride(name = "puzzleNumber",     column = @Column(name = "strands_puzzle_number")),
+        @AttributeOverride(name = "hintsUsed",        column = @Column(name = "strands_hints_used")),
+        @AttributeOverride(name = "spangramPosition", column = @Column(name = "strands_spangram_position"))
     })
     private StrandsResult strandsResult;
 

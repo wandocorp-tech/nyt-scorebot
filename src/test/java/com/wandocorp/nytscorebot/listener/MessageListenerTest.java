@@ -4,6 +4,7 @@ import com.wandocorp.nytscorebot.config.DiscordChannelProperties;
 import com.wandocorp.nytscorebot.config.DiscordChannelProperties.ChannelConfig;
 import com.wandocorp.nytscorebot.model.WordleResult;
 import com.wandocorp.nytscorebot.parser.GameResultParser;
+import com.wandocorp.nytscorebot.service.ResultsChannelService;
 import com.wandocorp.nytscorebot.service.SaveOutcome;
 import com.wandocorp.nytscorebot.service.ScoreboardService;
 import com.wandocorp.nytscorebot.service.StatusChannelService;
@@ -36,6 +37,7 @@ class MessageListenerTest {
     private GameResultParser parser;
     private ScoreboardService scoreboardService;
     private StatusChannelService statusChannelService;
+    private ResultsChannelService resultsChannelService;
     private MessageListener listener;
 
     @BeforeEach
@@ -43,6 +45,7 @@ class MessageListenerTest {
         parser            = mock(GameResultParser.class);
         scoreboardService = mock(ScoreboardService.class);
         statusChannelService = mock(StatusChannelService.class);
+        resultsChannelService = mock(ResultsChannelService.class);
 
         DiscordChannelProperties props = new DiscordChannelProperties();
         ChannelConfig ch = new ChannelConfig();
@@ -51,7 +54,7 @@ class MessageListenerTest {
         ch.setUserId(USER_ID);
         props.setChannels(List.of(ch));
 
-        listener = new MessageListener(null, props, parser, scoreboardService, statusChannelService);
+        listener = new MessageListener(null, props, parser, scoreboardService, statusChannelService, resultsChannelService);
     }
 
     // ── isChannelMonitored ────────────────────────────────────────────────────

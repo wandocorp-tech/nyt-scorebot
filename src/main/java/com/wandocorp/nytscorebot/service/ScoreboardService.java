@@ -34,6 +34,11 @@ public class ScoreboardService {
         return scoreboardRepository.findAllByDateWithUser(puzzleCalendar.today());
     }
 
+    public boolean areBothPlayersFinishedToday() {
+        List<Scoreboard> scoreboards = getTodayScoreboards();
+        return scoreboards.size() >= 2 && scoreboards.stream().allMatch(Scoreboard::isFinished);
+    }
+
     @Transactional
     public MarkFinishedOutcome markFinished(String discordUserId, LocalDate date) {
         return userRepository.findByUserId(discordUserId)
