@@ -2,7 +2,7 @@ package com.wandocorp.nytscorebot.service.scoreboard;
 
 import com.wandocorp.nytscorebot.BotText;
 import com.wandocorp.nytscorebot.entity.Scoreboard;
-import com.wandocorp.nytscorebot.model.MainCrosswordResult;
+import com.wandocorp.nytscorebot.model.CrosswordResult;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
@@ -30,7 +30,7 @@ public class MainCrosswordScoreboard implements GameComparisonScoreboard {
 
     @Override
     public String header(Scoreboard scoreboard) {
-        MainCrosswordResult r = scoreboard.getMainCrosswordResult();
+        CrosswordResult r = scoreboard.getMainCrosswordResult();
         String dateStr = r.getDate() != null ? r.getDate().format(DATE_FMT) : "?";
         return String.format(BotText.SCOREBOARD_MAIN_HEADER, dateStr);
     }
@@ -42,7 +42,7 @@ public class MainCrosswordScoreboard implements GameComparisonScoreboard {
 
     @Override
     public List<String> emojiGridRows(Scoreboard scoreboard) {
-        MainCrosswordResult r = scoreboard.getMainCrosswordResult();
+        CrosswordResult r = scoreboard.getMainCrosswordResult();
         String flags = buildFlagsString(r);
         return flags.isEmpty() ? List.of() : List.of(flags);
     }
@@ -60,7 +60,7 @@ public class MainCrosswordScoreboard implements GameComparisonScoreboard {
     @Override public int baseGap() { return 3; }
     @Override public int maxEmojisPerRow() { return 6; }
 
-    static String buildFlagsString(MainCrosswordResult r) {
+    static String buildFlagsString(CrosswordResult r) {
         List<String> parts = new ArrayList<>();
         if (Boolean.TRUE.equals(r.getDuo())) {
             parts.add(BotText.FLAG_DUO);

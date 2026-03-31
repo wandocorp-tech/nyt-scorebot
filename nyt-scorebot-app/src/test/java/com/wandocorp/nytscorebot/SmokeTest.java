@@ -114,8 +114,8 @@ class SmokeTest {
         assertThat(wr).isNotNull();
         assertThat(wr.getPuzzleNumber()).isEqualTo(puzzleCalendar.expectedWordle());
         assertThat(wr.getAttempts()).isEqualTo(3);
-        assertThat(wr.isCompleted()).isTrue();
-        assertThat(wr.isHardMode()).isFalse();
+        assertThat(wr.getCompleted()).isTrue();
+        assertThat(wr.getHardMode()).isFalse();
         assertThat(wr.getRawContent()).isEqualTo(wordleSample);
         assertThat(wr.getComment()).isNull();
     }

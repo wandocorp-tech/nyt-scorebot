@@ -138,7 +138,7 @@ public class ScoreboardService {
             switch (r.getType()) {
                 case MINI  -> scoreboard.setMiniCrosswordResult(r);
                 case MIDI  -> scoreboard.setMidiCrosswordResult(r);
-                case MAIN  -> scoreboard.setMainCrosswordResult(MainCrosswordResult.from(r));
+                case MAIN  -> scoreboard.setMainCrosswordResult(r);
             }
         }
     }
@@ -171,11 +171,11 @@ public class ScoreboardService {
     }
 
     private SetFlagOutcome withMainCrossword(String discordUserId, LocalDate date,
-                                              Function<MainCrosswordResult, SetFlagOutcome> action) {
+                                              Function<CrosswordResult, SetFlagOutcome> action) {
         return userRepository.findByUserId(discordUserId)
                 .map(user -> scoreboardRepository.findByUserAndDate(user, date)
                         .map(scoreboard -> {
-                            MainCrosswordResult main = scoreboard.getMainCrosswordResult();
+                            CrosswordResult main = scoreboard.getMainCrosswordResult();
                             if (main == null || main.getRawContent() == null) {
                                 return SetFlagOutcome.NO_MAIN_CROSSWORD;
                             }

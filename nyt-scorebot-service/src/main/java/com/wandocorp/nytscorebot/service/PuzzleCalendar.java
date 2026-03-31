@@ -1,5 +1,6 @@
 package com.wandocorp.nytscorebot.service;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -26,6 +27,7 @@ public class PuzzleCalendar {
     // Strands puzzle #1 was published on 2024-03-04
     static final LocalDate STRANDS_EPOCH = LocalDate.of(2024, 3, 4);
 
+    @Autowired
     public PuzzleCalendar(@Value("${discord.timezone:Europe/London}") String timezone) {
         this(ZoneId.of(timezone));
     }

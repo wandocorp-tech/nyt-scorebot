@@ -278,14 +278,14 @@ class ScoreboardServiceTest {
         assertThat(scoreboard.isFinished()).isTrue();
     }
 
-    // ── saveResult wraps MAIN crossword into MainCrosswordResult ──────────────
+    // ── saveResult stores MAIN crossword as CrosswordResult ─────────────────
 
     @Test
-    void mainCrosswordIsWrappedIntoMainCrosswordResult() {
+    void mainCrosswordIsStoredAsCrosswordResult() {
         CrosswordResult result = new CrosswordResult("raw", PERSON, null,
                 CrosswordType.MAIN, "15:00", 900, TODAY);
         assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result)).isEqualTo(SaveOutcome.SAVED);
-        assertThat(scoreboard.getMainCrosswordResult()).isInstanceOf(MainCrosswordResult.class);
+        assertThat(scoreboard.getMainCrosswordResult()).isInstanceOf(CrosswordResult.class);
         assertThat(scoreboard.getMainCrosswordResult().getDuo()).isNull();
     }
 
@@ -376,7 +376,7 @@ class ScoreboardServiceTest {
     // ── helpers ──────────────────────────────────────────────────────────────
 
     private void setUpMainCrossword() {
-        MainCrosswordResult main = new MainCrosswordResult("raw", PERSON, null, "15:00", 900, TODAY);
+        CrosswordResult main = new CrosswordResult("raw", PERSON, null, CrosswordType.MAIN, "15:00", 900, TODAY);
         scoreboard.setMainCrosswordResult(main);
     }
 }

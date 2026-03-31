@@ -41,7 +41,7 @@ public class ConnectionsScoreboard implements GameComparisonScoreboard {
     @Override
     public String scoreLabel(Scoreboard scoreboard) {
         ConnectionsResult r = scoreboard.getConnectionsResult();
-        return r.isCompleted() ? String.valueOf(r.getMistakes()) : "X";
+        return r.getCompleted() ? String.valueOf(r.getMistakes()) : "X";
     }
 
     @Override
@@ -61,13 +61,13 @@ public class ConnectionsScoreboard implements GameComparisonScoreboard {
         ConnectionsResult r1 = s1.getConnectionsResult();
         ConnectionsResult r2 = s2.getConnectionsResult();
 
-        if (!r1.isCompleted() && !r2.isCompleted()) {
+        if (!r1.getCompleted() && !r2.getCompleted()) {
             return new ComparisonOutcome.Tie();
         }
-        if (!r1.isCompleted()) {
+        if (!r1.getCompleted()) {
             return new ComparisonOutcome.Win(name2, null);
         }
-        if (!r2.isCompleted()) {
+        if (!r2.getCompleted()) {
             return new ComparisonOutcome.Win(name1, null);
         }
         boolean perfect1 = r1.getMistakes() == 0;

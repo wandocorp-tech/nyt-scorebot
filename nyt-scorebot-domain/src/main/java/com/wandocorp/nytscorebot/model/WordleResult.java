@@ -7,10 +7,10 @@ import lombok.Getter;
 @Embeddable
 public class WordleResult extends GameResult {
 
-    private int puzzleNumber;
-    private int attempts;
-    private boolean completed;
-    private boolean hardMode;
+    private Integer puzzleNumber;
+    private Integer attempts;
+    private Boolean completed;
+    private Boolean hardMode;
 
     protected WordleResult() {}
 

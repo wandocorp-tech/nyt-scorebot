@@ -41,7 +41,7 @@ public class WordleScoreboard implements GameComparisonScoreboard {
     @Override
     public String scoreLabel(Scoreboard scoreboard) {
         WordleResult r = scoreboard.getWordleResult();
-        return r.isCompleted() ? String.valueOf(r.getAttempts()) : "X";
+        return r.getCompleted() ? String.valueOf(r.getAttempts()) : "X";
     }
 
     @Override
@@ -61,13 +61,13 @@ public class WordleScoreboard implements GameComparisonScoreboard {
         WordleResult r1 = s1.getWordleResult();
         WordleResult r2 = s2.getWordleResult();
 
-        if (!r1.isCompleted() && !r2.isCompleted()) {
+        if (!r1.getCompleted() && !r2.getCompleted()) {
             return new ComparisonOutcome.Tie();
         }
-        if (!r1.isCompleted()) {
+        if (!r1.getCompleted()) {
             return new ComparisonOutcome.Win(name2, null);
         }
-        if (!r2.isCompleted()) {
+        if (!r2.getCompleted()) {
             return new ComparisonOutcome.Win(name1, null);
         }
         int a1 = r1.getAttempts();

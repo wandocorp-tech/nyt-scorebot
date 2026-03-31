@@ -7,8 +7,8 @@ import lombok.Getter;
 @Embeddable
 public class StrandsResult extends GameResult {
 
-    private int puzzleNumber;
-    private int hintsUsed;
+    private Integer puzzleNumber;
+    private Integer hintsUsed;
 
     protected StrandsResult() {}
 

@@ -2,7 +2,8 @@ package com.wandocorp.nytscorebot.service.scoreboard;
 
 import com.wandocorp.nytscorebot.entity.Scoreboard;
 import com.wandocorp.nytscorebot.entity.User;
-import com.wandocorp.nytscorebot.model.MainCrosswordResult;
+import com.wandocorp.nytscorebot.model.CrosswordResult;
+import com.wandocorp.nytscorebot.model.CrosswordType;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
@@ -15,14 +16,14 @@ class MainCrosswordScoreboardTest {
     private static final LocalDate DATE = LocalDate.of(2026, 3, 31);
     private final MainCrosswordScoreboard scoreboard = new MainCrosswordScoreboard();
 
-    private Scoreboard sbWith(MainCrosswordResult result) {
+    private Scoreboard sbWith(CrosswordResult result) {
         Scoreboard sb = new Scoreboard(new User("c1", "test", "u1"), DATE);
         sb.setMainCrosswordResult(result);
         return sb;
     }
 
-    private MainCrosswordResult result(String time, int seconds) {
-        return new MainCrosswordResult("raw", "author", null, time, seconds, DATE);
+    private CrosswordResult result(String time, int seconds) {
+        return new CrosswordResult("raw", "author", null, CrosswordType.MAIN, time, seconds, DATE);
     }
 
     @Test
@@ -93,7 +94,7 @@ class MainCrosswordScoreboardTest {
 
     @Test
     void duoOnlyReturnsOneRow() {
-        MainCrosswordResult r = result("15:00", 900);
+        CrosswordResult r = result("15:00", 900);
         r.setDuo(true);
         List<String> rows = scoreboard.emojiGridRows(sbWith(r));
         assertThat(rows).hasSize(1);
@@ -102,7 +103,7 @@ class MainCrosswordScoreboardTest {
 
     @Test
     void lookupsOnlyReturnsOneRow() {
-        MainCrosswordResult r = result("15:00", 900);
+        CrosswordResult r = result("15:00", 900);
         r.setLookups(3);
         List<String> rows = scoreboard.emojiGridRows(sbWith(r));
         assertThat(rows).hasSize(1);
@@ -111,7 +112,7 @@ class MainCrosswordScoreboardTest {
 
     @Test
     void checkOnlyReturnsOneRow() {
-        MainCrosswordResult r = result("15:00", 900);
+        CrosswordResult r = result("15:00", 900);
         r.setCheckUsed(true);
         List<String> rows = scoreboard.emojiGridRows(sbWith(r));
         assertThat(rows).hasSize(1);
@@ -120,7 +121,7 @@ class MainCrosswordScoreboardTest {
 
     @Test
     void allFlagsReturnsCombinedRow() {
-        MainCrosswordResult r = result("15:00", 900);
+        CrosswordResult r = result("15:00", 900);
         r.setDuo(true);
         r.setLookups(2);
         r.setCheckUsed(true);
@@ -131,14 +132,14 @@ class MainCrosswordScoreboardTest {
 
     @Test
     void zeroLookupsDoesNotShowFlag() {
-        MainCrosswordResult r = result("15:00", 900);
+        CrosswordResult r = result("15:00", 900);
         r.setLookups(0);
         assertThat(scoreboard.emojiGridRows(sbWith(r))).isEmpty();
     }
 
     @Test
     void falseDuoDoesNotShowFlag() {
-        MainCrosswordResult r = result("15:00", 900);
+        CrosswordResult r = result("15:00", 900);
         r.setDuo(false);
         assertThat(scoreboard.emojiGridRows(sbWith(r))).isEmpty();
     }
