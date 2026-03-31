@@ -126,7 +126,7 @@ Once both players have finished for the day (either by submitting all games or u
 5. If a single-player scoreboard is already posted and the other player later submits, the existing message is **deleted and replaced** with the completed two-player board.
 6. Games where neither player submitted produce no scoreboard.
 
-**Layout (35-char fixed-width Discord code block):**
+**Layout (33-char fixed-width Discord code block):**
 ```
  Wordle #1234
  
@@ -149,11 +149,11 @@ Once both players have finished for the day (either by submitting all games or u
 **Winner determination:**
 - Wordle: fewer guesses; X (failed) loses to any completion.
 - Connections: fewer mistakes; X loses to any completion.
-- Strands: fewer hints used; tiebreaker is earlier spangram (🟡) position.
+- Strands: fewer hints used; tiebreaker removed — hints-only.
 
 **Extensibility:** Adding a new game scoreboard requires only implementing `GameComparisonScoreboard` — no changes to `ScoreboardRenderer` or `ResultsChannelService`.
 
-**Spangram position:** `StrandsResult` stores `spangramPosition` (1-based index of 🟡 in the flattened emoji sequence), computed at parse time by `StrandsParser`. Persisted as `strands_spangram_position` in the database.
+**Note:** Strands no longer stores a `spangramPosition`; only `hintsUsed` is persisted and used for scoreboard winner determination.
 
 **In-memory message tracking:** `ResultsChannelService` holds a `Map<gameType, Snowflake>` of posted message IDs. Cleared on restart; a subsequent submission will re-trigger posting.
 
@@ -174,7 +174,7 @@ mvn verify -Dtest='!com.wandocorp.nytscorebot.SmokeTest'  # Run unit tests + JaC
 **ParserTest** — GameResultParser chain & individual parser logic
 - Wordle parsing (attempts, hard mode, completion, comments)
 - Connections parsing (puzzle number, mistakes, solved groups)
-- Strands parsing (hints, puzzle number, **spangram position**)
+- Strands parsing (hints, puzzle number)
 - Crossword parsing (daily/mini/midi, date extraction, comments)
 - Edge cases: non-matching content, missing dates, empty comments
 
@@ -197,7 +197,7 @@ mvn verify -Dtest='!com.wandocorp.nytscorebot.SmokeTest'  # Run unit tests + JaC
 **Scoreboard rendering tests** — Game comparison scoreboard logic
 - `WordleScoreboardTest` — win, tie (same guesses), tie (both X), win by completion, score labels, emoji grid extraction
 - `ConnectionsScoreboardTest` — same structure for Connections
-- `StrandsScoreboardTest` — win by hints, win by spangram position, tie
+- `StrandsScoreboardTest` — win by hints, tie
 - `ScoreboardRendererTest` — shared layout, column ordering by row count, column ordering by config order for ties, single-player layout, no-result no-op
 
 **ResultsChannelServiceTest** — Results channel posting logic
@@ -273,7 +273,7 @@ Both `statusChannelId` and `resultsChannelId` are optional. Omit either to disab
 
 ### Database
 
-H2 in-memory database with Spring Data JPA auto-configuration. Schema is auto-generated on startup (`ddl-auto=update`), so new columns (e.g., `strands_spangram_position`) are added automatically.
+H2 in-memory database with Spring Data JPA auto-configuration. Schema is auto-generated on startup (`ddl-auto=update`) to add new nullable columns when necessary.
 
 For persistence across restarts, configure `spring.datasource.url`:
 ```yaml
@@ -320,7 +320,7 @@ spring:
 - Tracks posted message IDs; deletes and reposts when a late submission upgrades a single-player board to two-player
 
 ### `ScoreboardRenderer` (Component)
-- Shared layout engine for 35-char-wide comparison scoreboards
+- Shared layout engine for 33-char-wide comparison scoreboards
 - Handles two-player, single-player, and no-op cases
 - Injects all `GameComparisonScoreboard` implementations; `renderAll()` iterates them
 
@@ -350,7 +350,7 @@ spring:
 | Puzzle number validation only (no date validation for numbered games) | Simpler logic; Wordle/Connections/Strands already published fresh daily, so puzzle number is sufficient |
 | Scoreboards posted to separate results channel | Keeps game results visually distinct from the submission status table |
 | In-memory message ID tracking | Sufficient for single-instance bot; restarts are rare, and the next submission re-triggers posting |
-| `spangramPosition` stored at parse time | Avoids re-parsing raw content at scoreboard-render time; consistent with how `attempts` and `mistakes` are computed |
+| `spangramPosition` (removed) | No longer stored; Strands uses hints-only for comparison |
 | Strategy pattern for game scoreboard logic | Adding new game scoreboards requires one new class, zero changes to the shared rendering pipeline |
 
 ## Build & Deploy

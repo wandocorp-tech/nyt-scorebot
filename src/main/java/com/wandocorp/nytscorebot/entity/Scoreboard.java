@@ -56,8 +56,7 @@ public class Scoreboard {
         @AttributeOverride(name = "discordAuthor",    column = @Column(name = "strands_discord_author")),
         @AttributeOverride(name = "comment",          column = @Column(name = "strands_comment")),
         @AttributeOverride(name = "puzzleNumber",     column = @Column(name = "strands_puzzle_number")),
-        @AttributeOverride(name = "hintsUsed",        column = @Column(name = "strands_hints_used")),
-        @AttributeOverride(name = "spangramPosition", column = @Column(name = "strands_spangram_position"))
+        @AttributeOverride(name = "hintsUsed",        column = @Column(name = "strands_hints_used"))
     })
     private StrandsResult strandsResult;
 

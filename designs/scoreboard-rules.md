@@ -26,14 +26,14 @@ All scoreboards use the following structure, rendered inside a Discord code bloc
 -----------------------------------
 ```
 
-- The outer separator is exactly **35 dashes**: `-----------------------------------`
+- The outer separator is exactly **33 dashes**: `---------------------------------`
 - The header line has a **single leading space**
-- The name/score row has the left player **right-aligned** to position 15 and the right player **left-aligned** from position 21, with the `|` separator at position 18 (the centre of the 35-character line) and **2 spaces of padding** on each side
+- The name/score row has the left player **right-aligned** to position 15 and the right player **left-aligned** from position 21, with the `|` separator at position 18 (the centre of the 33-character line) and **2 spaces of padding** on each side
 - The result message row has a **single leading space**
 
 ### Fixed Width
 
-The table width is **35 characters**. This applies to all scenarios, including the single-player layout.
+The table width is **33 characters**. This applies to all scenarios, including the single-player layout.
 
 ### Emoji Rendering in Discord
 
@@ -293,7 +293,7 @@ The player with **fewer mistakes** wins. A completed result always beats a faile
 ### Header
 
 ```
- Strands #[puzzle number] - "[tagline]"
+ Strands #[puzzle number]
 ```
 
 ### Score Field
@@ -305,30 +305,25 @@ The score displayed next to the player's name is the **number of hints used**:
 ### Emoji Grid
 
 - Each row contains a maximum of **4 emojis**
-- Valid emojis: `🟡` (spangram), `🔵` (theme word), `💡` (hint used)
-- There is exactly **one** `🟡` spangram per result
+- Valid emojis: `🔵` (theme word), `💡` (hint used). A `🟡` spangram may appear in raw content but its position is not persisted or used for tiebreaking.
 - Both players will always have the same number of `🔵` theme words
-- Total emojis = (number of theme words) + 1 (spangram) + (number of hints used)
+- Total emojis = (number of theme words) + (number of hints used)
 - Rows are filled to a maximum of 4 emojis; the final row may be shorter
-- The left emoji column uses **6 leading spaces** with a **5-space gap** before the right column. When the left column row has fewer than 4 emojis, the gap increases by **2 spaces per missing emoji** to maintain right-column alignment. These values are empirically calibrated to render as centered in Discord despite the mathematical formula suggesting different values.
+- The left emoji column uses **6 leading spaces** with a **5-space gap** before the right column. These values are empirically calibrated to render as centered in Discord despite the mathematical formula suggesting different values.
 - single-player scoreboards have the same left column alignment as 2-player boards
 
 ### Winner Determination
 
-Two-stage comparison, with hints as the primary criterion:
+Comparison is solely by the number of hints used:
 
 1. **Primary — Hints used**: The player with fewer hints wins.
-2. **Tiebreaker — Spangram position**: If both players used the same number of hints, the player who found the spangram **earlier** (lower position index in their emoji sequence) wins.
-
-The **spangram position** is the 1-based index of the `🟡` emoji in the player's complete flattened emoji sequence (reading all emoji rows left-to-right, top-to-bottom).
 
 | Condition | Outcome |
 |-----------|---------|
 | Different hint counts | Player with fewer hints wins; `(-N)` shown where N = difference in hints |
-| Same hint counts, different spangram positions | Player who found spangram earlier wins; `(-N)` shown where N = difference in spangram positions |
-| Same hint counts and same spangram position | Tie |
+| Same hint counts | Tie |
 
-> **Note:** `StrandsResult` must store the spangram position (1-based index in the emoji sequence) as an explicit field to support the tiebreaker without re-parsing raw content at scoreboard-build time.
+> **Note:** Spangram position is not tracked and is not used as a tiebreaker.
 
 ### Scenarios
 
@@ -336,7 +331,7 @@ The **spangram position** is the 1-based index of the `🟡` emoji in the player
 |----------|-------------|--------------|----------------|
 | Tie | Configured order | Configured order | `🤝 Tie!` |
 | Win by hints | Longer grid | Shorter grid | `🏆 [Winner] wins! (-N)` |
-| Win by spangram | Longer grid | Shorter grid | `🏆 [Winner] wins! (-N)` |
+| Win by hints | Longer grid | Shorter grid | `🏆 [Winner] wins! (-N)` |
 | One result only | The submitted player | — | `⏳ [Other] hasn't submitted` |
 
 ### Sample Scoreboards
@@ -356,7 +351,7 @@ The **spangram position** is the 1-based index of the `🟡` emoji in the player
 -----------------------------------
 ```
 
-**Tie** — Both used 0 hints and found the spangram at position 1. Configured order (William left).
+**Tie** — Both used 0 hints. Configured order (William left).
 ```
  Strands #1234 - "Animals"
  
