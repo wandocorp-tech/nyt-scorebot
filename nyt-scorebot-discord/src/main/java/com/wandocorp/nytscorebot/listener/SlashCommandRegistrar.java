@@ -2,6 +2,7 @@ package com.wandocorp.nytscorebot.listener;
 
 import com.wandocorp.nytscorebot.BotText;
 import discord4j.core.GatewayDiscordClient;
+import discord4j.discordjson.json.ApplicationCommandOptionData;
 import discord4j.discordjson.json.ApplicationCommandRequest;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -24,10 +25,34 @@ public class SlashCommandRegistrar {
                 .description(BotText.CMD_FINISHED_DESCRIPTION)
                 .build();
 
-        client.getRestClient().getApplicationService()
-                .createGlobalApplicationCommand(applicationId, finishedCommand)
-                .doOnNext(cmd -> log.info("Registered global slash command: /{}", cmd.name()))
-                .doOnError(e -> log.error("Failed to register /finished command", e))
-                .subscribe();
+        ApplicationCommandRequest duoCommand = ApplicationCommandRequest.builder()
+                .name(BotText.CMD_DUO)
+                .description(BotText.CMD_DUO_DESCRIPTION)
+                .build();
+
+        ApplicationCommandRequest lookupsCommand = ApplicationCommandRequest.builder()
+                .name(BotText.CMD_LOOKUPS)
+                .description(BotText.CMD_LOOKUPS_DESCRIPTION)
+                .addOption(ApplicationCommandOptionData.builder()
+                        .name(BotText.CMD_LOOKUPS_OPTION)
+                        .description(BotText.CMD_LOOKUPS_OPTION_DESC)
+                        .type(4) // INTEGER
+                        .required(true)
+                        .build())
+                .build();
+
+        ApplicationCommandRequest checkCommand = ApplicationCommandRequest.builder()
+                .name(BotText.CMD_CHECK)
+                .description(BotText.CMD_CHECK_DESCRIPTION)
+                .build();
+
+        var appService = client.getRestClient().getApplicationService();
+        for (ApplicationCommandRequest cmd : new ApplicationCommandRequest[]{
+                finishedCommand, duoCommand, lookupsCommand, checkCommand}) {
+            appService.createGlobalApplicationCommand(applicationId, cmd)
+                    .doOnNext(c -> log.info("Registered global slash command: /{}", c.name()))
+                    .doOnError(e -> log.error("Failed to register command", e))
+                    .subscribe();
+        }
     }
 }

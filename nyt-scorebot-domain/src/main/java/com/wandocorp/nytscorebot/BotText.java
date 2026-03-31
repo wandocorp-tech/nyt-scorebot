@@ -30,6 +30,14 @@ public final class BotText {
     // ── Slash command ─────────────────────────────────────────────────────────
     public static final String CMD_FINISHED             = "finished";
     public static final String CMD_FINISHED_DESCRIPTION = "Mark your scorecard as complete for today";
+    public static final String CMD_DUO                  = "duo";
+    public static final String CMD_DUO_DESCRIPTION      = "Toggle duo flag on today's main crossword";
+    public static final String CMD_LOOKUPS              = "lookups";
+    public static final String CMD_LOOKUPS_DESCRIPTION  = "Set lookup count on today's main crossword";
+    public static final String CMD_LOOKUPS_OPTION       = "count";
+    public static final String CMD_LOOKUPS_OPTION_DESC  = "Number of lookups used (0 to clear)";
+    public static final String CMD_CHECK                = "check";
+    public static final String CMD_CHECK_DESCRIPTION    = "Toggle check flag on today's main crossword";
 
     // ── Status table ──────────────────────────────────────────────────────────
     public static final String STATUS_GAME_COL_HEADER  = "Game";
@@ -56,6 +64,26 @@ public final class BotText {
     public static final String SCOREBOARD_WIN_WITH_DIFF  = "🏆 %s wins! (-%d)";
     public static final String SCOREBOARD_WIN_NO_DIFF    = "🏆 %s wins!";
     public static final String SCOREBOARD_WAITING        = "⏳ %s hasn't submitted";
+
+    // ── Flag reply messages ───────────────────────────────────────────────────
+    public static final String MSG_DUO_SET              = SUBMITTED + " Duo marked";
+    public static final String MSG_DUO_CLEARED          = "❌ Duo cleared";
+    public static final String MSG_LOOKUPS_SET          = SUBMITTED + " Lookups set to %d";
+    public static final String MSG_LOOKUPS_CLEARED      = "❌ Lookups cleared";
+    public static final String MSG_CHECK_SET            = SUBMITTED + " Check marked";
+    public static final String MSG_CHECK_CLEARED        = "❌ Check cleared";
+    public static final String MSG_NO_MAIN_CROSSWORD    = "You haven't submitted a main crossword result today.";
+    public static final String MSG_INVALID_VALUE        = WARNING + " Value must be non-negative.";
+
+    // ── Crossword scoreboard labels ───────────────────────────────────────────
+    public static final String SCOREBOARD_MINI_HEADER   = "Mini - %s";
+    public static final String SCOREBOARD_MIDI_HEADER   = "Midi - %s";
+    public static final String SCOREBOARD_MAIN_HEADER   = "Main - %s";
+
+    // ── Crossword flag indicators ─────────────────────────────────────────────
+    public static final String FLAG_DUO     = "👫";
+    public static final String FLAG_LOOKUPS = "🔍×%d";
+    public static final String FLAG_CHECK   = "✓";
 
     private BotText() {}
 }

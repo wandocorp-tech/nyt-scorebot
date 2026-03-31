@@ -105,9 +105,12 @@ public class Scoreboard {
         @AttributeOverride(name = "type",          column = @Column(name = "crossword_daily_type")),
         @AttributeOverride(name = "timeString",    column = @Column(name = "crossword_daily_time_string")),
         @AttributeOverride(name = "totalSeconds",  column = @Column(name = "crossword_daily_total_seconds")),
-        @AttributeOverride(name = "date",          column = @Column(name = "crossword_daily_date"))
+        @AttributeOverride(name = "date",          column = @Column(name = "crossword_daily_date")),
+        @AttributeOverride(name = "duo",           column = @Column(name = "crossword_daily_duo")),
+        @AttributeOverride(name = "lookups",       column = @Column(name = "crossword_daily_lookups")),
+        @AttributeOverride(name = "checkUsed",     column = @Column(name = "crossword_daily_check_used"))
     })
-    private CrosswordResult mainCrosswordResult;
+    private MainCrosswordResult mainCrosswordResult;
 
     public Scoreboard(User user, LocalDate date) {
         this.user = user;

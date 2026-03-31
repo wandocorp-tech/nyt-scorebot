@@ -277,4 +277,106 @@ class ScoreboardServiceTest {
         service.saveResult(CHANNEL, PERSON, USER_ID, main);
         assertThat(scoreboard.isFinished()).isTrue();
     }
+
+    // ── saveResult wraps MAIN crossword into MainCrosswordResult ──────────────
+
+    @Test
+    void mainCrosswordIsWrappedIntoMainCrosswordResult() {
+        CrosswordResult result = new CrosswordResult("raw", PERSON, null,
+                CrosswordType.MAIN, "15:00", 900, TODAY);
+        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result)).isEqualTo(SaveOutcome.SAVED);
+        assertThat(scoreboard.getMainCrosswordResult()).isInstanceOf(MainCrosswordResult.class);
+        assertThat(scoreboard.getMainCrosswordResult().getDuo()).isNull();
+    }
+
+    // ── toggleDuo ────────────────────────────────────────────────────────────
+
+    @Test
+    void toggleDuoSetsWhenNull() {
+        setUpMainCrossword();
+        assertThat(service.toggleDuo(USER_ID, TODAY)).isEqualTo(SetFlagOutcome.FLAG_SET);
+        assertThat(scoreboard.getMainCrosswordResult().getDuo()).isTrue();
+    }
+
+    @Test
+    void toggleDuoClearsWhenTrue() {
+        setUpMainCrossword();
+        scoreboard.getMainCrosswordResult().setDuo(true);
+        assertThat(service.toggleDuo(USER_ID, TODAY)).isEqualTo(SetFlagOutcome.FLAG_CLEARED);
+        assertThat(scoreboard.getMainCrosswordResult().getDuo()).isFalse();
+    }
+
+    @Test
+    void toggleDuoReturnsNoMainCrosswordWhenAbsent() {
+        assertThat(service.toggleDuo(USER_ID, TODAY)).isEqualTo(SetFlagOutcome.NO_MAIN_CROSSWORD);
+    }
+
+    @Test
+    void toggleDuoReturnsNoScoreboardWhenNone() {
+        LocalDate tomorrow = TODAY.plusDays(1);
+        when(scoreboardRepo.findByUserAndDate(user, tomorrow)).thenReturn(Optional.empty());
+        assertThat(service.toggleDuo(USER_ID, tomorrow)).isEqualTo(SetFlagOutcome.NO_SCOREBOARD_FOR_DATE);
+    }
+
+    @Test
+    void toggleDuoReturnsUserNotFoundForUnknownUser() {
+        when(userRepo.findByUserId("unknown")).thenReturn(Optional.empty());
+        assertThat(service.toggleDuo("unknown", TODAY)).isEqualTo(SetFlagOutcome.USER_NOT_FOUND);
+    }
+
+    // ── setLookups ───────────────────────────────────────────────────────────
+
+    @Test
+    void setLookupsSetsPositiveValue() {
+        setUpMainCrossword();
+        assertThat(service.setLookups(USER_ID, TODAY, 3)).isEqualTo(SetFlagOutcome.FLAG_SET);
+        assertThat(scoreboard.getMainCrosswordResult().getLookups()).isEqualTo(3);
+    }
+
+    @Test
+    void setLookupsZeroClearsValue() {
+        setUpMainCrossword();
+        scoreboard.getMainCrosswordResult().setLookups(5);
+        assertThat(service.setLookups(USER_ID, TODAY, 0)).isEqualTo(SetFlagOutcome.FLAG_CLEARED);
+        assertThat(scoreboard.getMainCrosswordResult().getLookups()).isNull();
+    }
+
+    @Test
+    void setLookupsNegativeReturnsInvalidValue() {
+        assertThat(service.setLookups(USER_ID, TODAY, -1)).isEqualTo(SetFlagOutcome.INVALID_VALUE);
+    }
+
+    @Test
+    void setLookupsReturnsNoMainCrosswordWhenAbsent() {
+        assertThat(service.setLookups(USER_ID, TODAY, 1)).isEqualTo(SetFlagOutcome.NO_MAIN_CROSSWORD);
+    }
+
+    // ── toggleCheck ──────────────────────────────────────────────────────────
+
+    @Test
+    void toggleCheckSetsWhenNull() {
+        setUpMainCrossword();
+        assertThat(service.toggleCheck(USER_ID, TODAY)).isEqualTo(SetFlagOutcome.FLAG_SET);
+        assertThat(scoreboard.getMainCrosswordResult().getCheckUsed()).isTrue();
+    }
+
+    @Test
+    void toggleCheckClearsWhenTrue() {
+        setUpMainCrossword();
+        scoreboard.getMainCrosswordResult().setCheckUsed(true);
+        assertThat(service.toggleCheck(USER_ID, TODAY)).isEqualTo(SetFlagOutcome.FLAG_CLEARED);
+        assertThat(scoreboard.getMainCrosswordResult().getCheckUsed()).isFalse();
+    }
+
+    @Test
+    void toggleCheckReturnsNoMainCrosswordWhenAbsent() {
+        assertThat(service.toggleCheck(USER_ID, TODAY)).isEqualTo(SetFlagOutcome.NO_MAIN_CROSSWORD);
+    }
+
+    // ── helpers ──────────────────────────────────────────────────────────────
+
+    private void setUpMainCrossword() {
+        MainCrosswordResult main = new MainCrosswordResult("raw", PERSON, null, "15:00", 900, TODAY);
+        scoreboard.setMainCrosswordResult(main);
+    }
 }

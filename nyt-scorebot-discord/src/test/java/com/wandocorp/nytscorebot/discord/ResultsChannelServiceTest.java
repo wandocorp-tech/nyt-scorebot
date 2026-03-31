@@ -133,6 +133,83 @@ class ResultsChannelServiceTest {
         when(scoreboardService.getTodayScoreboards()).thenReturn(List.of(sb1, sb2));
     }
 
+    // ── refreshGame ──────────────────────────────────────────────────────────
+
+    @Test
+    void refreshGameNoOpWhenResultsChannelIdIsNull() {
+        channelProperties.setResultsChannelId(null);
+        service.refreshGame("Main");
+        verifyNoInteractions(scoreboardService);
+    }
+
+    @Test
+    void refreshGameNoOpWhenResultsChannelIdIsBlank() {
+        channelProperties.setResultsChannelId("   ");
+        service.refreshGame("Main");
+        verifyNoInteractions(scoreboardService);
+    }
+
+    @Test
+    void refreshGameNoOpWhenNotBothPlayersFinished() {
+        when(scoreboardService.areBothPlayersFinishedToday()).thenReturn(false);
+        service.refreshGame("Main");
+        verifyNoInteractions(client);
+        verifyNoInteractions(scoreboardRenderer);
+    }
+
+    @Test
+    void refreshGamePostsNewMessageWhenNoExistingMessage() {
+        when(scoreboardService.areBothPlayersFinishedToday()).thenReturn(true);
+        setupScoreboards();
+        when(scoreboardRenderer.renderByGameType(eq("Main"), any(), anyString(), any(), anyString()))
+                .thenReturn(java.util.Optional.of("```\nMain crossword\n```"));
+
+        MessageChannel channel = mock(MessageChannel.class);
+        when(client.getChannelById(any(Snowflake.class))).thenReturn(Mono.just(channel));
+
+        service.refreshGame("Main");
+
+        verify(scoreboardRenderer).renderByGameType(eq("Main"), any(), eq(NAME1), any(), eq(NAME2));
+        verify(channel).createMessage("```\nMain crossword\n```");
+    }
+
+    @Test
+    void refreshGameDeletesAndRepostsWhenExistingMessageId() {
+        when(scoreboardService.areBothPlayersFinishedToday()).thenReturn(true);
+        setupScoreboards();
+        when(scoreboardRenderer.renderByGameType(eq("Main"), any(), anyString(), any(), anyString()))
+                .thenReturn(java.util.Optional.of("```\nMain crossword\n```"));
+
+        Snowflake previousMsgId = Snowflake.of("22222");
+        service.setPostedMessageId("Main", previousMsgId);
+
+        Message existingMsg = mock(Message.class);
+        when(existingMsg.delete()).thenReturn(Mono.empty());
+        when(client.getMessageById(any(Snowflake.class), any(Snowflake.class)))
+                .thenReturn(Mono.just(existingMsg));
+
+        MessageChannel channel = mock(MessageChannel.class);
+        when(client.getChannelById(any(Snowflake.class))).thenReturn(Mono.just(channel));
+
+        service.refreshGame("Main");
+
+        verify(client).getMessageById(Snowflake.of(RESULTS_CHANNEL_ID), previousMsgId);
+        verify(existingMsg).delete();
+        verify(channel).createMessage("```\nMain crossword\n```");
+    }
+
+    @Test
+    void refreshGameNoOpWhenRendererReturnsEmpty() {
+        when(scoreboardService.areBothPlayersFinishedToday()).thenReturn(true);
+        setupScoreboards();
+        when(scoreboardRenderer.renderByGameType(eq("Main"), any(), anyString(), any(), anyString()))
+                .thenReturn(java.util.Optional.empty());
+
+        service.refreshGame("Main");
+
+        verifyNoInteractions(client);
+    }
+
     private void setupRendered() {
         Map<String, String> rendered = new LinkedHashMap<>();
         rendered.put("Wordle", "```\nWordle stuff\n```");

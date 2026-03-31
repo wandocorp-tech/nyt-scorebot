@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.function.Function;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -137,9 +138,53 @@ public class ScoreboardService {
             switch (r.getType()) {
                 case MINI  -> scoreboard.setMiniCrosswordResult(r);
                 case MIDI  -> scoreboard.setMidiCrosswordResult(r);
-                case MAIN  -> scoreboard.setMainCrosswordResult(r);
+                case MAIN  -> scoreboard.setMainCrosswordResult(MainCrosswordResult.from(r));
             }
         }
+    }
+
+    @Transactional
+    public SetFlagOutcome toggleDuo(String discordUserId, LocalDate date) {
+        return withMainCrossword(discordUserId, date, main -> {
+            boolean newValue = !Boolean.TRUE.equals(main.getDuo());
+            main.setDuo(newValue);
+            return newValue ? SetFlagOutcome.FLAG_SET : SetFlagOutcome.FLAG_CLEARED;
+        });
+    }
+
+    @Transactional
+    public SetFlagOutcome setLookups(String discordUserId, LocalDate date, int count) {
+        if (count < 0) return SetFlagOutcome.INVALID_VALUE;
+        return withMainCrossword(discordUserId, date, main -> {
+            main.setLookups(count == 0 ? null : count);
+            return count == 0 ? SetFlagOutcome.FLAG_CLEARED : SetFlagOutcome.FLAG_SET;
+        });
+    }
+
+    @Transactional
+    public SetFlagOutcome toggleCheck(String discordUserId, LocalDate date) {
+        return withMainCrossword(discordUserId, date, main -> {
+            boolean newValue = !Boolean.TRUE.equals(main.getCheckUsed());
+            main.setCheckUsed(newValue);
+            return newValue ? SetFlagOutcome.FLAG_SET : SetFlagOutcome.FLAG_CLEARED;
+        });
+    }
+
+    private SetFlagOutcome withMainCrossword(String discordUserId, LocalDate date,
+                                              Function<MainCrosswordResult, SetFlagOutcome> action) {
+        return userRepository.findByUserId(discordUserId)
+                .map(user -> scoreboardRepository.findByUserAndDate(user, date)
+                        .map(scoreboard -> {
+                            MainCrosswordResult main = scoreboard.getMainCrosswordResult();
+                            if (main == null || main.getRawContent() == null) {
+                                return SetFlagOutcome.NO_MAIN_CROSSWORD;
+                            }
+                            SetFlagOutcome outcome = action.apply(main);
+                            scoreboardRepository.save(scoreboard);
+                            return outcome;
+                        })
+                        .orElse(SetFlagOutcome.NO_SCOREBOARD_FOR_DATE))
+                .orElse(SetFlagOutcome.USER_NOT_FOUND);
     }
 
     private boolean allGamesPresent(Scoreboard scoreboard) {

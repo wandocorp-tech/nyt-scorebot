@@ -65,6 +65,37 @@ public class ResultsChannelService {
         }
     }
 
+    /** Refreshes only a single game type's board in the results channel. */
+    public void refreshGame(String gameType) {
+        String resultsChannelId = channelProperties.getResultsChannelId();
+        if (resultsChannelId == null || resultsChannelId.isBlank()) return;
+        if (!scoreboardService.areBothPlayersFinishedToday()) return;
+
+        List<Scoreboard> scoreboards = scoreboardService.getTodayScoreboards();
+        List<DiscordChannelProperties.ChannelConfig> channels = channelProperties.getChannels();
+        if (channels.size() < 2) return;
+
+        String name1 = channels.get(0).getName();
+        String name2 = channels.get(1).getName();
+
+        Map<String, Scoreboard> byName = scoreboards.stream()
+                .collect(Collectors.toMap(sb -> sb.getUser().getName(), sb -> sb));
+
+        Scoreboard sb1 = byName.get(name1);
+        Scoreboard sb2 = byName.get(name2);
+
+        Snowflake channelSnowflake = Snowflake.of(resultsChannelId);
+        scoreboardRenderer.renderByGameType(gameType, sb1, name1, sb2, name2)
+                .ifPresent(content -> {
+                    Snowflake existingId = postedMessageIds.get(gameType);
+                    if (existingId != null) {
+                        deleteAndRepost(channelSnowflake, existingId, gameType, content);
+                    } else {
+                        postMessage(channelSnowflake, gameType, content);
+                    }
+                });
+    }
+
     private void deleteAndRepost(Snowflake channelSnowflake, Snowflake messageId,
                                   String gameType, String content) {
         client.getMessageById(channelSnowflake, messageId)

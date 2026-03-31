@@ -27,6 +27,15 @@ public class ScoreboardRenderer {
         return result;
     }
 
+    /** Renders a single game type by name. Returns empty if the game type is unknown or neither player has a result. */
+    public Optional<String> renderByGameType(String gameType, Scoreboard sb1, String name1,
+                                              Scoreboard sb2, String name2) {
+        return games.stream()
+                .filter(g -> g.gameType().equals(gameType))
+                .findFirst()
+                .flatMap(game -> render(game, sb1, name1, sb2, name2));
+    }
+
     public Optional<String> render(GameComparisonScoreboard game, Scoreboard sb1, String name1,
                                     Scoreboard sb2, String name2) {
         boolean has1 = game.hasResult(sb1);

@@ -4,6 +4,7 @@ import com.wandocorp.nytscorebot.BotText;
 import com.wandocorp.nytscorebot.config.DiscordChannelProperties;
 import com.wandocorp.nytscorebot.service.MarkFinishedOutcome;
 import com.wandocorp.nytscorebot.service.PuzzleCalendar;
+import com.wandocorp.nytscorebot.service.SetFlagOutcome;
 import com.wandocorp.nytscorebot.discord.ResultsChannelService;
 import com.wandocorp.nytscorebot.service.ScoreboardService;
 import com.wandocorp.nytscorebot.discord.StatusChannelService;
@@ -35,8 +36,13 @@ public class SlashCommandListener {
 
     void listenToEvents(Flux<ChatInputInteractionEvent> events) {
         events
-                .filter(event -> BotText.CMD_FINISHED.equals(event.getCommandName()))
-                .flatMap(this::handleFinished)
+                .flatMap(event -> switch (event.getCommandName()) {
+                    case BotText.CMD_FINISHED -> handleFinished(event);
+                    case BotText.CMD_DUO      -> handleDuo(event);
+                    case BotText.CMD_LOOKUPS  -> handleLookups(event);
+                    case BotText.CMD_CHECK    -> handleCheck(event);
+                    default -> Mono.empty();
+                })
                 .subscribe();
     }
 
@@ -68,6 +74,78 @@ public class SlashCommandListener {
             case ALREADY_FINISHED      -> BotText.MSG_ALREADY_FINISHED;
             case NO_SCOREBOARD_FOR_DATE -> BotText.MSG_NO_SCOREBOARD_TODAY;
             case USER_NOT_FOUND        -> BotText.MSG_USER_NOT_FOUND;
+        };
+    }
+
+    // ── Flag command handlers ─────────────────────────────────────────────────
+
+    Mono<Void> handleDuo(ChatInputInteractionEvent event) {
+        String discordUserId = event.getInteraction().getUser().getId().asString();
+        log.info("Received /duo from Discord user {}", discordUserId);
+
+        SetFlagOutcome outcome = scoreboardService.toggleDuo(discordUserId, puzzleCalendar.today());
+        if (outcome == SetFlagOutcome.FLAG_SET || outcome == SetFlagOutcome.FLAG_CLEARED) {
+            refreshMainCrossword(discordUserId);
+        }
+        String reply = flagReplyFor(BotText.MSG_DUO_SET, BotText.MSG_DUO_CLEARED, outcome);
+        return event.reply().withEphemeral(true).withContent(reply);
+    }
+
+    Mono<Void> handleLookups(ChatInputInteractionEvent event) {
+        String discordUserId = event.getInteraction().getUser().getId().asString();
+        log.info("Received /lookups from Discord user {}", discordUserId);
+
+        long count = event.getOption(BotText.CMD_LOOKUPS_OPTION)
+                .flatMap(opt -> opt.getValue())
+                .map(val -> val.asLong())
+                .orElse(0L);
+
+        SetFlagOutcome outcome = scoreboardService.setLookups(discordUserId, puzzleCalendar.today(), (int) count);
+        if (outcome == SetFlagOutcome.FLAG_SET || outcome == SetFlagOutcome.FLAG_CLEARED) {
+            refreshMainCrossword(discordUserId);
+        }
+        String reply = switch (outcome) {
+            case FLAG_SET              -> String.format(BotText.MSG_LOOKUPS_SET, (int) count);
+            case FLAG_CLEARED          -> BotText.MSG_LOOKUPS_CLEARED;
+            case NO_MAIN_CROSSWORD     -> BotText.MSG_NO_MAIN_CROSSWORD;
+            case NO_SCOREBOARD_FOR_DATE -> BotText.MSG_NO_SCOREBOARD_TODAY;
+            case USER_NOT_FOUND        -> BotText.MSG_USER_NOT_FOUND;
+            case INVALID_VALUE         -> BotText.MSG_INVALID_VALUE;
+        };
+        return event.reply().withEphemeral(true).withContent(reply);
+    }
+
+    Mono<Void> handleCheck(ChatInputInteractionEvent event) {
+        String discordUserId = event.getInteraction().getUser().getId().asString();
+        log.info("Received /check from Discord user {}", discordUserId);
+
+        SetFlagOutcome outcome = scoreboardService.toggleCheck(discordUserId, puzzleCalendar.today());
+        if (outcome == SetFlagOutcome.FLAG_SET || outcome == SetFlagOutcome.FLAG_CLEARED) {
+            refreshMainCrossword(discordUserId);
+        }
+        String reply = flagReplyFor(BotText.MSG_CHECK_SET, BotText.MSG_CHECK_CLEARED, outcome);
+        return event.reply().withEphemeral(true).withContent(reply);
+    }
+
+    private void refreshMainCrossword(String discordUserId) {
+        String playerName = channelProperties.getChannels().stream()
+                .filter(c -> c.getUserId().equals(discordUserId))
+                .map(DiscordChannelProperties.ChannelConfig::getName)
+                .findFirst()
+                .orElse(discordUserId);
+        String contextMessage = String.format(BotText.STATUS_CONTEXT_PLAYER_FINISHED, playerName);
+        statusChannelService.refresh(contextMessage);
+        resultsChannelService.refreshGame(BotText.GAME_LABEL_MAIN);
+    }
+
+    static String flagReplyFor(String setMsg, String clearedMsg, SetFlagOutcome outcome) {
+        return switch (outcome) {
+            case FLAG_SET              -> setMsg;
+            case FLAG_CLEARED          -> clearedMsg;
+            case NO_MAIN_CROSSWORD     -> BotText.MSG_NO_MAIN_CROSSWORD;
+            case NO_SCOREBOARD_FOR_DATE -> BotText.MSG_NO_SCOREBOARD_TODAY;
+            case USER_NOT_FOUND        -> BotText.MSG_USER_NOT_FOUND;
+            case INVALID_VALUE         -> BotText.MSG_INVALID_VALUE;
         };
     }
 }
