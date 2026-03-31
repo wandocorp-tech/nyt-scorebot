@@ -37,20 +37,8 @@ public class StrandsScoreboard implements GameComparisonScoreboard {
 
     @Override
     public String header(Scoreboard scoreboard) {
-        StrandsResult r = scoreboard.getStrandsResult();
-        String tagline = extractTagline(r.getRawContent());
-        return "Strands #" + r.getPuzzleNumber() + " - " + tagline;
+        return "Strands #" + scoreboard.getStrandsResult().getPuzzleNumber();
     }
-
-    private String extractTagline(String rawContent) {
-        for (String line : rawContent.split("\n")) {
-            if (line.startsWith("\"")) {
-                return line;
-            }
-        }
-        return "";
-    }
-
     @Override
     public String scoreLabel(Scoreboard scoreboard) {
         return String.valueOf(scoreboard.getStrandsResult().getHintsUsed());
@@ -83,25 +71,11 @@ public class StrandsScoreboard implements GameComparisonScoreboard {
 
     @Override
     public ComparisonOutcome determineOutcome(Scoreboard s1, String name1, Scoreboard s2, String name2) {
-        StrandsResult r1 = s1.getStrandsResult();
-        StrandsResult r2 = s2.getStrandsResult();
+        int h1 = s1.getStrandsResult().getHintsUsed();
+        int h2 = s2.getStrandsResult().getHintsUsed();
 
-        int h1 = r1.getHintsUsed();
-        int h2 = r2.getHintsUsed();
-
-        if (h1 != h2) {
-            if (h1 < h2) return new ComparisonOutcome.Win(name1, h2 - h1);
-            return new ComparisonOutcome.Win(name2, h1 - h2);
-        }
-
-        int sp1 = r1.getSpangramPosition();
-        int sp2 = r2.getSpangramPosition();
-
-        if (sp1 != sp2) {
-            if (sp1 < sp2) return new ComparisonOutcome.Win(name1, sp2 - sp1);
-            return new ComparisonOutcome.Win(name2, sp1 - sp2);
-        }
-
+        if (h1 < h2) return new ComparisonOutcome.Win(name1, h2 - h1);
+        if (h2 < h1) return new ComparisonOutcome.Win(name2, h1 - h2);
         return new ComparisonOutcome.Tie();
     }
 

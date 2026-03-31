@@ -41,13 +41,23 @@ class ConnectionsScoreboardTest {
         assertThat(outcome).isInstanceOf(ComparisonOutcome.Win.class);
         ComparisonOutcome.Win win = (ComparisonOutcome.Win) outcome;
         assertThat(win.winnerName()).isEqualTo("Conor");
-        assertThat(win.differential()).isEqualTo(2);
+        assertThat(win.differential()).isNull();
     }
 
     @Test
     void bothZeroMistakes_tie() {
         Scoreboard p1 = sbWith(result(CONNECTIONS_0, 0, true));
         Scoreboard p2 = sbWith(result(CONNECTIONS_0, 0, true));
+
+        ComparisonOutcome outcome = scoreboard.determineOutcome(p1, "William", p2, "Conor");
+
+        assertThat(outcome).isInstanceOf(ComparisonOutcome.Tie.class);
+    }
+
+    @Test
+    void bothNonZeroMistakes_tie() {
+        Scoreboard p1 = sbWith(result(CONNECTIONS_2, 1, true));
+        Scoreboard p2 = sbWith(result(CONNECTIONS_2, 2, true));
 
         ComparisonOutcome outcome = scoreboard.determineOutcome(p1, "William", p2, "Conor");
 

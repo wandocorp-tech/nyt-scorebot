@@ -102,7 +102,7 @@ class ScoreboardServiceTest {
 
     @Test
     void strandsWithWrongPuzzleNumberIsRejected() {
-        StrandsResult result = new StrandsResult("raw", PERSON, null, 1, 0, 1);
+        StrandsResult result = new StrandsResult("raw", PERSON, null, 1, 0);
 
         assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result)).isEqualTo(SaveOutcome.WRONG_PUZZLE_NUMBER);
         verify(scoreboardRepo, never()).save(any(Scoreboard.class));
@@ -171,7 +171,7 @@ class ScoreboardServiceTest {
     @Test
     void correctStrandsResultIsSaved() {
         int expected = calendar.expectedStrands();
-        StrandsResult result = new StrandsResult("raw", PERSON, null, expected, 0, 1);
+        StrandsResult result = new StrandsResult("raw", PERSON, null, expected, 0);
 
         assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result)).isEqualTo(SaveOutcome.SAVED);
         verify(scoreboardRepo).save(any(Scoreboard.class));
@@ -268,7 +268,7 @@ class ScoreboardServiceTest {
 
         WordleResult wordle = new WordleResult("raw", PERSON, null, expectedWordle, 3, true, false);
         ConnectionsResult connections = new ConnectionsResult("raw", PERSON, null, expectedConnections, 0, true, List.of());
-        StrandsResult strands = new StrandsResult("raw", PERSON, null, expectedStrands, 0, 1);
+        StrandsResult strands = new StrandsResult("raw", PERSON, null, expectedStrands, 0);
         CrosswordResult mini = new CrosswordResult("raw", PERSON, null, CrosswordType.MINI, "1:23", 83, TODAY);
         CrosswordResult midi = new CrosswordResult("raw", PERSON, null, CrosswordType.MIDI, "3:45", 225, TODAY);
         CrosswordResult main = new CrosswordResult("raw", PERSON, null, CrosswordType.MAIN, "15:00", 900, TODAY);

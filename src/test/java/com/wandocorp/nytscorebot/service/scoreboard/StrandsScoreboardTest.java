@@ -23,14 +23,14 @@ class StrandsScoreboardTest {
         return sb;
     }
 
-    private StrandsResult result(int hints, int spangramPosition) {
-        return new StrandsResult(STRANDS_RAW, "author", null, 123, hints, spangramPosition);
+    private StrandsResult result(int hints) {
+        return new StrandsResult(STRANDS_RAW, "author", null, 123, hints);
     }
 
     @Test
     void williamTwoHintsVsConorZero_conorWins() {
-        Scoreboard william = sbWith(result(2, 3));
-        Scoreboard conor = sbWith(result(0, 3));
+        Scoreboard william = sbWith(result(2));
+        Scoreboard conor = sbWith(result(0));
 
         ComparisonOutcome outcome = scoreboard.determineOutcome(william, "William", conor, "Conor");
 
@@ -41,71 +41,9 @@ class StrandsScoreboardTest {
     }
 
     @Test
-    void sameHintsDifferentSpangramPosition_lowerSpangramWins() {
-        Scoreboard william = sbWith(result(0, 4));
-        Scoreboard conor = sbWith(result(0, 1));
-
-        ComparisonOutcome outcome = scoreboard.determineOutcome(william, "William", conor, "Conor");
-
-        assertThat(outcome).isInstanceOf(ComparisonOutcome.Win.class);
-        ComparisonOutcome.Win win = (ComparisonOutcome.Win) outcome;
-        assertThat(win.winnerName()).isEqualTo("Conor");
-        assertThat(win.differential()).isEqualTo(3);
-    }
-
-    @Test
-    void sameHintsAndSpangramPosition_tie() {
-        Scoreboard p1 = sbWith(result(1, 2));
-        Scoreboard p2 = sbWith(result(1, 2));
-
-        ComparisonOutcome outcome = scoreboard.determineOutcome(p1, "William", p2, "Conor");
-
-        assertThat(outcome).isInstanceOf(ComparisonOutcome.Tie.class);
-    }
-
-    @Test
-    void emojiGridRowsExtractsCorrectRows() {
-        Scoreboard sb = sbWith(result(0, 3));
-        List<String> rows = scoreboard.emojiGridRows(sb);
-        assertThat(rows).hasSize(2);
-        assertThat(rows.get(0)).isEqualTo("🔵🟡🟠🟢");
-        assertThat(rows.get(1)).isEqualTo("🔴🟣🔵🔵");
-    }
-
-    @Test
-    void emojiGridRowsSkipsNonEmojiLines() {
-        Scoreboard sb = sbWith(result(0, 3));
-        List<String> rows = scoreboard.emojiGridRows(sb);
-        rows.forEach(row -> assertThat(row).doesNotContain("Strands").doesNotContain("\""));
-    }
-
-    @Test
-    void scoreLabel() {
-        Scoreboard sb = sbWith(result(3, 2));
-        assertThat(scoreboard.scoreLabel(sb)).isEqualTo("3");
-    }
-
-    @Test
-    void header() {
-        Scoreboard sb = sbWith(result(0, 1));
-        assertThat(scoreboard.header(sb)).isEqualTo("Strands #123 - \"Test Theme\"");
-    }
-
-    @Test
-    void hasResultReturnsFalseForNull() {
-        assertThat(scoreboard.hasResult(null)).isFalse();
-    }
-
-    @Test
-    void hasResultReturnsTrueWhenResultPresent() {
-        Scoreboard sb = sbWith(result(0, 1));
-        assertThat(scoreboard.hasResult(sb)).isTrue();
-    }
-
-    @Test
     void conorZeroHintsVsWilliamTwoHints_conorWins() {
-        Scoreboard conor = sbWith(result(0, 3));
-        Scoreboard william = sbWith(result(2, 3));
+        Scoreboard conor = sbWith(result(0));
+        Scoreboard william = sbWith(result(2));
 
         ComparisonOutcome outcome = scoreboard.determineOutcome(conor, "Conor", william, "William");
 
@@ -116,15 +54,61 @@ class StrandsScoreboardTest {
     }
 
     @Test
-    void sameHintsWilliamBetterSpangram_williamWins() {
-        Scoreboard william = sbWith(result(0, 1));
-        Scoreboard conor = sbWith(result(0, 4));
+    void sameHints_tie() {
+        Scoreboard p1 = sbWith(result(1));
+        Scoreboard p2 = sbWith(result(1));
 
-        ComparisonOutcome outcome = scoreboard.determineOutcome(william, "William", conor, "Conor");
+        ComparisonOutcome outcome = scoreboard.determineOutcome(p1, "William", p2, "Conor");
 
-        assertThat(outcome).isInstanceOf(ComparisonOutcome.Win.class);
-        ComparisonOutcome.Win win = (ComparisonOutcome.Win) outcome;
-        assertThat(win.winnerName()).isEqualTo("William");
-        assertThat(win.differential()).isEqualTo(3);
+        assertThat(outcome).isInstanceOf(ComparisonOutcome.Tie.class);
+    }
+
+    @Test
+    void bothZeroHints_tie() {
+        Scoreboard p1 = sbWith(result(0));
+        Scoreboard p2 = sbWith(result(0));
+
+        ComparisonOutcome outcome = scoreboard.determineOutcome(p1, "William", p2, "Conor");
+
+        assertThat(outcome).isInstanceOf(ComparisonOutcome.Tie.class);
+    }
+
+    @Test
+    void emojiGridRowsExtractsCorrectRows() {
+        Scoreboard sb = sbWith(result(0));
+        List<String> rows = scoreboard.emojiGridRows(sb);
+        assertThat(rows).hasSize(2);
+        assertThat(rows.get(0)).isEqualTo("🔵🟡🟠🟢");
+        assertThat(rows.get(1)).isEqualTo("🔴🟣🔵🔵");
+    }
+
+    @Test
+    void emojiGridRowsSkipsNonEmojiLines() {
+        Scoreboard sb = sbWith(result(0));
+        List<String> rows = scoreboard.emojiGridRows(sb);
+        rows.forEach(row -> assertThat(row).doesNotContain("Strands").doesNotContain("\""));
+    }
+
+    @Test
+    void scoreLabel() {
+        Scoreboard sb = sbWith(result(3));
+        assertThat(scoreboard.scoreLabel(sb)).isEqualTo("3");
+    }
+
+    @Test
+    void header() {
+        Scoreboard sb = sbWith(result(0));
+        assertThat(scoreboard.header(sb)).isEqualTo("Strands #123");
+    }
+
+    @Test
+    void hasResultReturnsFalseForNull() {
+        assertThat(scoreboard.hasResult(null)).isFalse();
+    }
+
+    @Test
+    void hasResultReturnsTrueWhenResultPresent() {
+        Scoreboard sb = sbWith(result(0));
+        assertThat(scoreboard.hasResult(sb)).isTrue();
     }
 }

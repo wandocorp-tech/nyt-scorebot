@@ -37,29 +37,10 @@ public class StrandsParser implements GameParser {
 
         int puzzleNumber = Integer.parseInt(m.group(1));
         int hintsUsed = countOccurrences(content, HINT_BULB);
-        int spangramPosition = computeSpangramPosition(content, m.end());
         String comment = extractComment(content, m);
 
-        return Optional.of(new StrandsResult(content, discordAuthor, comment, puzzleNumber, hintsUsed, spangramPosition));
-    }
-
-    private int computeSpangramPosition(String content, int afterHeader) {
-        // Flatten all emoji codepoints from the grid (after header) and return
-        // the 1-based position of 🟡 (the spangram) in that sequence.
-        int position = 0;
-        for (String line : content.substring(afterHeader).lines().toList()) {
-            String stripped = line.strip();
-            if (!isStrandsRow(stripped)) continue;
-            int[] codepoints = stripped.codePoints().toArray();
-            for (int cp : codepoints) {
-                position++;
-                if (cp == 0x1F7E1) return position; // 🟡 spangram
-            }
-        }
-        return -1; // should never happen for a valid Strands result
-    }
-
-    private String extractComment(String content, Matcher matcher) {
+        return Optional.of(new StrandsResult(content, discordAuthor, comment, puzzleNumber, hintsUsed));
+    }    private String extractComment(String content, Matcher matcher) {
         // After the header: skip the theme line (enclosed in quotes) and all emoji grid rows.
         // The first non-empty, non-grid line after at least one grid row has been seen is the
         // start of any user-added comment.

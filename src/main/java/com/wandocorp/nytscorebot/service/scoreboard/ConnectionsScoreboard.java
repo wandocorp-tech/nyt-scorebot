@@ -82,11 +82,11 @@ public class ConnectionsScoreboard implements GameComparisonScoreboard {
         if (!r2.isCompleted()) {
             return new ComparisonOutcome.Win(name1, null);
         }
-        int m1 = r1.getMistakes();
-        int m2 = r2.getMistakes();
-        if (m1 == m2) return new ComparisonOutcome.Tie();
-        if (m1 < m2) return new ComparisonOutcome.Win(name1, m2 - m1);
-        return new ComparisonOutcome.Win(name2, m1 - m2);
+        boolean perfect1 = r1.getMistakes() == 0;
+        boolean perfect2 = r2.getMistakes() == 0;
+        if (perfect1 && !perfect2) return new ComparisonOutcome.Win(name1, null);
+        if (perfect2 && !perfect1) return new ComparisonOutcome.Win(name2, null);
+        return new ComparisonOutcome.Tie();
     }
 
     @Override

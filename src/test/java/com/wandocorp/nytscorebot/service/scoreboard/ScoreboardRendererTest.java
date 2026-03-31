@@ -51,7 +51,7 @@ class ScoreboardRendererTest {
         assertThat(output).startsWith("```\n");
         assertThat(output).endsWith("```");
         assertThat(output).contains("Wordle #1738");
-        assertThat(output).contains("-----------------------------------");
+        assertThat(output).contains("---------------------------------");
         assertThat(output).contains("William - 6  |  Conor - 4");
         assertThat(output).contains("🏆 Conor wins! (-2)");
     }

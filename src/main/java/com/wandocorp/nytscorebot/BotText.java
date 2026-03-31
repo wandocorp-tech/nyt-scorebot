@@ -2,7 +2,7 @@ package com.wandocorp.nytscorebot;
 
 public final class BotText {
 
-    public static final int MAX_LINE_WIDTH = 35;
+    public static final int MAX_LINE_WIDTH = 33;
 
     // ── Emojis ───────────────────────────────────────────────────────────────
     public static final String SUBMITTED = "✅";
