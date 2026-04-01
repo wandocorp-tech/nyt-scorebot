@@ -21,8 +21,6 @@ jobs:
   deploy:
     name: Deploy
     needs: test
-    environment: production
-    timeout-minutes: 5
     uses: ./.github/workflows/deploy.yml
     secrets:
       PI_SSH_KEY: ${{ secrets.PI_SSH_KEY }}
