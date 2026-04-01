@@ -33,7 +33,7 @@ jobs:
         run: |
           mvn sonar:sonar \
             -Dsonar.organization=wandocorp-tech \
-            -Dsonar.projectKey=nyt-scorebot \
+            -Dsonar.projectKey=wandocorp-tech_nyt-scorebot \
             -Dsonar.host.url=https://sonarcloud.io \
             --batch-mode --no-transfer-progress
         if: env.SONAR_TOKEN != ''
