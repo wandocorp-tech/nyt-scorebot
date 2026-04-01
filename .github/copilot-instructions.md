@@ -22,9 +22,23 @@ mvn test
 
 # Verify with JaCoCo coverage check (≥80% instruction + branch)
 mvn verify -Dtest='!com.wandocorp.nytscorebot.EndToEndTest'
+
+# Run SonarCloud analysis locally (requires SONAR_TOKEN env var)
+mvn sonar:sonar -Dsonar.organization=wandocorp-tech -Dsonar.projectKey=nyt-scorebot
 ```
 
 The Surefire plugin requires ByteBuddy flags (already configured in `pom.xml`) to support Mockito's inline mock maker for final Discord4J classes.
+
+## Code Quality (SonarCloud)
+
+Every push to `main` triggers a SonarCloud analysis as part of the build pipeline. View results:
+- **Dashboard:** https://sonarcloud.io/organizations/wandocorp-tech/projects
+- **Project:** https://sonarcloud.io/project/overview?id=wandocorp-tech_nyt-scorebot
+
+Current status: 47 issues (2 critical, 6 major, 39 minor)
+- **Critical:** Wildcard generics in `MessageListener` (lines 79, 118)
+- **Major:** Test code issues (unused vars, sleep in tests), regex performance in `CrosswordParser`
+- **Minor:** Mostly test utilities and Lombok annotations
 
 ## Architecture
 
