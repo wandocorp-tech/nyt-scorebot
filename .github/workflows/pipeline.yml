@@ -2,7 +2,6 @@ name: Pipeline
 
 on:
   push:
-    branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -22,6 +21,8 @@ jobs:
   deploy:
     name: Deploy
     needs: test
+    environment: production
+    timeout-minutes: 5
     uses: ./.github/workflows/deploy.yml
     secrets:
       PI_SSH_KEY: ${{ secrets.PI_SSH_KEY }}
@@ -30,3 +31,13 @@ jobs:
       PI_SSH_PORT: ${{ secrets.PI_SSH_PORT }}
       PI_DEPLOY_PATH: ${{ secrets.PI_DEPLOY_PATH }}
       PI_SERVICE_NAME: ${{ secrets.PI_SERVICE_NAME }}
+
+  release:
+    name: Release
+    needs: deploy
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+    uses: ./.github/workflows/release.yml
+    with:
+      version: v${{ github.run_number }}
