@@ -108,7 +108,7 @@ public class StatusMessageBuilder {
         for (int i = 0; i < playerNames.size(); i++) {
             String name = playerNames.get(i);
             Scoreboard s = byName.get(name);
-            String indicator = (s != null && s.isFinished()) ? BotText.CHECK_MARK : BotText.CROSS_MARK;
+            String indicator = (s != null && s.isFinished()) ? BotText.FINISHED : BotText.NOT_FINISHED;
             sb.append(" ").append(rpad(indicator, playerColWidth));
             if (i < playerNames.size() - 1) sb.append(" |");
         }

@@ -69,8 +69,8 @@ class StatusMessageBuilderTest {
         String headerLine = table.lines()
                 .filter(l -> l.contains(NAME_ALICE) || l.contains(NAME_BOB))
                 .findFirst().orElse("");
-        assertThat(headerLine).doesNotContain(BotText.CROSS_MARK);
-        assertThat(headerLine).doesNotContain(BotText.CHECK_MARK);
+        assertThat(headerLine).doesNotContain(BotText.NOT_FINISHED);
+        assertThat(headerLine).doesNotContain(BotText.FINISHED);
     }
 
     @Test
@@ -138,7 +138,7 @@ class StatusMessageBuilderTest {
         String footerLine = table.lines()
                 .filter(l -> l.contains(BotText.STATUS_FOOTER_DONE_LABEL))
                 .findFirst().orElse("");
-        assertThat(footerLine).contains(BotText.CHECK_MARK);
+        assertThat(footerLine).contains(BotText.FINISHED);
     }
 
     @Test
@@ -161,7 +161,7 @@ class StatusMessageBuilderTest {
         String footerLine = table.lines()
                 .filter(l -> l.contains(BotText.STATUS_FOOTER_DONE_LABEL))
                 .findFirst().orElse("");
-        assertThat(footerLine).contains(BotText.CROSS_MARK);
+        assertThat(footerLine).contains(BotText.NOT_FINISHED);
     }
 
     // ── renderedLength ────────────────────────────────────────────────────────
@@ -176,8 +176,8 @@ class StatusMessageBuilderTest {
     @Test
     void renderedLengthOfCircleEmojiEqualsStringLength() {
         // Circle emoji are supplementary (U+1F7Ex), Java length 2, also renders 2-wide — no correction
-        assertThat(StatusMessageBuilder.renderedLength(BotText.CHECK_MARK)).isEqualTo(2);
-        assertThat(StatusMessageBuilder.renderedLength(BotText.CROSS_MARK)).isEqualTo(2);
+        assertThat(StatusMessageBuilder.renderedLength(BotText.FINISHED)).isEqualTo(2);
+        assertThat(StatusMessageBuilder.renderedLength(BotText.NOT_FINISHED)).isEqualTo(2);
     }
 
     @Test
@@ -195,13 +195,13 @@ class StatusMessageBuilderTest {
     @Test
     void renderedLengthCountsCheckMarkAsTwo() {
         // ✅ is U+2705, Java length 1, renders 2-wide
-        assertThat(StatusMessageBuilder.renderedLength(BotText.CHECK_MARK)).isEqualTo(2);
+        assertThat(StatusMessageBuilder.renderedLength(BotText.FINISHED)).isEqualTo(2);
     }
 
     @Test
     void renderedLengthCountsCrossmarkAsTwo() {
         // ❌ is U+274C, Java length 1, renders 2-wide
-        assertThat(StatusMessageBuilder.renderedLength(BotText.CROSS_MARK)).isEqualTo(2);
+        assertThat(StatusMessageBuilder.renderedLength(BotText.NOT_FINISHED)).isEqualTo(2);
     }
 
     @Test

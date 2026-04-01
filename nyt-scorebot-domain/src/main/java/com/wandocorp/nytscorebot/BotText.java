@@ -10,8 +10,8 @@ public final class BotText {
     public static final String WARNING   = "⚠️";
     public static final String INFO      = "ℹ️";
 
-    public static final String CHECK_MARK = "🟢";
-    public static final String CROSS_MARK = "🔴";
+    public static final String FINISHED = "🟢";
+    public static final String NOT_FINISHED = "⚫️";
 
     // ── Reply messages ────────────────────────────────────────────────────────
     public static final String MSG_WRONG_PUZZLE_NUMBER =
