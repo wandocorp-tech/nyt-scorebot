@@ -163,8 +163,8 @@ Once both players have finished for the day (either by submitting all games or u
 
 All tests must compile and pass with JaCoCo enabled:
 ```bash
-mvn test                          # Run all tests including SmokeTest
-mvn verify -Dtest='!com.wandocorp.nytscorebot.SmokeTest'  # Run unit tests + JaCoCo check
+mvn test                          # Run all tests including EndToEndTest
+mvn verify -Dtest='!com.wandocorp.nytscorebot.EndToEndTest'  # Run unit tests + JaCoCo check
 ```
 
 ### Test Layers
@@ -210,23 +210,23 @@ mvn verify -Dtest='!com.wandocorp.nytscorebot.SmokeTest'  # Run unit tests + JaC
 
 **DiscordChannelPropertiesTest, StringListConverterTest, GameResultParserTest** — Configuration, converters, misc
 
-#### 2. **Integration/Smoke Tests** (5 tests, ~50 seconds)
+#### 2. **End-to-End Test** (~50 seconds)
 
-**SmokeTest** — Real Discord connection, live database, full message flow
+**EndToEndTest** — Real Discord connection, live database, full message flow
 - Requires configured Discord bot, test channels, H2 database
 - Validates full round-trip: message → parse → validate → persist → query
 
 ### Running Tests
 
 ```bash
-# Unit tests only (excludes SmokeTest, ~30 seconds)
-mvn test -Dtest='!com.wandocorp.nytscorebot.SmokeTest'
+# Unit tests only (excludes EndToEndTest, ~30 seconds)
+mvn test -Dtest='!com.wandocorp.nytscorebot.EndToEndTest'
 
-# All tests including smoke tests (requires Discord & DB, ~80 seconds)
+# All tests including end-to-end test (requires Discord & DB, ~80 seconds)
 mvn test
 
 # Verify + JaCoCo check (≥80% coverage threshold)
-mvn verify -Dtest='!com.wandocorp.nytscorebot.SmokeTest'
+mvn verify -Dtest='!com.wandocorp.nytscorebot.EndToEndTest'
 ```
 
 ### JaCoCo Configuration
@@ -369,8 +369,40 @@ Requires:
 - H2 database
 - Discord bot token with Message Content intent
 
+## CI/CD (GitHub Actions)
 
-A Discord bot that captures and persists New York Times (NYT) daily puzzle results from Discord chat, storing them in an H2 database for easy tracking and comparison.
+The project uses GitHub Actions for automated build, test, and deployment.
+
+### Workflows
+
+| Workflow | File | Trigger | Purpose |
+|---|---|---|---|
+| **Build** | `build.yml` | `workflow_call`, `workflow_dispatch` | Compile, run unit tests, enforce JaCoCo coverage, upload JAR artifact |
+| **Test (E2E)** | `test.yml` | `workflow_call`, `workflow_dispatch` | Run `EndToEndTest` against live Discord |
+| **Deploy** | `deploy.yml` | `workflow_call`, `workflow_dispatch` | Copy JAR to Raspberry Pi via SCP, restart systemd service |
+| **Pipeline** | `pipeline.yml` | Push to `main`, `workflow_dispatch` | Orchestrate build → test → deploy in sequence |
+| **Release** | `release.yml` | `workflow_dispatch` (with version input) | Build JAR and create a GitHub Release with it attached |
+
+Each of build, test, and deploy can be run independently from the GitHub Actions UI, or as part of the pipeline.
+
+### Required Repository Secrets
+
+| Secret | Purpose |
+|---|---|
+| `DISCORD_TOKEN` | Discord bot token (used by E2E test and the application) |
+| `PI_SSH_KEY` | SSH private key for authenticating to the Raspberry Pi |
+| `PI_HOST` | Hostname or IP address of the Pi |
+| `PI_USER` | SSH username on the Pi |
+| `PI_SSH_PORT` | SSH port (defaults to 22 if not set) |
+| `PI_DEPLOY_PATH` | Remote directory where the JAR is placed (e.g., `/opt/scorebot/`) |
+| `PI_SERVICE_NAME` | systemd service name to restart (e.g., `scorebot`) |
+
+### Raspberry Pi Prerequisites
+
+- Java 17+ installed
+- SSH server running and accessible from GitHub Actions runners
+- A systemd service unit configured to run the application JAR (e.g., `/etc/systemd/system/scorebot.service`)
+- The deploy user must have passwordless `sudo` access for `systemctl restart`
 
 ## Overview
 
@@ -470,8 +502,8 @@ Results are validated against the expected puzzle numbers for the current date (
 
 All tests must compile and pass with JaCoCo enabled:
 ```bash
-mvn test                          # Run all tests including SmokeTest
-mvn verify -Dtest='!com.wandocorp.nytscorebot.SmokeTest'  # Run unit tests + JaCoCo check
+mvn test                          # Run all tests including EndToEndTest
+mvn verify -Dtest='!com.wandocorp.nytscorebot.EndToEndTest'  # Run unit tests + JaCoCo check
 ```
 
 ### Test Layers
@@ -510,34 +542,23 @@ mvn verify -Dtest='!com.wandocorp.nytscorebot.SmokeTest'  # Run unit tests + JaC
 - Entity type conversion
 - Miscellaneous components
 
-#### 2. **Integration/Smoke Tests** (5 tests, ~50 seconds)
+#### 2. **End-to-End Test** (~50 seconds)
 
-**SmokeTest** — Real Discord connection, live database, full message flow
+**EndToEndTest** — Real Discord connection, live database, full message flow
 - Requires configured Discord bot, test channels, H2 database
-- Configured channels: "Player One (Smoke Test)" and "Player Two (Smoke Test)"
-- Bot posts its own messages to these channels; bot receives and processes them
 - Validates full round-trip: message → parse → validate → persist → query
-
-**Test Scenarios:**
-1. **Single message** — Wordle result creates User and Scoreboard
-2. **Second message** — Reuses existing User, creates new Scoreboard for different date (crossword)
-3. **Unconfigured channel** — Message is silently ignored (no User/Scoreboard created)
-4. **Multi-channel** — Each channel creates independent User entities
-5. **All-games** — Six different game types (Wordle, Connections, Strands, Mini/Midi/Daily crossword) land on single Scoreboard
-
-**Sample Data:** Hardcoded valid puzzle numbers for today (e.g., Wordle 1738 on 2026-03-23). These must be updated as the real date advances, or use dynamic date formatting in assertions.
 
 ### Running Tests
 
 ```bash
-# Unit tests only (excludes SmokeTest, ~30 seconds)
-mvn test -Dtest='!com.wandocorp.nytscorebot.SmokeTest'
+# Unit tests only (excludes EndToEndTest, ~30 seconds)
+mvn test -Dtest='!com.wandocorp.nytscorebot.EndToEndTest'
 
-# All tests including smoke tests (requires Discord & DB, ~80 seconds)
+# All tests including end-to-end test (requires Discord & DB, ~80 seconds)
 mvn test
 
 # Verify + JaCoCo check (≥80% coverage threshold)
-mvn verify -Dtest='!com.wandocorp.nytscorebot.SmokeTest'
+mvn verify -Dtest='!com.wandocorp.nytscorebot.EndToEndTest'
 ```
 
 ### JaCoCo Configuration

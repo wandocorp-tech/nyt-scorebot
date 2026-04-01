@@ -9,7 +9,7 @@ A Spring Boot Discord bot that parses and persists New York Times daily puzzle r
 mvn clean package -DskipTests
 
 # Unit tests only (~30s) — use this for day-to-day development
-mvn test -Dtest='!com.wandocorp.nytscorebot.SmokeTest'
+mvn test -Dtest='!com.wandocorp.nytscorebot.EndToEndTest'
 
 # Run a single test class
 mvn test -Dtest=ParserTest
@@ -17,11 +17,11 @@ mvn test -Dtest=ParserTest
 # Run a single test method
 mvn test -Dtest=ParserTest#wordleResultIsParsed
 
-# Full suite including smoke tests (~80s, requires live Discord connection and DB)
+# Full suite including end-to-end test (~80s, requires live Discord connection and DB)
 mvn test
 
 # Verify with JaCoCo coverage check (≥80% instruction + branch)
-mvn verify -Dtest='!com.wandocorp.nytscorebot.SmokeTest'
+mvn verify -Dtest='!com.wandocorp.nytscorebot.EndToEndTest'
 ```
 
 The Surefire plugin requires ByteBuddy flags (already configured in `pom.xml`) to support Mockito's inline mock maker for final Discord4J classes.
@@ -92,6 +92,6 @@ The Discord bot also requires **Message Content Intent** enabled in the Discord 
 ## Testing Patterns
 
 - **Unit tests** mock Discord4J classes (Mockito inline mock maker) and inject `FixedPuzzleCalendar` for deterministic dates.
-- **`SmokeTest`** is a full integration test that requires a live Discord connection and is excluded from normal `mvn test` runs via the `-Dtest='!...SmokeTest'` flag.
+- **`EndToEndTest`** is a full end-to-end test that requires a live Discord connection and is excluded from normal `mvn test` runs via the `-Dtest='!...EndToEndTest'` flag.
 - Parser tests follow a 3-sample-per-parser pattern: a passing case, an edge case, and a failure case.
 - Use AssertJ assertions (`assertThat(...)`), not JUnit `assertEquals`.

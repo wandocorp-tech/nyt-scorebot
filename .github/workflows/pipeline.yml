@@ -1,0 +1,30 @@
+name: Pipeline
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build
+    uses: ./.github/workflows/build.yml
+
+  test:
+    name: Test (E2E)
+    needs: build
+    uses: ./.github/workflows/test.yml
+    secrets:
+      DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+
+  deploy:
+    name: Deploy
+    needs: test
+    uses: ./.github/workflows/deploy.yml
+    secrets:
+      PI_SSH_KEY: ${{ secrets.PI_SSH_KEY }}
+      PI_HOST: ${{ secrets.PI_HOST }}
+      PI_USER: ${{ secrets.PI_USER }}
+      PI_SSH_PORT: ${{ secrets.PI_SSH_PORT }}
+      PI_DEPLOY_PATH: ${{ secrets.PI_DEPLOY_PATH }}
+      PI_SERVICE_NAME: ${{ secrets.PI_SERVICE_NAME }}

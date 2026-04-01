@@ -1,0 +1,69 @@
+name: Deploy
+
+on:
+  workflow_call:
+    secrets:
+      PI_SSH_KEY:
+        required: true
+      PI_HOST:
+        required: true
+      PI_USER:
+        required: true
+      PI_SSH_PORT:
+        required: false
+      PI_DEPLOY_PATH:
+        required: true
+      PI_SERVICE_NAME:
+        required: true
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download JAR artifact
+        id: download
+        uses: actions/download-artifact@v4
+        with:
+          name: app-jar
+          path: deploy-staging
+        continue-on-error: true
+
+      - name: Build from source (standalone fallback)
+        if: steps.download.outcome == 'failure'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Package JAR (standalone fallback)
+        if: steps.download.outcome == 'failure'
+        run: |
+          mvn clean package -DskipTests --batch-mode --no-transfer-progress
+          mkdir -p deploy-staging
+          cp nyt-scorebot-app/target/nyt-scorebot-app-1.0-SNAPSHOT.jar deploy-staging/
+
+      - name: Copy JAR to Raspberry Pi
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.PI_HOST }}
+          username: ${{ secrets.PI_USER }}
+          key: ${{ secrets.PI_SSH_KEY }}
+          port: ${{ secrets.PI_SSH_PORT || 22 }}
+          source: deploy-staging/nyt-scorebot-app-1.0-SNAPSHOT.jar
+          target: ${{ secrets.PI_DEPLOY_PATH }}
+          strip_components: 1
+
+      - name: Restart service on Raspberry Pi
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.PI_HOST }}
+          username: ${{ secrets.PI_USER }}
+          key: ${{ secrets.PI_SSH_KEY }}
+          port: ${{ secrets.PI_SSH_PORT || 22 }}
+          script: sudo systemctl restart ${{ secrets.PI_SERVICE_NAME }}
