@@ -13,4 +13,5 @@ public interface GameComparisonScoreboard {
     int leadingSpaces();
     int baseGap();
     int maxEmojisPerRow();
+    default boolean usesStreakDisplay() { return false; }
 }

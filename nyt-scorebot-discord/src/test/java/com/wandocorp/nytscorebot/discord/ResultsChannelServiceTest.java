@@ -4,6 +4,7 @@ import com.wandocorp.nytscorebot.config.DiscordChannelProperties;
 import com.wandocorp.nytscorebot.config.DiscordChannelProperties.ChannelConfig;
 import com.wandocorp.nytscorebot.entity.Scoreboard;
 import com.wandocorp.nytscorebot.service.ScoreboardService;
+import com.wandocorp.nytscorebot.service.StreakService;
 import com.wandocorp.nytscorebot.entity.User;
 import com.wandocorp.nytscorebot.service.scoreboard.ScoreboardRenderer;
 import discord4j.common.util.Snowflake;
@@ -36,6 +37,7 @@ class ResultsChannelServiceTest {
     private GatewayDiscordClient client;
     private ScoreboardService scoreboardService;
     private ScoreboardRenderer scoreboardRenderer;
+    private StreakService streakService;
     private DiscordChannelProperties channelProperties;
     private ResultsChannelService service;
 
@@ -44,6 +46,7 @@ class ResultsChannelServiceTest {
         client = mock(GatewayDiscordClient.class);
         scoreboardService = mock(ScoreboardService.class);
         scoreboardRenderer = mock(ScoreboardRenderer.class);
+        streakService = mock(StreakService.class);
 
         channelProperties = new DiscordChannelProperties();
 
@@ -60,7 +63,7 @@ class ResultsChannelServiceTest {
         channelProperties.setChannels(List.of(c1, c2));
         channelProperties.setResultsChannelId(RESULTS_CHANNEL_ID);
 
-        service = new ResultsChannelService(client, channelProperties, scoreboardService, scoreboardRenderer);
+        service = new ResultsChannelService(client, channelProperties, scoreboardService, scoreboardRenderer, streakService);
     }
 
     @Test
@@ -161,7 +164,7 @@ class ResultsChannelServiceTest {
     void refreshGamePostsNewMessageWhenNoExistingMessage() {
         when(scoreboardService.areBothPlayersFinishedToday()).thenReturn(true);
         setupScoreboards();
-        when(scoreboardRenderer.renderByGameType(eq("Main"), any(), anyString(), any(), anyString()))
+        when(scoreboardRenderer.renderByGameType(eq("Main"), any(), anyString(), any(), anyString(), any()))
                 .thenReturn(java.util.Optional.of("```\nMain crossword\n```"));
 
         MessageChannel channel = mock(MessageChannel.class);
@@ -169,7 +172,7 @@ class ResultsChannelServiceTest {
 
         service.refreshGame("Main");
 
-        verify(scoreboardRenderer).renderByGameType(eq("Main"), any(), eq(NAME1), any(), eq(NAME2));
+        verify(scoreboardRenderer).renderByGameType(eq("Main"), any(), eq(NAME1), any(), eq(NAME2), any());
         verify(channel).createMessage("```\nMain crossword\n```");
     }
 
@@ -177,7 +180,7 @@ class ResultsChannelServiceTest {
     void refreshGameDeletesAndRepostsWhenExistingMessageId() {
         when(scoreboardService.areBothPlayersFinishedToday()).thenReturn(true);
         setupScoreboards();
-        when(scoreboardRenderer.renderByGameType(eq("Main"), any(), anyString(), any(), anyString()))
+        when(scoreboardRenderer.renderByGameType(eq("Main"), any(), anyString(), any(), anyString(), any()))
                 .thenReturn(java.util.Optional.of("```\nMain crossword\n```"));
 
         Snowflake previousMsgId = Snowflake.of("22222");
@@ -202,7 +205,7 @@ class ResultsChannelServiceTest {
     void refreshGameNoOpWhenRendererReturnsEmpty() {
         when(scoreboardService.areBothPlayersFinishedToday()).thenReturn(true);
         setupScoreboards();
-        when(scoreboardRenderer.renderByGameType(eq("Main"), any(), anyString(), any(), anyString()))
+        when(scoreboardRenderer.renderByGameType(eq("Main"), any(), anyString(), any(), anyString(), any()))
                 .thenReturn(java.util.Optional.empty());
 
         service.refreshGame("Main");
@@ -213,7 +216,7 @@ class ResultsChannelServiceTest {
     private void setupRendered() {
         Map<String, String> rendered = new LinkedHashMap<>();
         rendered.put("Wordle", "```\nWordle stuff\n```");
-        when(scoreboardRenderer.renderAll(any(), anyString(), any(), anyString())).thenReturn(rendered);
+        when(scoreboardRenderer.renderAll(any(), anyString(), any(), anyString(), any())).thenReturn(rendered);
     }
 
 }

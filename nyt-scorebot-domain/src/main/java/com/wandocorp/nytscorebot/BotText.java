@@ -85,5 +85,15 @@ public final class BotText {
     public static final String FLAG_LOOKUPS = "🔍×%d";
     public static final String FLAG_CHECK   = "✓";
 
+    // ── Streak ────────────────────────────────────────────────────────────────
+    public static final String CMD_STREAK                = "streak";
+    public static final String CMD_STREAK_DESCRIPTION    = "Set your current streak for a game";
+    public static final String CMD_STREAK_GAME_OPTION    = "game";
+    public static final String CMD_STREAK_GAME_OPTION_DESC = "The game type";
+    public static final String CMD_STREAK_VALUE_OPTION   = "streak";
+    public static final String CMD_STREAK_VALUE_OPTION_DESC = "Current streak value (0 or higher)";
+    public static final String MSG_STREAK_SET            = "✅ %s streak set to %d";
+    public static final String SCOREBOARD_STREAK         = "%d";
+
     private BotText() {}
 }

@@ -75,4 +75,7 @@ public class StrandsScoreboard implements GameComparisonScoreboard {
 
     @Override
     public int maxEmojisPerRow() { return 4; }
+
+    @Override
+    public boolean usesStreakDisplay() { return true; }
 }

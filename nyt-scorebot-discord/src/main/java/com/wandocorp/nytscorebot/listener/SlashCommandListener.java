@@ -2,9 +2,12 @@ package com.wandocorp.nytscorebot.listener;
 
 import com.wandocorp.nytscorebot.BotText;
 import com.wandocorp.nytscorebot.config.DiscordChannelProperties;
+import com.wandocorp.nytscorebot.entity.User;
+import com.wandocorp.nytscorebot.repository.UserRepository;
 import com.wandocorp.nytscorebot.service.MarkFinishedOutcome;
 import com.wandocorp.nytscorebot.service.PuzzleCalendar;
 import com.wandocorp.nytscorebot.service.SetFlagOutcome;
+import com.wandocorp.nytscorebot.service.StreakService;
 import com.wandocorp.nytscorebot.discord.ResultsChannelService;
 import com.wandocorp.nytscorebot.service.ScoreboardService;
 import com.wandocorp.nytscorebot.discord.StatusChannelService;
@@ -24,6 +27,8 @@ public class SlashCommandListener {
 
     private final GatewayDiscordClient client;
     private final ScoreboardService scoreboardService;
+    private final StreakService streakService;
+    private final UserRepository userRepository;
     private final PuzzleCalendar puzzleCalendar;
     private final StatusChannelService statusChannelService;
     private final ResultsChannelService resultsChannelService;
@@ -41,6 +46,7 @@ public class SlashCommandListener {
                     case BotText.CMD_DUO      -> handleDuo(event);
                     case BotText.CMD_LOOKUPS  -> handleLookups(event);
                     case BotText.CMD_CHECK    -> handleCheck(event);
+                    case BotText.CMD_STREAK   -> handleStreak(event);
                     default -> Mono.empty();
                 })
                 .subscribe();
@@ -136,6 +142,42 @@ public class SlashCommandListener {
         String contextMessage = String.format(BotText.STATUS_CONTEXT_PLAYER_FINISHED, playerName);
         statusChannelService.refresh(contextMessage);
         resultsChannelService.refreshGame(BotText.GAME_LABEL_MAIN);
+    }
+
+    Mono<Void> handleStreak(ChatInputInteractionEvent event) {
+        String discordUserId = event.getInteraction().getUser().getId().asString();
+        log.info("Received /streak from Discord user {}", discordUserId);
+
+        String game = event.getOption(BotText.CMD_STREAK_GAME_OPTION)
+                .flatMap(opt -> opt.getValue())
+                .map(val -> val.asString())
+                .orElse("");
+
+        long streakValue = event.getOption(BotText.CMD_STREAK_VALUE_OPTION)
+                .flatMap(opt -> opt.getValue())
+                .map(val -> val.asLong())
+                .orElse(0L);
+
+        if (streakValue < 0) {
+            return event.reply().withEphemeral(true)
+                    .withContent(BotText.MSG_INVALID_VALUE);
+        }
+
+        java.util.Optional<User> userOpt = channelProperties.getChannels().stream()
+                .filter(c -> discordUserId.equals(c.getUserId()))
+                .findFirst()
+                .flatMap(c -> userRepository.findByChannelId(c.getId()))
+                .or(() -> userRepository.findByUserId(discordUserId));
+        if (userOpt.isEmpty()) {
+            return event.reply().withEphemeral(true)
+                    .withContent(BotText.MSG_USER_NOT_FOUND);
+        }
+
+        streakService.setStreak(userOpt.get(), game, (int) streakValue);
+        resultsChannelService.refresh();
+
+        String reply = String.format(BotText.MSG_STREAK_SET, game, streakValue);
+        return event.reply().withEphemeral(true).withContent(reply);
     }
 
     static String flagReplyFor(String setMsg, String clearedMsg, SetFlagOutcome outcome) {

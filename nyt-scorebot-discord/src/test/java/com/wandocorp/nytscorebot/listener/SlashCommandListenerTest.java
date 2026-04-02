@@ -3,9 +3,11 @@ package com.wandocorp.nytscorebot.listener;
 import com.wandocorp.nytscorebot.BotText;
 import com.wandocorp.nytscorebot.config.DiscordChannelProperties;
 import com.wandocorp.nytscorebot.config.DiscordChannelProperties.ChannelConfig;
+import com.wandocorp.nytscorebot.repository.UserRepository;
 import com.wandocorp.nytscorebot.service.MarkFinishedOutcome;
 import com.wandocorp.nytscorebot.service.PuzzleCalendar;
 import com.wandocorp.nytscorebot.service.SetFlagOutcome;
+import com.wandocorp.nytscorebot.service.StreakService;
 import com.wandocorp.nytscorebot.discord.ResultsChannelService;
 import com.wandocorp.nytscorebot.service.ScoreboardService;
 import com.wandocorp.nytscorebot.discord.StatusChannelService;
@@ -28,6 +30,7 @@ import static com.wandocorp.nytscorebot.listener.SlashCommandListener.replyMessa
 import static com.wandocorp.nytscorebot.listener.SlashCommandListener.flagReplyFor;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -39,6 +42,8 @@ class SlashCommandListenerTest {
     private static final LocalDate TODAY = LocalDate.of(2026, 3, 23);
 
     private ScoreboardService scoreboardService;
+    private StreakService streakService;
+    private UserRepository userRepository;
     private PuzzleCalendar puzzleCalendar;
     private StatusChannelService statusChannelService;
     private ResultsChannelService resultsChannelService;
@@ -48,6 +53,8 @@ class SlashCommandListenerTest {
     @BeforeEach
     void setUp() {
         scoreboardService = mock(ScoreboardService.class);
+        streakService = mock(StreakService.class);
+        userRepository = mock(UserRepository.class);
         puzzleCalendar = mock(PuzzleCalendar.class);
         statusChannelService = mock(StatusChannelService.class);
         resultsChannelService = mock(ResultsChannelService.class);
@@ -60,8 +67,7 @@ class SlashCommandListenerTest {
         ch.setUserId(DISCORD_USER_ID);
         channelProperties.setChannels(List.of(ch));
 
-        // GatewayDiscordClient only used in subscribe() — not needed in unit tests
-        listener = new SlashCommandListener(null, scoreboardService, puzzleCalendar, statusChannelService, resultsChannelService, channelProperties);
+        listener = new SlashCommandListener(null, scoreboardService, streakService, userRepository, puzzleCalendar, statusChannelService, resultsChannelService, channelProperties);
     }
 
     // ── replyMessageFor ───────────────────────────────────────────────────────
@@ -341,6 +347,61 @@ class SlashCommandListenerTest {
         verify(scoreboardService).setLookups(eq(DISCORD_USER_ID), eq(TODAY), eq(5));
     }
 
+    // ── handleStreak ────────────────────────────────────────────────────────
+
+    @Test
+    void handleStreakSetsStreakSuccessfully() {
+        com.wandocorp.nytscorebot.entity.User dbUser = mock(com.wandocorp.nytscorebot.entity.User.class);
+        when(userRepository.findByChannelId("ch1")).thenReturn(Optional.of(dbUser));
+
+        ChatInputInteractionEvent event = buildStreakEvent(DISCORD_USER_ID, "Wordle", 5);
+        listener.handleStreak(event).subscribe();
+
+        verify(streakService).setStreak(eq(dbUser), eq("Wordle"), eq(5));
+        verify(resultsChannelService).refresh();
+    }
+
+    @Test
+    void handleStreakReturnsUserNotFoundWhenUnknown() {
+        when(userRepository.findByChannelId("ch1")).thenReturn(Optional.empty());
+        when(userRepository.findByUserId(DISCORD_USER_ID)).thenReturn(Optional.empty());
+
+        InteractionApplicationCommandCallbackReplyMono replySpec =
+                mock(InteractionApplicationCommandCallbackReplyMono.class);
+        ChatInputInteractionEvent event = buildStreakEventWithReplyMock(DISCORD_USER_ID, "Wordle", 3, replySpec);
+
+        InteractionApplicationCommandCallbackReplyMono withEphemeralSpec =
+                mock(InteractionApplicationCommandCallbackReplyMono.class);
+        InteractionApplicationCommandCallbackReplyMono withContentSpec =
+                mock(InteractionApplicationCommandCallbackReplyMono.class);
+        doReturn(withEphemeralSpec).when(replySpec).withEphemeral(true);
+        doReturn(withContentSpec).when(withEphemeralSpec).withContent((String) any());
+
+        listener.handleStreak(event).subscribe();
+
+        verify(withEphemeralSpec).withContent(BotText.MSG_USER_NOT_FOUND);
+        verify(streakService, never()).setStreak(any(), any(), anyInt());
+    }
+
+    @Test
+    void handleStreakRejectsNegativeValue() {
+        InteractionApplicationCommandCallbackReplyMono replySpec =
+                mock(InteractionApplicationCommandCallbackReplyMono.class);
+        ChatInputInteractionEvent event = buildStreakEventWithReplyMock(DISCORD_USER_ID, "Wordle", -1, replySpec);
+
+        InteractionApplicationCommandCallbackReplyMono withEphemeralSpec =
+                mock(InteractionApplicationCommandCallbackReplyMono.class);
+        InteractionApplicationCommandCallbackReplyMono withContentSpec =
+                mock(InteractionApplicationCommandCallbackReplyMono.class);
+        doReturn(withEphemeralSpec).when(replySpec).withEphemeral(true);
+        doReturn(withContentSpec).when(withEphemeralSpec).withContent((String) any());
+
+        listener.handleStreak(event).subscribe();
+
+        verify(withEphemeralSpec).withContent(BotText.MSG_INVALID_VALUE);
+        verify(streakService, never()).setStreak(any(), any(), anyInt());
+    }
+
     // ── helpers ───────────────────────────────────────────────────────────────
 
     /**
@@ -397,5 +458,33 @@ class SlashCommandListenerTest {
         doReturn(Optional.of(option)).when(event).getOption(BotText.CMD_LOOKUPS_OPTION);
 
         return event;
+    }
+
+    private ChatInputInteractionEvent buildStreakEvent(String userId, String game, long streakValue) {
+        ChatInputInteractionEvent event = buildEvent(userId, "streak");
+        wireStreakOptions(event, game, streakValue);
+        return event;
+    }
+
+    private ChatInputInteractionEvent buildStreakEventWithReplyMock(
+            String userId, String game, long streakValue,
+            InteractionApplicationCommandCallbackReplyMono replySpec) {
+        ChatInputInteractionEvent event = buildEventWithReplyMock(userId, "streak", replySpec);
+        wireStreakOptions(event, game, streakValue);
+        return event;
+    }
+
+    private void wireStreakOptions(ChatInputInteractionEvent event, String game, long streakValue) {
+        ApplicationCommandInteractionOptionValue gameValue = mock(ApplicationCommandInteractionOptionValue.class);
+        doReturn(game).when(gameValue).asString();
+        ApplicationCommandInteractionOption gameOption = mock(ApplicationCommandInteractionOption.class);
+        doReturn(Optional.of(gameValue)).when(gameOption).getValue();
+        doReturn(Optional.of(gameOption)).when(event).getOption(BotText.CMD_STREAK_GAME_OPTION);
+
+        ApplicationCommandInteractionOptionValue streakVal = mock(ApplicationCommandInteractionOptionValue.class);
+        doReturn(streakValue).when(streakVal).asLong();
+        ApplicationCommandInteractionOption streakOption = mock(ApplicationCommandInteractionOption.class);
+        doReturn(Optional.of(streakVal)).when(streakOption).getValue();
+        doReturn(Optional.of(streakOption)).when(event).getOption(BotText.CMD_STREAK_VALUE_OPTION);
     }
 }
