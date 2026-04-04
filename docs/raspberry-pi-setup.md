@@ -390,14 +390,126 @@ ssh -i ~/.ssh/scorebot_deploy -p 2222 YOUR_USERNAME@YOUR_PUBLIC_IP "echo 'Extern
 
 ### 6.2 — Alternatives to Port Forwarding
 
-If port forwarding isn't available (CGNAT, restricted router, ISP block):
+If port forwarding isn't available (CGNAT, restricted router, ISP block), use **Cloudflare Tunnel**. It exposes the Pi's SSH securely without opening router ports.
 
-- **[Tailscale](https://tailscale.com/)** — mesh VPN; install on the Pi and use a self-hosted GitHub Actions runner on the same Tailscale network
-- **[Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)** — expose SSH without opening router ports
+#### Cloudflare Tunnel Setup
+
+**Prerequisites:**
+- A Cloudflare account (free tier works)
+- A domain managed by Cloudflare
+
+**Step 1 — Install cloudflared on the Pi:**
+
+```bash
+sudo apt install -y cloudflare-warp
+```
+
+If that package doesn't exist, use the manual installer:
+
+```bash
+wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64.deb
+sudo dpkg -i cloudflared-linux-arm64.deb
+```
+
+**Step 2 — Authenticate cloudflared:**
+
+```bash
+cloudflared tunnel login
+```
+
+This opens a browser link. Authenticate with your Cloudflare account and select your domain. A certificate is saved locally.
+
+**Step 3 — Create a tunnel config file:**
+
+```bash
+mkdir -p ~/.cloudflared
+nano ~/.cloudflared/config.yml
+```
+
+Paste (replace `YOUR_DOMAIN` with your actual domain, e.g. `example.com`):
+
+```yaml
+tunnel: botnatius
+credentials-file: /home/wando/.cloudflared/botnatius.json
+
+ingress:
+  - hostname: ssh.YOUR_DOMAIN
+    service: ssh://localhost:22
+  - service: http_status:404
+```
+
+Save and exit.
+
+**Step 4 — Start the tunnel manually to test:**
+
+```bash
+cloudflared tunnel run botnatius
+```
+
+You should see output like:
+
+```
+Tunnel registered with ID ...
+Route propagated to DNS.
+```
+
+**Step 5 — Install as a systemd service:**
+
+Stop the manual tunnel (`Ctrl+C`), then:
+
+```bash
+sudo cloudflared service install --logfile /var/log/cloudflared.log --loglevel info
+sudo systemctl enable --now cloudflared
+```
+
+**Step 6 — Test SSH through the tunnel:**
+
+From your local machine:
+
+```bash
+ssh -i ~/.ssh/scorebot_deploy wando@ssh.YOUR_DOMAIN
+```
+
+Replace `YOUR_DOMAIN` with your actual domain (e.g. `ssh.example.com`).
+
+**Step 7 — Configure GitHub Secrets for Cloudflare Tunnel:**
+
+Instead of `PI_HOST` being an IP/hostname, use your Cloudflare tunnel hostname:
+
+| Secret Name | Value |
+|---|---|
+| `PI_HOST` | `ssh.YOUR_DOMAIN` (your Cloudflare tunnel hostname) |
+| `PI_USER` | `wando` |
+| `PI_SSH_PORT` | `22` (port 22 is standard, not forwarded externally) |
+| `PI_DEPLOY_PATH` | `/opt/scorebot/` |
+| `PI_SERVICE_NAME` | `nyt-scorebot` |
+
+The rest of the setup (Parts 7–8) remains unchanged.
+
+#### Why Cloudflare Tunnel is Better
+
+- ✅ No port forwarding needed
+- ✅ No public IP exposure
+- ✅ Traffic is encrypted end-to-end through Cloudflare
+- ✅ No fail2ban needed (Cloudflare handles DDoS)
+
+---
+
+**Alternative: Tailscale**
+
+If you don't have a Cloudflare domain, use [Tailscale](https://tailscale.com/) instead:
+
+1. Install on the Pi: `curl -fsSL https://tailscale.com/install.sh | sh`
+2. Authenticate: `sudo tailscale up`
+3. Install on your local machine and authenticate
+4. SSH to the Pi's Tailscale IP: `ssh -i ~/.ssh/scorebot_deploy wando@<tailscale-ip>`
+5. Set `PI_HOST` to that Tailscale IP in GitHub Secrets
+
+Tailscale is simpler but requires a self-hosted GitHub Actions runner on the same Tailscale network (more complex).
 
 ### 6.3 — Security Hardening
 
-Since you're exposing SSH to the internet, lock it down. **On the Pi:**
+Since you're exposing SSH (via tunnel or port forwarding), lock it down. **On the Pi:**
 
 ```bash
 sudo nano /etc/ssh/sshd_config
@@ -419,7 +531,7 @@ Apply the changes:
 sudo systemctl restart sshd
 ```
 
-Install fail2ban to block brute-force attempts:
+If using port forwarding (not Cloudflare), also install fail2ban:
 
 ```bash
 sudo apt install -y fail2ban
