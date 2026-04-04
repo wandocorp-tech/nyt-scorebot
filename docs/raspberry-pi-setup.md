@@ -67,7 +67,7 @@ Click **"Next"**, then when prompted **"Would you like to apply OS customisation
 
 | Setting | Value |
 |---|---|
-| **Set hostname** | e.g. `scorebot` (you'll reach it at `scorebot.local`) |
+| **Set hostname** | e.g. `botnatius` (you'll reach it at `botnatius.local`) |
 | **Set username and password** | Choose a username (e.g. `wando`) and a strong password — **note both down** |
 | **Configure wireless LAN** | Fill in your Wi-Fi SSID and password if not using Ethernet |
 | **Set locale settings** | Set your timezone and keyboard layout |
@@ -119,19 +119,19 @@ When complete, remove the SD card and insert it into your Raspberry Pi.
 **Option A — Using the hostname (easiest):**
 
 ```bash
-ping scorebot.local
+ping botnatius.local
 # If it responds, note the IP address shown
 ```
 
-> If `scorebot.local` doesn't resolve, try `raspberrypi.local` or wait another 30 seconds and retry.
+> If `botnatius.local` doesn't resolve, try `raspberrypi.local` or wait another 30 seconds and retry.
 
 **Option B — Check your router:**
-Log into your router's admin page and look at the list of connected devices. Find the one named `scorebot` and note its IP address.
+Log into your router's admin page and look at the list of connected devices. Find the one named `botnatius` and note its IP address.
 
 ### 2.3 — SSH Into the Pi
 
 ```bash
-ssh -i ~/.ssh/scorebot_deploy YOUR_USERNAME@scorebot.local
+ssh -i ~/.ssh/scorebot_deploy YOUR_USERNAME@botnatius.local
 # Or use the IP address:
 ssh -i ~/.ssh/scorebot_deploy YOUR_USERNAME@192.168.1.42
 ```
@@ -141,7 +141,7 @@ Replace `YOUR_USERNAME` with the username you set in Raspberry Pi Imager (e.g. `
 You'll see a prompt like this on first connection — type `yes`:
 
 ```
-The authenticity of host 'scorebot.local' can't be established.
+The authenticity of host 'botnatius.local' can't be established.
 Are you sure you want to continue connecting? yes
 ```
 
@@ -174,7 +174,7 @@ A stable, predictable IP ensures GitHub Actions can always reach the Pi. The rec
 
 1. Log into your router's admin page (usually `http://192.168.1.1` or `http://192.168.0.1`)
 2. Find the connected devices or DHCP client list
-3. Find the Pi (hostname: `scorebot`)
+3. Find the Pi (hostname: `botnatius`)
 4. Assign it a static/reserved IP, e.g. `192.168.1.42`
 
 **Option B — Static IP on the Pi (Raspberry Pi OS Bookworm):**
@@ -540,7 +540,7 @@ If you imaged the Pi without a valid public key in place, the easiest fix is to 
 | Cause | Fix |
 |---|---|
 | Port forwarding not set up | Check router rules; ensure external port maps to Pi IP:22 |
-| Pi not running / wrong IP | `ping scorebot.local` from local machine |
+| Pi not running / wrong IP | `ping botnatius.local` from local machine |
 | Wrong port specified | Try with and without `-p 2222` |
 | Firewall blocking | `sudo ufw status` on the Pi — disable if not intentionally configured |
 
