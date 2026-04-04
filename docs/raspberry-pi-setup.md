@@ -213,18 +213,26 @@ hostname -I
 # Should show your chosen static IP
 ```
 
-### 3.3 — Install Java 17
+### 3.3 — Install Java
 
 ```bash
 sudo apt install -y openjdk-17-jre-headless
+```
+
+If that fails with `Package ... is not available`, Raspberry Pi OS only has Java 21 available. That's fine — the bot supports it:
+
+```bash
+sudo apt install -y openjdk-21-jre-headless
 ```
 
 Verify:
 
 ```bash
 java -version
-# Expected: openjdk version "17.x.x" 2023-xx-xx
+# Expected: openjdk version "17.x.x" or "21.x.x"
 ```
+
+Either version works.
 
 ---
 
