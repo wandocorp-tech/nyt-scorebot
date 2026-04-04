@@ -390,126 +390,103 @@ ssh -i ~/.ssh/scorebot_deploy -p 2222 YOUR_USERNAME@YOUR_PUBLIC_IP "echo 'Extern
 
 ### 6.2 — Alternatives to Port Forwarding
 
-If port forwarding isn't available (CGNAT, restricted router, ISP block), use **Cloudflare Tunnel**. It exposes the Pi's SSH securely without opening router ports.
+If port forwarding isn't available (CGNAT, restricted router, ISP block), use **Tailscale**. It creates a private mesh VPN between your machines — GitHub Actions can reach the Pi through a secure tunnel without exposing SSH to the internet.
 
-#### Cloudflare Tunnel Setup
+#### Tailscale Setup
 
 **Prerequisites:**
-- A Cloudflare account (free tier works)
-- A domain managed by Cloudflare
+- A free Tailscale account (https://tailscale.com)
 
-**Step 1 — Install cloudflared on the Pi:**
-
-```bash
-sudo apt install -y cloudflare-warp
-```
-
-If that package doesn't exist, use the manual installer:
+**Step 1 — Install Tailscale on the Pi:**
 
 ```bash
-wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64.deb
-sudo dpkg -i cloudflared-linux-arm64.deb
+curl -fsSL https://tailscale.com/install.sh | sh
 ```
 
-**Step 2 — Authenticate cloudflared:**
+**Step 2 — Authenticate on the Pi:**
 
 ```bash
-cloudflared tunnel login
+sudo tailscale up
 ```
 
-This opens a browser link. Authenticate with your Cloudflare account and select your domain. A certificate is saved locally.
+This prints a browser link. Open it on your Mac, authenticate with Tailscale, and authorize the Pi. You'll see the Pi's Tailscale IP (e.g. `100.x.x.x`).
 
-**Step 3 — Create a tunnel config file:**
+**Step 3 — Find the Pi's Tailscale IP:**
 
 ```bash
-mkdir -p ~/.cloudflared
-nano ~/.cloudflared/config.yml
+tailscale ip -4
+# Output: 100.x.x.x
 ```
 
-Paste (replace `YOUR_DOMAIN` with your actual domain, e.g. `example.com`):
+Note this IP — it's your `PI_HOST` for GitHub secrets.
 
-```yaml
-tunnel: botnatius
-credentials-file: /home/wando/.cloudflared/botnatius.json
+**Step 4 — Install Tailscale on your Mac (optional but recommended):**
 
-ingress:
-  - hostname: ssh.YOUR_DOMAIN
-    service: ssh://localhost:22
-  - service: http_status:404
-```
+Visit https://tailscale.com and install. Authenticate with the same account. Your Mac is now on the Tailscale network.
 
-Save and exit.
-
-**Step 4 — Start the tunnel manually to test:**
+**Step 5 — Test SSH through Tailscale (from your Mac):**
 
 ```bash
-cloudflared tunnel run botnatius
+ssh -i ~/.ssh/scorebot_deploy wando@100.x.x.x
 ```
 
-You should see output like:
+Replace `100.x.x.x` with the Pi's Tailscale IP from Step 3.
 
-```
-Tunnel registered with ID ...
-Route propagated to DNS.
-```
-
-**Step 5 — Install as a systemd service:**
-
-Stop the manual tunnel (`Ctrl+C`), then:
-
-```bash
-sudo cloudflared service install --logfile /var/log/cloudflared.log --loglevel info
-sudo systemctl enable --now cloudflared
-```
-
-**Step 6 — Test SSH through the tunnel:**
-
-From your local machine:
-
-```bash
-ssh -i ~/.ssh/scorebot_deploy wando@ssh.YOUR_DOMAIN
-```
-
-Replace `YOUR_DOMAIN` with your actual domain (e.g. `ssh.example.com`).
-
-**Step 7 — Configure GitHub Secrets for Cloudflare Tunnel:**
-
-Instead of `PI_HOST` being an IP/hostname, use your Cloudflare tunnel hostname:
+**Step 6 — Set GitHub Secrets for Tailscale:**
 
 | Secret Name | Value |
 |---|---|
-| `PI_HOST` | `ssh.YOUR_DOMAIN` (your Cloudflare tunnel hostname) |
+| `PI_HOST` | Your Pi's Tailscale IP (e.g. `100.x.x.x`) |
 | `PI_USER` | `wando` |
-| `PI_SSH_PORT` | `22` (port 22 is standard, not forwarded externally) |
+| `PI_SSH_PORT` | `22` |
 | `PI_DEPLOY_PATH` | `/opt/scorebot/` |
 | `PI_SERVICE_NAME` | `nyt-scorebot` |
 
-The rest of the setup (Parts 7–8) remains unchanged.
+**Step 7 — Set up GitHub Actions to use Tailscale (important):**
 
-#### Why Cloudflare Tunnel is Better
+GitHub Actions runners are not on your Tailscale network by default. You have two options:
 
-- ✅ No port forwarding needed
-- ✅ No public IP exposure
-- ✅ Traffic is encrypted end-to-end through Cloudflare
-- ✅ No fail2ban needed (Cloudflare handles DDoS)
+**Option A — Use a self-hosted runner** (more complex):
+- Set up a GitHub self-hosted runner on your Mac or a server on the Tailscale network
+- Configure the `deploy.yml` workflow to run on that runner instead of `ubuntu-latest`
 
----
+**Option B — Use Tailscale auth key** (simpler):
+- Create a Tailscale auth key in your account settings (Machine Auth Keys → Generate auth key)
+- Add it as a GitHub secret: `TAILSCALE_AUTH_KEY`
+- Modify the `deploy.yml` workflow to install and connect Tailscale before SSH
 
-**Alternative: Tailscale**
+For **Option B**, you'd need to modify `.github/workflows/deploy.yml` to add:
 
-If you don't have a Cloudflare domain, use [Tailscale](https://tailscale.com/) instead:
+```yaml
+- name: Connect to Tailscale
+  uses: tailscale/github-action@v2
+  with:
+    authkey: ${{ secrets.TAILSCALE_AUTH_KEY }}
 
-1. Install on the Pi: `curl -fsSL https://tailscale.com/install.sh | sh`
-2. Authenticate: `sudo tailscale up`
-3. Install on your local machine and authenticate
-4. SSH to the Pi's Tailscale IP: `ssh -i ~/.ssh/scorebot_deploy wando@<tailscale-ip>`
-5. Set `PI_HOST` to that Tailscale IP in GitHub Secrets
+- name: Copy JAR to Raspberry Pi
+  uses: appleboy/scp-action@v0.1.7
+  with:
+    host: ${{ secrets.PI_HOST }}
+    username: ${{ secrets.PI_USER }}
+    key: ${{ secrets.PI_SSH_KEY }}
+    port: ${{ secrets.PI_SSH_PORT || 22 }}
+    source: deploy-staging/nyt-scorebot-app-1.0-SNAPSHOT.jar
+    target: ${{ secrets.PI_DEPLOY_PATH }}
+    strip_components: 1
+```
 
-Tailscale is simpler but requires a self-hosted GitHub Actions runner on the same Tailscale network (more complex).
+This is a bit involved. **Easier alternative:** just use SSH from your local machine when testing:
+
+```bash
+# Locally, from your Mac
+ssh -i ~/.ssh/scorebot_deploy wando@100.x.x.x "sudo systemctl restart nyt-scorebot"
+```
+
+For now, **skip this complexity** and continue with the basic setup. Once the bot is running, you can add GitHub Actions integration if needed.
 
 ### 6.3 — Security Hardening
 
-Since you're exposing SSH (via tunnel or port forwarding), lock it down. **On the Pi:**
+Since you're using SSH (via Tailscale or port forwarding), lock it down. **On the Pi:**
 
 ```bash
 sudo nano /etc/ssh/sshd_config
@@ -531,7 +508,7 @@ Apply the changes:
 sudo systemctl restart sshd
 ```
 
-If using port forwarding (not Cloudflare), also install fail2ban:
+No need for fail2ban with Tailscale (it's private and encrypted), but you can install it if using port forwarding:
 
 ```bash
 sudo apt install -y fail2ban
