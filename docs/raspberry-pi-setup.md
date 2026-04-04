@@ -1,166 +1,300 @@
 # Raspberry Pi Deployment Guide
 
-Deploy the NYT Scorebot Discord bot to a Raspberry Pi using the GitHub Actions CI/CD pipeline.
+This guide takes you from a **blank Raspberry Pi 4** all the way to a fully automated deployment using the GitHub Actions CI/CD pipeline. Follow the parts in order — some steps depend on previous ones.
 
-## Prerequisites
+## What You'll Need
 
-| Requirement | Details |
+| Item | Details |
 |---|---|
-| **Raspberry Pi** | Model 4 or 5, with Raspberry Pi OS (64-bit) freshly imaged |
-| **Network** | Pi connected to your home network via Ethernet or Wi-Fi |
-| **Discord Bot Token** | From the [Discord Developer Portal](https://discord.com/developers/applications) — **Message Content Intent** must be enabled |
-| **GitHub Repo Access** | Admin permissions on the `nyt-scorebot` repository (to configure secrets and environments) |
-| **Local Machine** | A computer on the same network as the Pi for initial setup |
+| **Raspberry Pi 4** | Any RAM variant |
+| **MicroSD card** | 8 GB minimum; 16 GB+ recommended |
+| **MicroSD card reader** | For imaging the card from your computer |
+| **Ethernet cable** | Recommended for first setup; Wi-Fi instructions included |
+| **Power supply** | Official Pi 4 USB-C power supply (5V 3A) |
+| **Local machine** | macOS, Linux, or Windows computer for imaging and SSH |
+| **Discord bot token** | From the [Discord Developer Portal](https://discord.com/developers/applications) — **Message Content Intent** must be enabled |
+| **GitHub repo access** | Admin permissions on the `nyt-scorebot` repository |
 
 ---
 
-## Part 1: Raspberry Pi Initial Setup
+## Part 0: Generate Your SSH Key (Do This First)
 
-### 1.1 — Connect and Enable SSH
+**You must do this before imaging the SD card.** Raspberry Pi Imager will embed your public key into the image — the key must already exist at the time of imaging.
 
-If you used Raspberry Pi Imager, you may have enabled SSH during imaging. If not:
-
-```bash
-# Connect a keyboard and monitor to the Pi, then:
-sudo raspi-config
-# Navigate to: Interface Options → SSH → Enable
-
-# Or enable it directly:
-sudo systemctl enable ssh
-sudo systemctl start ssh
-```
-
-Find the Pi's local IP address:
+On your **local machine**, run:
 
 ```bash
-hostname -I
-# Example output: 192.168.1.42
+ssh-keygen -t ed25519 -C "scorebot-deploy" -f ~/.ssh/scorebot_deploy
+# When asked for a passphrase, press Enter twice (no passphrase needed)
 ```
 
-From your local machine, verify SSH works:
+This creates two files:
+
+| File | What it is |
+|---|---|
+| `~/.ssh/scorebot_deploy` | **Private key** — stays on your machine and goes into GitHub as a secret |
+| `~/.ssh/scorebot_deploy.pub` | **Public key** — gets embedded in the Pi image by Raspberry Pi Imager |
+
+View your public key — you'll need to copy it in the next step:
 
 ```bash
-ssh pi@192.168.1.42    # default user is 'pi' — use whatever you set during imaging
+cat ~/.ssh/scorebot_deploy.pub
+# Output will look like: ssh-ed25519 AAAA... scorebot-deploy
 ```
 
-### 1.2 — Set a Static IP Address
+---
 
-A stable IP ensures GitHub Actions can always reach the Pi. Configure via DHCP reservation on your router (preferred) or directly on the Pi.
+## Part 1: Image the SD Card
 
-**Option A — Router DHCP Reservation (Recommended):**
-Log into your router's admin page, find the Pi's MAC address in the connected devices list, and assign it a static lease.
+### 1.1 — Download Raspberry Pi Imager
 
-**Option B — Static IP on the Pi:**
+Download and install [Raspberry Pi Imager](https://www.raspberrypi.com/software/) for your operating system.
+
+### 1.2 — Choose the OS and Storage
+
+1. Insert your microSD card into your card reader
+2. Open Raspberry Pi Imager
+3. Click **"Choose Device"** → select **Raspberry Pi 4**
+4. Click **"Choose OS"** → **Raspberry Pi OS (other)** → **Raspberry Pi OS Lite (64-bit)**
+   > Lite is recommended for a headless server — no desktop environment, smaller footprint
+5. Click **"Choose Storage"** → select your microSD card
+
+### 1.3 — Configure OS Customisation Settings
+
+Click **"Next"**, then when prompted **"Would you like to apply OS customisation settings?"** click **"Edit Settings"**.
+
+#### General tab
+
+| Setting | Value |
+|---|---|
+| **Set hostname** | e.g. `scorebot` (you'll reach it at `scorebot.local`) |
+| **Set username and password** | Choose a username (e.g. `wando`) and a strong password — **note both down** |
+| **Configure wireless LAN** | Fill in your Wi-Fi SSID and password if not using Ethernet |
+| **Set locale settings** | Set your timezone and keyboard layout |
+
+> **Important:** The username you set here is what you'll use for SSH and in the `PI_USER` GitHub secret. There is no default `pi` user in modern Raspberry Pi OS.
+
+#### Services tab
+
+| Setting | Value |
+|---|---|
+| **Enable SSH** | ✅ Checked |
+| **Allow public-key authentication only** | ✅ Selected |
+| **Authorised keys** | Paste the contents of `~/.ssh/scorebot_deploy.pub` |
+
+To copy your public key to paste:
 
 ```bash
-sudo nano /etc/dhcpcd.conf
+# macOS
+cat ~/.ssh/scorebot_deploy.pub | pbcopy
+
+# Linux
+cat ~/.ssh/scorebot_deploy.pub | xclip -selection clipboard
+
+# Windows (Git Bash)
+cat ~/.ssh/scorebot_deploy.pub | clip
 ```
 
-Add at the end (adjust for your network):
+Click **"Save"**, then **"Yes"** to apply the settings.
 
-```
-interface eth0
-static ip_address=192.168.1.42/24
-static routers=192.168.1.1
-static domain_name_servers=192.168.1.1 8.8.8.8
-```
+### 1.4 — Write the Image
 
-Then reboot:
+Click **"Yes"** to confirm writing to the SD card. Imager will download the OS, write it, and verify it. This takes 5–15 minutes depending on your connection speed.
+
+When complete, remove the SD card and insert it into your Raspberry Pi.
+
+---
+
+## Part 2: First Boot and Connection
+
+### 2.1 — Boot the Pi
+
+1. Insert the imaged SD card into the Pi
+2. Connect an Ethernet cable (or rely on the Wi-Fi you configured)
+3. Plug in the power supply
+4. Wait approximately **60–90 seconds** for first boot (it's slower than subsequent boots as it initialises the filesystem)
+
+### 2.2 — Find the Pi on Your Network
+
+**Option A — Using the hostname (easiest):**
 
 ```bash
-sudo reboot
+ping scorebot.local
+# If it responds, note the IP address shown
 ```
 
-### 1.3 — Update Packages
+> If `scorebot.local` doesn't resolve, try `raspberrypi.local` or wait another 30 seconds and retry.
+
+**Option B — Check your router:**
+Log into your router's admin page and look at the list of connected devices. Find the one named `scorebot` and note its IP address.
+
+### 2.3 — SSH Into the Pi
+
+```bash
+ssh -i ~/.ssh/scorebot_deploy YOUR_USERNAME@scorebot.local
+# Or use the IP address:
+ssh -i ~/.ssh/scorebot_deploy YOUR_USERNAME@192.168.1.42
+```
+
+Replace `YOUR_USERNAME` with the username you set in Raspberry Pi Imager (e.g. `wando`).
+
+You'll see a prompt like this on first connection — type `yes`:
+
+```
+The authenticity of host 'scorebot.local' can't be established.
+Are you sure you want to continue connecting? yes
+```
+
+You should now be logged into the Pi. Run a quick sanity check:
+
+```bash
+uname -a
+# Expected: Linux scorebot 6.x.x ... aarch64 GNU/Linux
+```
+
+---
+
+## Part 3: System Configuration
+
+All commands in this section run **on the Pi** via SSH.
+
+### 3.1 — Update Packages
 
 ```bash
 sudo apt update && sudo apt upgrade -y
 ```
 
-### 1.4 — Install Java 17
+This may take a few minutes on first run.
+
+### 3.2 — Set a Static IP Address
+
+A stable, predictable IP ensures GitHub Actions can always reach the Pi. The recommended approach is a **DHCP reservation on your router** — this is more reliable than configuring a static IP on the Pi itself.
+
+**Option A — Router DHCP Reservation (Recommended):**
+
+1. Log into your router's admin page (usually `http://192.168.1.1` or `http://192.168.0.1`)
+2. Find the connected devices or DHCP client list
+3. Find the Pi (hostname: `scorebot`)
+4. Assign it a static/reserved IP, e.g. `192.168.1.42`
+
+**Option B — Static IP on the Pi (Raspberry Pi OS Bookworm):**
+
+Raspberry Pi OS Bookworm uses NetworkManager. Find your connection name first:
+
+```bash
+nmcli con show
+# Look for something like "Wired connection 1" or "preconfigured" (Wi-Fi)
+```
+
+Set a static IP (adjust values for your network):
+
+```bash
+# For Ethernet:
+sudo nmcli con mod "Wired connection 1" \
+  ipv4.method manual \
+  ipv4.addresses 192.168.1.42/24 \
+  ipv4.gateway 192.168.1.1 \
+  ipv4.dns "8.8.8.8 1.1.1.1"
+sudo nmcli con up "Wired connection 1"
+
+# For Wi-Fi (replace with your SSID):
+sudo nmcli con mod "YOUR_SSID" \
+  ipv4.method manual \
+  ipv4.addresses 192.168.1.42/24 \
+  ipv4.gateway 192.168.1.1 \
+  ipv4.dns "8.8.8.8 1.1.1.1"
+sudo nmcli con up "YOUR_SSID"
+```
+
+Verify the new IP is active:
+
+```bash
+hostname -I
+# Should show your chosen static IP
+```
+
+### 3.3 — Install Java 17
 
 ```bash
 sudo apt install -y openjdk-17-jre-headless
 ```
 
-Verify the installation:
+Verify:
 
 ```bash
 java -version
-# Expected: openjdk version "17.x.x" ...
+# Expected: openjdk version "17.x.x" 2023-xx-xx
 ```
 
 ---
 
-## Part 2: Service User and Directories
+## Part 4: Bot Service User and Directories
 
-Create a dedicated system user and directory structure so the bot runs in isolation with proper permissions.
+Create a dedicated system user so the bot process runs with minimal privileges.
 
-### 2.1 — Create a System User
+### 4.1 — Create the Service User
 
 ```bash
-sudo useradd --system --shell /usr/sbin/nologin --home-dir /opt/scorebot scorebot
+sudo useradd --system --shell /usr/sbin/nologin scorebot
 ```
 
-### 2.2 — Create the Deploy Directory
+This creates a user named `scorebot` with no login shell — it can run processes but no one can log into the Pi as this user.
+
+### 4.2 — Create the Directory Structure
 
 ```bash
 sudo mkdir -p /opt/scorebot/data
-sudo chown -R scorebot:scorebot /opt/scorebot
-sudo chmod 750 /opt/scorebot
+sudo chown YOUR_USERNAME:scorebot /opt/scorebot
+sudo chmod 775 /opt/scorebot
+sudo chown scorebot:scorebot /opt/scorebot/data
+sudo chmod 750 /opt/scorebot/data
 ```
 
-The directory layout will be:
+Replace `YOUR_USERNAME` with your Pi username (e.g. `wando`).
+
+The directory layout:
 
 ```
 /opt/scorebot/
-├── nyt-scorebot-app-1.0-SNAPSHOT.jar   ← deployed by GitHub Actions
+├── nyt-scorebot-app-1.0-SNAPSHOT.jar   ← written by GitHub Actions (SCP as YOUR_USERNAME)
 └── data/
-    └── scorebot.mv.db                  ← H2 database (created on first run)
+    └── scorebot.mv.db                  ← written by the service (as scorebot user)
 ```
 
-### 2.3 — Allow the Deploy User to SSH
+**Why this ownership split:**
+- `YOUR_USERNAME` owns `/opt/scorebot/` — so GitHub Actions can SCP the JAR there
+- `scorebot` owns `data/` — so the service process can write the H2 database
+- Group `scorebot` on `/opt/scorebot/` — so the service can read the JAR
 
-The `scorebot` system user has no login shell, so GitHub Actions needs a **separate SSH user** to connect. You can either:
+### 4.3 — Grant the Deploy User sudo Access for the Service
 
-- **Use the default `pi` user** (simplest), or
-- **Create a dedicated `deploy` user** (more secure)
-
-**Option A — Use the `pi` user (simplest):**
-No extra setup needed. The `pi` user will SCP files and run `sudo systemctl restart`.
-
-**Option B — Create a dedicated deploy user:**
-
-```bash
-sudo useradd --create-home --shell /bin/bash deploy
-sudo passwd -l deploy    # disable password login — SSH keys only
-```
-
-Grant the deploy user permission to restart the bot service without a password:
+GitHub Actions restarts the bot via `sudo systemctl restart`. Allow your user to do this without a password:
 
 ```bash
 sudo visudo -f /etc/sudoers.d/scorebot-deploy
 ```
 
-Add this line:
+Add this single line (replace `YOUR_USERNAME`):
 
 ```
-deploy ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart nyt-scorebot, /usr/bin/systemctl stop nyt-scorebot, /usr/bin/systemctl start nyt-scorebot, /usr/bin/systemctl status nyt-scorebot
+YOUR_USERNAME ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart nyt-scorebot, /usr/bin/systemctl stop nyt-scorebot, /usr/bin/systemctl start nyt-scorebot
 ```
 
-> **Note:** Throughout this guide, replace `deploy` with `pi` if you chose Option A.
+Save and exit (`Ctrl+X`, `Y`, `Enter` in nano).
 
 ---
 
-## Part 3: Create the systemd Service
+## Part 5: Create the systemd Service
 
-### 3.1 — Write the Service Unit File
+All commands in this section run **on the Pi** via SSH.
+
+### 5.1 — Write the Service Unit File
 
 ```bash
 sudo nano /etc/systemd/system/nyt-scorebot.service
 ```
 
-Paste the following:
+Paste the following (replace `your-discord-bot-token-here`):
 
 ```ini
 [Unit]
@@ -179,7 +313,6 @@ RestartSec=10
 StartLimitIntervalSec=60
 StartLimitBurst=3
 
-# Environment — set your Discord bot token here
 Environment=DISCORD_TOKEN=your-discord-bot-token-here
 
 # Security hardening
@@ -193,162 +326,86 @@ PrivateTmp=true
 WantedBy=multi-user.target
 ```
 
-> **Important:** Replace `your-discord-bot-token-here` with your actual Discord bot token.
+Save and exit (`Ctrl+X`, `Y`, `Enter`).
 
-### 3.2 — Memory Settings
+### 5.2 — Memory Settings
 
-The `-Xms128m -Xmx256m` flags keep the JVM memory footprint small for a Raspberry Pi. Adjust if needed:
+The `-Xms128m -Xmx256m` flags keep the JVM footprint small. Adjust based on your Pi's RAM:
 
-| Pi Model | RAM | Recommended `-Xmx` |
-|---|---|---|
-| Pi 4 (2 GB) | 2 GB | 256m |
-| Pi 4 (4 GB) | 4 GB | 512m |
-| Pi 4/5 (8 GB) | 8 GB | 512m |
+| Pi 4 RAM | Recommended `-Xmx` |
+|---|---|
+| 2 GB | `256m` |
+| 4 GB | `512m` |
+| 8 GB | `512m` |
 
-### 3.3 — Enable and Start the Service
+### 5.3 — Enable the Service
 
 ```bash
 sudo systemctl daemon-reload
 sudo systemctl enable nyt-scorebot
 ```
 
-Don't start it yet — there's no JAR to run. It will start after the first deployment.
-
-To manually test once you've placed a JAR:
-
-```bash
-sudo systemctl start nyt-scorebot
-sudo systemctl status nyt-scorebot
-# Check logs:
-sudo journalctl -u nyt-scorebot -f
-```
+Don't start it yet — there's no JAR to run until after the first deployment.
 
 ---
 
-## Part 4: SSH Key Setup for GitHub Actions
+## Part 6: Network Access (GitHub Actions → Pi)
 
-GitHub Actions needs SSH access to your Pi to copy the JAR and restart the service.
+GitHub Actions runners are in the cloud — they need to reach your Pi over SSH. Since your Pi is on a home network, you'll need to expose it externally.
 
-### 4.1 — Generate an SSH Key Pair
+### 6.1 — Port Forwarding
 
-On your **local machine** (not the Pi):
-
-```bash
-ssh-keygen -t ed25519 -C "github-actions-deploy" -f ~/.ssh/scorebot_deploy
-# When prompted for a passphrase, press Enter (no passphrase)
-```
-
-This creates two files:
-
-| File | Purpose | Goes Where |
-|---|---|---|
-| `~/.ssh/scorebot_deploy` | **Private key** | GitHub repository secret (`PI_SSH_KEY`) |
-| `~/.ssh/scorebot_deploy.pub` | **Public key** | Pi's `~/.ssh/authorized_keys` |
-
-### 4.2 — Install the Public Key on the Pi
-
-Copy the public key to the Pi's deploy user:
-
-```bash
-# If using the 'pi' user:
-ssh-copy-id -i ~/.ssh/scorebot_deploy.pub pi@192.168.1.42
-
-# If using the 'deploy' user:
-ssh-copy-id -i ~/.ssh/scorebot_deploy.pub deploy@192.168.1.42
-```
-
-Or manually:
-
-```bash
-# SSH into the Pi
-ssh pi@192.168.1.42
-
-# Append the public key
-mkdir -p ~/.ssh && chmod 700 ~/.ssh
-echo "paste-your-public-key-here" >> ~/.ssh/authorized_keys
-chmod 600 ~/.ssh/authorized_keys
-```
-
-### 4.3 — Test Key-Based SSH
-
-```bash
-ssh -i ~/.ssh/scorebot_deploy pi@192.168.1.42 "echo 'SSH works!'"
-```
-
-### 4.4 — Copy the Private Key for GitHub
-
-You'll need the private key content in the next section:
-
-```bash
-cat ~/.ssh/scorebot_deploy
-```
-
-Copy the **entire output** including the `-----BEGIN` and `-----END` lines.
-
----
-
-## Part 5: Network Access
-
-GitHub Actions runners are in the cloud — they need a path through your home router to reach the Pi.
-
-### 5.1 — Port Forwarding (Recommended for Simplicity)
-
-1. Log into your router's admin page (usually `192.168.1.1`)
+1. Log into your router's admin page (usually `http://192.168.1.1`)
 2. Find the **Port Forwarding** section (sometimes under NAT, Firewall, or Advanced)
-3. Create a rule:
+3. Create a new rule:
 
 | Setting | Value |
 |---|---|
-| External Port | A non-standard port, e.g. `2222` (avoids bots scanning port 22) |
-| Internal IP | Your Pi's static IP, e.g. `192.168.1.42` |
-| Internal Port | `22` |
-| Protocol | TCP |
+| **External Port** | `2222` (non-standard port reduces automated scanning) |
+| **Internal IP** | Your Pi's static IP, e.g. `192.168.1.42` |
+| **Internal Port** | `22` |
+| **Protocol** | TCP |
 
-4. Find your public IP:
+4. Find your home's public IP:
 
 ```bash
 curl -s https://ifconfig.me
 ```
 
-5. Test from an external network (e.g., phone hotspot):
+5. Test connectivity from outside your home network (e.g., disconnect from Wi-Fi and use your phone's hotspot):
 
 ```bash
-ssh -i ~/.ssh/scorebot_deploy -p 2222 pi@YOUR_PUBLIC_IP "echo 'External SSH works!'"
+ssh -i ~/.ssh/scorebot_deploy -p 2222 YOUR_USERNAME@YOUR_PUBLIC_IP "echo 'External SSH works!'"
 ```
 
-> **Dynamic DNS:** If your ISP assigns a dynamic IP, set up a free DDNS service (e.g., DuckDNS, No-IP) so you have a stable hostname instead of a changing IP address.
+> **Dynamic IP?** If your ISP changes your IP regularly, set up a free Dynamic DNS service like [DuckDNS](https://www.duckdns.org/) or [No-IP](https://www.noip.com/). You'll get a stable hostname (e.g. `mypi.duckdns.org`) to use instead of a raw IP.
 
-### 5.2 — Alternatives to Port Forwarding
+### 6.2 — Alternatives to Port Forwarding
 
-If port forwarding isn't an option (CGNAT, restricted router):
+If port forwarding isn't available (CGNAT, restricted router, ISP block):
 
-- **[Tailscale](https://tailscale.com/)** — Install on both the Pi and a GitHub Actions self-hosted runner. Provides a private mesh VPN.
-- **[Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)** — Exposes the Pi's SSH without opening router ports.
+- **[Tailscale](https://tailscale.com/)** — mesh VPN; install on the Pi and use a self-hosted GitHub Actions runner on the same Tailscale network
+- **[Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)** — expose SSH without opening router ports
 
-These are more complex to set up but avoid exposing SSH to the public internet.
+### 6.3 — Security Hardening
 
-### 5.3 — Security Hardening
-
-Since you're exposing SSH to the internet, take these precautions:
+Since you're exposing SSH to the internet, lock it down. **On the Pi:**
 
 ```bash
 sudo nano /etc/ssh/sshd_config
 ```
 
-Make these changes:
+Verify or set these values (password auth was disabled at imaging time, but confirm):
 
 ```
-# Disable password authentication (key-only)
 PasswordAuthentication no
+PubkeyAuthentication yes
 
-# Optionally change the SSH port (must match router forwarding)
-# Port 2222
-
-# Restrict to your deploy user
-AllowUsers pi deploy
+# Restrict access to your user only (replace YOUR_USERNAME)
+AllowUsers YOUR_USERNAME
 ```
 
-Apply:
+Apply the changes:
 
 ```bash
 sudo systemctl restart sshd
@@ -358,45 +415,58 @@ Install fail2ban to block brute-force attempts:
 
 ```bash
 sudo apt install -y fail2ban
-sudo systemctl enable fail2ban
-sudo systemctl start fail2ban
+sudo systemctl enable --now fail2ban
 ```
 
 ---
 
-## Part 6: GitHub Repository Configuration
+## Part 7: GitHub Repository Configuration
 
-### 6.1 — Create the Production Environment
+### 7.1 — Create the Production Environment
+
+The `deploy.yml` workflow is gated by a GitHub environment named `production`.
 
 1. Go to your repository on GitHub
 2. **Settings → Environments → New environment**
 3. Name it: `production`
-4. (Optional) Enable **Required reviewers** to add a manual approval gate before deploys
+4. (Optional) Enable **Required reviewers** to require manual approval before each deployment
 
-### 6.2 — Add Repository Secrets
+### 7.2 — Add Repository Secrets
 
-Go to **Settings → Secrets and variables → Actions → New repository secret** and add each:
+Go to **Settings → Secrets and variables → Actions → New repository secret** and add each of the following:
 
-| Secret Name | Value | Example |
+| Secret Name | Value | Notes |
 |---|---|---|
-| `PI_SSH_KEY` | Entire private key from step 4.4 (including BEGIN/END lines) | `-----BEGIN OPENSSH PRIVATE KEY-----` ... |
-| `PI_HOST` | Your public IP or DDNS hostname | `203.0.113.42` or `mypi.duckdns.org` |
-| `PI_USER` | The SSH user on the Pi | `pi` or `deploy` |
-| `PI_SSH_PORT` | Your external SSH port (if not 22) | `2222` |
-| `PI_DEPLOY_PATH` | The deployment directory on the Pi | `/opt/scorebot/` |
-| `PI_SERVICE_NAME` | The systemd service name | `nyt-scorebot` |
+| `PI_SSH_KEY` | Contents of `~/.ssh/scorebot_deploy` on your local machine | Include the full `-----BEGIN` and `-----END` lines |
+| `PI_HOST` | Your public IP or DDNS hostname | e.g. `203.0.113.42` or `mypi.duckdns.org` |
+| `PI_USER` | The username you set during imaging | e.g. `wando` |
+| `PI_SSH_PORT` | The external port you forwarded | e.g. `2222` |
+| `PI_DEPLOY_PATH` | Remote deployment directory | `/opt/scorebot/` |
+| `PI_SERVICE_NAME` | systemd service name | `nyt-scorebot` |
+| `DISCORD_TOKEN` | Your Discord bot token | From the Discord Developer Portal |
 
-> **Note:** If `DISCORD_TOKEN` isn't already set as a repository secret, add it too — it's needed by the E2E test workflow.
+To get the private key content for `PI_SSH_KEY`:
 
-### 6.3 — Verify Secret Names Match the Workflow
+```bash
+# macOS
+cat ~/.ssh/scorebot_deploy | pbcopy
 
-The `deploy.yml` workflow expects exactly these secret names. Double-check by comparing against the workflow file (`.github/workflows/deploy.yml`).
+# Linux
+cat ~/.ssh/scorebot_deploy | xclip -selection clipboard
+
+# Or just print it and copy manually:
+cat ~/.ssh/scorebot_deploy
+```
+
+### 7.3 — Verify Secret Names Match the Workflow
+
+The `deploy.yml` workflow expects exactly these secret names. You can verify by checking `.github/workflows/deploy.yml` in the repository.
 
 ---
 
-## Part 7: Verify End-to-End
+## Part 8: Verify End-to-End
 
-### 7.1 — Trigger the Pipeline
+### 8.1 — Trigger the Pipeline
 
 **Option A — Push to `main`:**
 
@@ -411,99 +481,126 @@ git push origin main
 2. Select the `main` branch
 3. Click **Run workflow**
 
-### 7.2 — Monitor the Workflow
+### 8.2 — Monitor the Workflow
 
 Watch the GitHub Actions run through each stage:
 
 1. ✅ **Build** — compiles, runs unit tests, uploads JAR artifact
 2. ✅ **Test** — runs E2E test against live Discord
 3. ✅ **Deploy** — SCPs JAR to Pi, restarts systemd service
-4. ✅ **Release** — creates a GitHub Release (on `main` branch pushes only)
+4. ✅ **Release** — creates a GitHub Release with the JAR attached (main branch only)
 
-### 7.3 — Verify on the Pi
+If the Deploy stage is waiting, check that you created the `production` environment (step 7.1) — it's required by the workflow.
+
+### 8.3 — Verify on the Pi
+
+SSH in and check everything landed correctly:
 
 ```bash
-# SSH into the Pi
-ssh -i ~/.ssh/scorebot_deploy -p 2222 pi@YOUR_PI_HOST
+ssh -i ~/.ssh/scorebot_deploy -p 2222 YOUR_USERNAME@YOUR_PI_HOST
 
 # Check the JAR was deployed
-ls -la /opt/scorebot/nyt-scorebot-app-1.0-SNAPSHOT.jar
+ls -lh /opt/scorebot/nyt-scorebot-app-1.0-SNAPSHOT.jar
 
 # Check the service is running
 sudo systemctl status nyt-scorebot
 
-# Watch the logs
+# Watch live logs
 sudo journalctl -u nyt-scorebot -f
 ```
 
-### 7.4 — Verify in Discord
+A healthy startup looks like:
 
-Open your Discord server and confirm the bot is online (green status dot). Post a Wordle result in a monitored channel to test full functionality.
+```
+Started NYT Scorebot Discord Bot.
+... Logged in as YourBot#1234
+```
+
+### 8.4 — Verify in Discord
+
+Open your Discord server. The bot should show as online (green status dot). Post a Wordle result in a monitored channel — the bot should respond with an acceptance or rejection message.
 
 ---
 
 ## Troubleshooting
 
-### SSH Connection Failures
+### SSH: `Permission denied (publickey)`
 
-| Symptom | Fix |
+| Cause | Fix |
 |---|---|
-| `Connection timed out` | Check port forwarding rules, Pi firewall (`sudo ufw status`), and that the Pi is running |
-| `Permission denied (publickey)` | Verify the public key is in `~/.ssh/authorized_keys`, file permissions are `600`, and `.ssh` directory is `700` |
-| `Host key verification failed` | The Pi's host key changed (e.g., after reimaging). Remove the old key: `ssh-keygen -R [host]:port` |
+| Wrong key specified | Use `-i ~/.ssh/scorebot_deploy` explicitly |
+| Public key not on the Pi | Check `~/.ssh/authorized_keys` on the Pi contains your key |
+| Permissions wrong on Pi | `chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys` |
+| Wrong username | Must match exactly what you set in Raspberry Pi Imager |
+
+If you imaged the Pi without a valid public key in place, the easiest fix is to re-image (following this guide from Part 0).
+
+### SSH: `Connection timed out` or `Connection refused`
+
+| Cause | Fix |
+|---|---|
+| Port forwarding not set up | Check router rules; ensure external port maps to Pi IP:22 |
+| Pi not running / wrong IP | `ping scorebot.local` from local machine |
+| Wrong port specified | Try with and without `-p 2222` |
+| Firewall blocking | `sudo ufw status` on the Pi — disable if not intentionally configured |
+
+### SSH: `Host key verification failed`
+
+This happens after re-imaging. Remove the stale key on your local machine:
+
+```bash
+ssh-keygen -R [YOUR_PI_HOST]:2222
+```
 
 ### Service Won't Start
 
 ```bash
-# Check the full error
+# See the full error
 sudo journalctl -u nyt-scorebot --no-pager -n 50
-
-# Common issues:
-# "java: not found" → Java isn't installed or not at /usr/bin/java
-which java
-
-# "Permission denied" → ownership issue
-ls -la /opt/scorebot/
-sudo chown -R scorebot:scorebot /opt/scorebot
-
-# "Unable to access jarfile" → JAR wasn't deployed or wrong path
-ls -la /opt/scorebot/nyt-scorebot-app-1.0-SNAPSHOT.jar
 ```
 
-### JAR Copy Fails
+| Error Message | Fix |
+|---|---|
+| `java: not found` or `No such file` | `which java` — if empty, reinstall: `sudo apt install -y openjdk-17-jre-headless` |
+| `Unable to access jarfile` | JAR not deployed yet; check `/opt/scorebot/` for the file |
+| `Permission denied` on data dir | `sudo chown scorebot:scorebot /opt/scorebot/data && sudo chmod 750 /opt/scorebot/data` |
+| Exits immediately | Check `DISCORD_TOKEN` is set correctly in the service file |
+
+### JAR Not Arriving on Pi (Deploy Step Fails)
+
+Check the GitHub Actions deploy job logs for the exact error. Common causes:
 
 ```bash
-# Check disk space on the Pi
+# Check disk space on the Pi (run on the Pi)
 df -h /opt/scorebot
 
-# Check write permissions
+# Check YOUR_USERNAME can write to /opt/scorebot
 ls -la /opt/scorebot/
+# Should show YOUR_USERNAME as owner
 
-# If using 'deploy' user, ensure it can write to /opt/scorebot:
-sudo usermod -aG scorebot deploy
-sudo chmod 770 /opt/scorebot
+# Fix if needed:
+sudo chown YOUR_USERNAME:scorebot /opt/scorebot
+sudo chmod 775 /opt/scorebot
 ```
 
 ### Bot Connects but Doesn't Respond to Messages
 
 1. Verify **Message Content Intent** is enabled: [Discord Developer Portal](https://discord.com/developers/applications) → Your Bot → Bot → Privileged Gateway Intents → **Message Content Intent** ✅
 2. Check that the channel IDs and user IDs in `application.properties` match your Discord server
-3. Check logs for parsing errors: `sudo journalctl -u nyt-scorebot --no-pager | grep -i error`
+3. Check logs: `sudo journalctl -u nyt-scorebot --no-pager | grep -i "error\|warn\|reject"`
 
 ### Database Issues
 
-The H2 database is stored at `/opt/scorebot/data/scorebot.mv.db`. If you need to reset:
+The H2 database persists at `/opt/scorebot/data/scorebot.mv.db`. If you need to reset it:
 
 ```bash
 sudo systemctl stop nyt-scorebot
 sudo rm /opt/scorebot/data/scorebot.mv.db
 sudo systemctl start nyt-scorebot
-# A fresh database will be created automatically (ddl-auto=update)
+# Schema is recreated automatically on startup (ddl-auto=update)
 ```
 
 ### Updating the Bot Token
-
-If you need to change the Discord token:
 
 ```bash
 sudo nano /etc/systemd/system/nyt-scorebot.service
@@ -516,6 +613,8 @@ sudo systemctl restart nyt-scorebot
 
 ## Quick Reference
 
+### Pi Service Commands (run on the Pi via SSH)
+
 | Task | Command |
 |---|---|
 | Start the bot | `sudo systemctl start nyt-scorebot` |
@@ -526,4 +625,15 @@ sudo systemctl restart nyt-scorebot
 | View recent logs | `sudo journalctl -u nyt-scorebot --no-pager -n 100` |
 | Check Java version | `java -version` |
 | Check disk space | `df -h /opt/scorebot` |
+| Check database size | `ls -lh /opt/scorebot/data/` |
+
+### SSH From Local Machine
+
+```bash
+# Standard connection
+ssh -i ~/.ssh/scorebot_deploy -p 2222 YOUR_USERNAME@YOUR_PI_HOST
+
+# Run a single command
+ssh -i ~/.ssh/scorebot_deploy -p 2222 YOUR_USERNAME@YOUR_PI_HOST "sudo systemctl status nyt-scorebot"
+```
 | Check database size | `ls -lh /opt/scorebot/data/` |
