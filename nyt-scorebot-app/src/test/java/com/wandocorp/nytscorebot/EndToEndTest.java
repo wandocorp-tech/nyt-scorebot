@@ -129,12 +129,17 @@ class EndToEndTest {
         // ── Phase 1: William submits 6 games → auto-finishes ────────────────
 
         postTo(WILLIAM_CHANNEL, williamWordle);
+        sleep(1);
         postTo(WILLIAM_CHANNEL, williamConnections);
+        sleep(1);
         postTo(WILLIAM_CHANNEL, williamStrands);
+        sleep(1);
         postTo(WILLIAM_CHANNEL, williamMini);
+        sleep(1);
         postTo(WILLIAM_CHANNEL, williamMidi);
+        sleep(1);
         postTo(WILLIAM_CHANNEL, williamMain);
-        sleep(15);
+        sleep(5);
 
         User william = userRepository.findByChannelId(WILLIAM_CHANNEL.asString()).orElseThrow();
         Scoreboard williamBoard = scoreboardRepository.findByUserAndDate(william, today).orElseThrow();
@@ -165,11 +170,15 @@ class EndToEndTest {
         // ── Phase 3: Conor submits 5 games (no Midi) ────────────────────────
 
         postTo(CONOR_CHANNEL, conorWordle);
+        sleep(1);
         postTo(CONOR_CHANNEL, conorConnections);
+        sleep(1);
         postTo(CONOR_CHANNEL, conorStrands);
+        sleep(1);
         postTo(CONOR_CHANNEL, conorMini);
+        sleep(1);
         postTo(CONOR_CHANNEL, conorMain);
-        sleep(15);
+        sleep(5);
 
         User conor = userRepository.findByChannelId(CONOR_CHANNEL.asString()).orElseThrow();
         Scoreboard conorBoard = scoreboardRepository.findByUserAndDate(conor, today).orElseThrow();
@@ -188,7 +197,7 @@ class EndToEndTest {
         scoreboardRepository.save(conorBoard);
         statusChannelService.refresh("Conor marked finished");
         resultsChannelService.refresh();
-        sleep(10);
+        sleep(5);
 
         williamBoard = scoreboardRepository.findByUserAndDate(william, today).orElseThrow();
         conorBoard = scoreboardRepository.findByUserAndDate(conor, today).orElseThrow();
@@ -198,7 +207,7 @@ class EndToEndTest {
         // ── Phase 5: Conor submits Midi late → boards refresh ───────────────
 
         postTo(CONOR_CHANNEL, conorMidi);
-        sleep(10);
+        sleep(5);
 
         conorBoard = scoreboardRepository.findByUserAndDate(conor, today).orElseThrow();
         assertThat(conorBoard.getMidiCrosswordResult()).as("Conor now has Midi result").isNotNull();

@@ -91,6 +91,14 @@ public class ScoreboardRenderer {
         for (String row : game.emojiGridRows(presentSb)) {
             sb.append(leading).append(row).append("\n");
         }
+        if (game.usesScoreLabelRow()) {
+            sb.append(String.format("%" + PLAYER_COL_WIDTH + "s", game.scoreLabel(presentSb))).append("\n");
+            String flags = game.flagsRow(presentSb);
+            if (!flags.isEmpty()) {
+                sb.append(SEP).append("\n");
+                sb.append(String.format("%" + PLAYER_COL_WIDTH + "s", flags)).append("\n");
+            }
+        }
         sb.append(SEP).append("\n");
 
         if (game.usesStreakDisplay()) {
@@ -136,6 +144,19 @@ public class ScoreboardRenderer {
                 } else {
                     sb.append(leading).append(leftRow).append("\n");
                 }
+            }
+        }
+
+        if (game.usesScoreLabelRow()) {
+            String scoreRow = String.format("%" + PLAYER_COL_WIDTH + "s     %s",
+                    game.scoreLabel(leftSb), game.scoreLabel(rightSb));
+            sb.append(scoreRow).append("\n");
+            String leftFlags = game.flagsRow(leftSb);
+            String rightFlags = game.flagsRow(rightSb);
+            if (!leftFlags.isEmpty() || !rightFlags.isEmpty()) {
+                sb.append(SEP).append("\n");
+                String flagsRow = String.format("%" + PLAYER_COL_WIDTH + "s     %s", leftFlags, rightFlags);
+                sb.append(flagsRow).append("\n");
             }
         }
 

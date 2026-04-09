@@ -181,7 +181,63 @@ class ScoreboardRendererTest {
         assertThat(rendered).isPresent();
         String output = rendered.get();
         assertThat(output).contains("🏆 William wins!");
+        assertThat(output).contains("0:30");
+        assertThat(output).contains("1:00");
         assertThat(output).doesNotContain("🔥");
+        // Time row uses spaces, not pipe divider
+        assertThat(output).contains("0:30     1:00");
+    }
+
+    @Test
+    void mainCrosswordRendersFlagsRowBelowTimeRow() {
+        MainCrosswordScoreboard mainGame = new MainCrosswordScoreboard();
+        ScoreboardRenderer crosswordRenderer = new ScoreboardRenderer(List.of(mainGame));
+
+        CrosswordResult r1 = new CrosswordResult("raw", "a", null, CrosswordType.MAIN, "5:00", 300, LocalDate.now());
+        r1.setDuo(true);
+        r1.setLookups(2);
+        Scoreboard sb1 = new Scoreboard(new User("c1", "test", "u1"), LocalDate.now());
+        sb1.setMainCrosswordResult(r1);
+
+        CrosswordResult r2 = new CrosswordResult("raw", "a", null, CrosswordType.MAIN, "7:30", 450, LocalDate.now());
+        r2.setCheckUsed(true);
+        Scoreboard sb2 = new Scoreboard(new User("c2", "test", "u2"), LocalDate.now());
+        sb2.setMainCrosswordResult(r2);
+
+        Optional<String> rendered = crosswordRenderer.render(mainGame, sb1, "William", sb2, "Conor",
+                Map.of());
+
+        assertThat(rendered).isPresent();
+        String output = rendered.get();
+        assertThat(output).contains("5:00");
+        assertThat(output).contains("7:30");
+        assertThat(output).contains("👫 🔍×2");
+        assertThat(output).contains("✓");
+        // Time row uses spaces, not pipe divider
+        assertThat(output).contains("5:00     7:30");
+
+        // Flags row appears after time row
+        int timeRowIdx = output.indexOf("5:00");
+        int flagsRowIdx = output.indexOf("👫 🔍×2");
+        assertThat(flagsRowIdx).isGreaterThan(timeRowIdx);
+    }
+
+    @Test
+    void crosswordScoreboardSinglePlayerRendersTime() {
+        MiniCrosswordScoreboard miniGame = new MiniCrosswordScoreboard();
+        ScoreboardRenderer crosswordRenderer = new ScoreboardRenderer(List.of(miniGame));
+
+        Scoreboard sb1 = new Scoreboard(new User("c1", "test", "u1"), LocalDate.now());
+        sb1.setMiniCrosswordResult(new CrosswordResult("raw", "a", null, CrosswordType.MINI, "0:45", 45, LocalDate.now()));
+
+        Optional<String> rendered = crosswordRenderer.render(miniGame, sb1, "William", null, "Conor",
+                Map.of());
+
+        assertThat(rendered).isPresent();
+        String output = rendered.get();
+        assertThat(output).contains("William");
+        assertThat(output).contains("0:45");
+        assertThat(output).contains("Conor hasn't submitted");
     }
 
     @Test
