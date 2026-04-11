@@ -87,7 +87,11 @@ public class MessageListener {
                     if (outcome == SaveOutcome.SAVED) {
                         String contextMessage = String.format(BotText.STATUS_CONTEXT_GAME_SUBMITTED, personName, gameLabel(result));
                         statusChannelService.refresh(contextMessage);
-                        resultsChannelService.refreshGame(gameLabel(result));
+                        if (resultsChannelService.hasPostedResults()) {
+                            resultsChannelService.refreshGame(gameLabel(result));
+                        } else {
+                            resultsChannelService.refresh();
+                        }
                     }
                     return replyForOutcome(channelMono, outcome);
                 })

@@ -144,15 +144,29 @@ class MessageListenerTest {
     }
 
     @Test
-    void savedOutcomeCallsRefreshGameWithCorrectType() {
+    void savedOutcomeCallsRefreshGameWhenResultsAlreadyPosted() {
         WordleResult result = new WordleResult("raw", NAME, null, 100, 3, true, false);
         when(parser.parse(anyString(), eq(NAME))).thenReturn(Optional.of(result));
         when(scoreboardService.saveResult(any(), any(), any(), any())).thenReturn(SaveOutcome.SAVED);
+        when(resultsChannelService.hasPostedResults()).thenReturn(true);
 
         listener.processMessage(CHANNEL_SNOWFLAKE, "Wordle 100 3/6", Mono.empty()).block();
 
         verify(resultsChannelService).refreshGame("Wordle");
         verify(resultsChannelService, never()).refresh();
+    }
+
+    @Test
+    void savedOutcomeCallsRefreshAllWhenResultsNotYetPosted() {
+        WordleResult result = new WordleResult("raw", NAME, null, 100, 3, true, false);
+        when(parser.parse(anyString(), eq(NAME))).thenReturn(Optional.of(result));
+        when(scoreboardService.saveResult(any(), any(), any(), any())).thenReturn(SaveOutcome.SAVED);
+        when(resultsChannelService.hasPostedResults()).thenReturn(false);
+
+        listener.processMessage(CHANNEL_SNOWFLAKE, "Wordle 100 3/6", Mono.empty()).block();
+
+        verify(resultsChannelService).refresh();
+        verify(resultsChannelService, never()).refreshGame(any());
     }
 
     @Test
