@@ -85,4 +85,7 @@ public class WordleScoreboard implements GameComparisonScoreboard {
 
     @Override
     public int maxEmojisPerRow() { return 5; }
+
+    @Override
+    public boolean usesStreakDisplay() { return true; }
 }

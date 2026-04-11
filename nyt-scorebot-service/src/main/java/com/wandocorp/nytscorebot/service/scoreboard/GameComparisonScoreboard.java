@@ -13,4 +13,7 @@ public interface GameComparisonScoreboard {
     int leadingSpaces();
     int baseGap();
     int maxEmojisPerRow();
+    default boolean usesStreakDisplay() { return false; }
+    default boolean usesScoreLabelRow() { return false; }
+    default String flagsRow(Scoreboard scoreboard) { return ""; }
 }
