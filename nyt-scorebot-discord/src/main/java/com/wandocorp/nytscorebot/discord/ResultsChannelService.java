@@ -2,6 +2,7 @@ package com.wandocorp.nytscorebot.discord;
 
 import com.wandocorp.nytscorebot.config.DiscordChannelProperties;
 import com.wandocorp.nytscorebot.entity.Scoreboard;
+import com.wandocorp.nytscorebot.service.PuzzleCalendar;
 import com.wandocorp.nytscorebot.service.ScoreboardService;
 import com.wandocorp.nytscorebot.service.StreakService;
 import com.wandocorp.nytscorebot.service.scoreboard.ScoreboardRenderer;
@@ -13,10 +14,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
@@ -28,17 +29,19 @@ public class ResultsChannelService {
     private final ScoreboardService scoreboardService;
     private final ScoreboardRenderer scoreboardRenderer;
     private final StreakService streakService;
+    private final PuzzleCalendar puzzleCalendar;
     private final Map<String, Snowflake> postedMessageIds = new ConcurrentHashMap<>();
-    private final AtomicBoolean refreshInitiated = new AtomicBoolean(false);
+    private volatile LocalDate lastRefreshDate = null;
 
     /** Visible for testing only — pre-populate a posted message ID. */
     void setPostedMessageId(String gameType, Snowflake messageId) {
         postedMessageIds.put(gameType, messageId);
     }
 
-    /** Returns true if a full refresh has been initiated today (even if async posts are still in flight). */
+    /** Returns true if a full refresh has been initiated for today (even if async posts are still in flight). */
     public boolean hasPostedResults() {
-        return refreshInitiated.get();
+        LocalDate today = puzzleCalendar.today();
+        return lastRefreshDate != null && lastRefreshDate.equals(today);
     }
 
     public void refresh() {
@@ -46,7 +49,7 @@ public class ResultsChannelService {
         if (resultsChannelId == null || resultsChannelId.isBlank()) return;
         if (!scoreboardService.areBothPlayersFinishedToday()) return;
 
-        refreshInitiated.set(true);
+        lastRefreshDate = puzzleCalendar.today();
 
         List<Scoreboard> scoreboards = scoreboardService.getTodayScoreboards();
         List<DiscordChannelProperties.ChannelConfig> channels = channelProperties.getChannels();

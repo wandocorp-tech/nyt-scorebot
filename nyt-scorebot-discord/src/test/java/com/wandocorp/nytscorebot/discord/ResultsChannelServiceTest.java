@@ -3,6 +3,7 @@ package com.wandocorp.nytscorebot.discord;
 import com.wandocorp.nytscorebot.config.DiscordChannelProperties;
 import com.wandocorp.nytscorebot.config.DiscordChannelProperties.ChannelConfig;
 import com.wandocorp.nytscorebot.entity.Scoreboard;
+import com.wandocorp.nytscorebot.service.PuzzleCalendar;
 import com.wandocorp.nytscorebot.service.ScoreboardService;
 import com.wandocorp.nytscorebot.service.StreakService;
 import com.wandocorp.nytscorebot.entity.User;
@@ -38,6 +39,7 @@ class ResultsChannelServiceTest {
     private ScoreboardService scoreboardService;
     private ScoreboardRenderer scoreboardRenderer;
     private StreakService streakService;
+    private PuzzleCalendar puzzleCalendar;
     private DiscordChannelProperties channelProperties;
     private ResultsChannelService service;
 
@@ -47,6 +49,8 @@ class ResultsChannelServiceTest {
         scoreboardService = mock(ScoreboardService.class);
         scoreboardRenderer = mock(ScoreboardRenderer.class);
         streakService = mock(StreakService.class);
+        puzzleCalendar = mock(PuzzleCalendar.class);
+        when(puzzleCalendar.today()).thenReturn(LocalDate.now());
 
         channelProperties = new DiscordChannelProperties();
 
@@ -63,7 +67,7 @@ class ResultsChannelServiceTest {
         channelProperties.setChannels(List.of(c1, c2));
         channelProperties.setResultsChannelId(RESULTS_CHANNEL_ID);
 
-        service = new ResultsChannelService(client, channelProperties, scoreboardService, scoreboardRenderer, streakService);
+        service = new ResultsChannelService(client, channelProperties, scoreboardService, scoreboardRenderer, streakService, puzzleCalendar);
     }
 
     @Test
