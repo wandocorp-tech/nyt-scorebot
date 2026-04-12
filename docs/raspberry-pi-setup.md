@@ -286,10 +286,12 @@ sudo visudo -f /etc/sudoers.d/scorebot-deploy
 Add this single line (replace `YOUR_USERNAME`):
 
 ```
-YOUR_USERNAME ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart nyt-scorebot, /usr/bin/systemctl stop nyt-scorebot, /usr/bin/systemctl start nyt-scorebot
+YOUR_USERNAME ALL=(root) NOPASSWD: /usr/bin/systemctl restart nyt-scorebot, /usr/bin/systemctl stop nyt-scorebot, /usr/bin/systemctl start nyt-scorebot
 ```
 
 Save and exit (`Ctrl+X`, `Y`, `Enter` in nano).
+
+> **Security note:** `(root)` restricts the commands to run only as the `root` user. This prevents privilege escalation if the deploy key is compromised — an attacker cannot use `sudo -u <other-user>` to run these commands as arbitrary users.
 
 ---
 
