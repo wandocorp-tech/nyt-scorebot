@@ -96,7 +96,6 @@ public class StreakService {
     static boolean isSuccess(GameResult result) {
         if (result instanceof WordleResult r) return Boolean.TRUE.equals(r.getCompleted());
         if (result instanceof ConnectionsResult r) return Boolean.TRUE.equals(r.getCompleted());
-        if (result instanceof StrandsResult) return true; // Strands always succeeds
-        return false;
+        return result instanceof StrandsResult; // Strands always succeeds
     }
 }
