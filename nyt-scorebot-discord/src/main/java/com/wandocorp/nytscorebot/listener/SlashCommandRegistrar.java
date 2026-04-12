@@ -2,6 +2,7 @@ package com.wandocorp.nytscorebot.listener;
 
 import com.wandocorp.nytscorebot.BotText;
 import discord4j.core.GatewayDiscordClient;
+import java.util.Objects;
 import discord4j.discordjson.json.ApplicationCommandOptionChoiceData;
 import discord4j.discordjson.json.ApplicationCommandOptionData;
 import discord4j.discordjson.json.ApplicationCommandRequest;
@@ -19,7 +20,8 @@ public class SlashCommandRegistrar {
 
     @PostConstruct
     public void registerCommands() {
-        long applicationId = client.getRestClient().getApplicationId().block();
+        long applicationId = Objects.requireNonNull(client.getRestClient().getApplicationId().block(),
+                "Failed to retrieve application ID from Discord");
 
         ApplicationCommandRequest finishedCommand = ApplicationCommandRequest.builder()
                 .name(BotText.CMD_FINISHED)
