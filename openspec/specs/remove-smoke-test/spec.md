@@ -1,5 +1,8 @@
-## ADDED Requirements
+# remove-smoke-test Specification
 
+## Purpose
+TBD - created by archiving change add-cicd-pipeline. Update Purpose after archive.
+## Requirements
 ### Requirement: SmokeTest is deleted
 The `SmokeTest.java` file SHALL be deleted from the project. It has been superseded by `EndToEndTest` and is no longer needed.
 
@@ -13,3 +16,4 @@ Any references to excluding `SmokeTest` in documentation or build commands SHALL
 #### Scenario: Documentation updated
 - **WHEN** `README.md` or `copilot-instructions.md` reference `SmokeTest` exclusion flags
 - **THEN** those references SHALL be updated to reflect the new test structure (unit tests exclude `EndToEndTest` instead)
+

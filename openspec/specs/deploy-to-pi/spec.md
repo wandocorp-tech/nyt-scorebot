@@ -1,5 +1,8 @@
-## ADDED Requirements
+# deploy-to-pi Specification
 
+## Purpose
+TBD - created by archiving change add-cicd-pipeline. Update Purpose after archive.
+## Requirements
 ### Requirement: Deploy JAR to Raspberry Pi via SCP
 The deploy workflow SHALL copy the built JAR file to the Raspberry Pi at the path specified by the `PI_DEPLOY_PATH` secret using SCP over SSH.
 
@@ -42,3 +45,4 @@ When called from the pipeline workflow, the deploy job SHALL use the JAR artifac
 #### Scenario: Deploy in pipeline context
 - **WHEN** the deploy workflow is called from the pipeline with a build artifact available
 - **THEN** the deploy job SHALL download and deploy that artifact without rebuilding
+

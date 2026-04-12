@@ -1,5 +1,8 @@
-## ADDED Requirements
+# pipeline-orchestration Specification
 
+## Purpose
+TBD - created by archiving change add-cicd-pipeline. Update Purpose after archive.
+## Requirements
 ### Requirement: Pipeline orchestrates build, test, and deploy in sequence
 The pipeline workflow SHALL call the build, test, and deploy workflows in sequence: build → test → deploy. Each subsequent job SHALL only run if the previous job succeeded.
 
@@ -39,3 +42,4 @@ The pipeline workflow SHALL ensure the JAR artifact built in the build job is av
 #### Scenario: Artifact reuse across pipeline jobs
 - **WHEN** the build job completes successfully in the pipeline
 - **THEN** the test and deploy jobs SHALL use the same JAR artifact produced by the build job
+
