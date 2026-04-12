@@ -106,8 +106,9 @@ class StreakServiceTest {
         WordleResult result = new WordleResult("raw", "author", null, 100, 3, true, false);
         service.updateStreak(user, result);
 
-        // save called twice: once for initial creation, once for update
-        verify(streakRepo, times(2)).save(any(Streak.class));
+        // save called once with streak=1 and lastUpdatedDate=today
+        verify(streakRepo, times(1)).save(argThat(s ->
+                s.getCurrentStreak() == 1 && s.getLastUpdatedDate().equals(TODAY)));
     }
 
     @Test
@@ -119,7 +120,9 @@ class StreakServiceTest {
         WordleResult result = new WordleResult("raw", "author", null, 100, 6, false, false);
         service.updateStreak(user, result);
 
-        verify(streakRepo, times(2)).save(any(Streak.class));
+        // save called once with streak=0 and lastUpdatedDate=today
+        verify(streakRepo, times(1)).save(argThat(s ->
+                s.getCurrentStreak() == 0 && s.getLastUpdatedDate().equals(TODAY)));
     }
 
     // ── Strands always succeeds ──────────────────────────────────────────────

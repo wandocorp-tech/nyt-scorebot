@@ -29,9 +29,15 @@ public class StreakService {
         boolean success = isSuccess(result);
         LocalDate today = puzzleCalendar.today();
 
-        Streak streak = streakRepository.findByUserAndGameType(user, gameType)
-                .orElseGet(() -> streakRepository.save(new Streak(user, gameType, 0, today.minusDays(2))));
+        var existingStreak = streakRepository.findByUserAndGameType(user, gameType);
+        if (existingStreak.isEmpty()) {
+            int initialValue = success ? 1 : 0;
+            Streak streak = new Streak(user, gameType, initialValue, today);
+            streakRepository.save(streak);
+            return;
+        }
 
+        Streak streak = existingStreak.get();
         long daysSinceLastUpdate = ChronoUnit.DAYS.between(streak.getLastUpdatedDate(), today);
 
         if (daysSinceLastUpdate <= 0) {
