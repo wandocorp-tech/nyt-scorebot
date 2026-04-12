@@ -15,6 +15,10 @@ on:
         required: true
       PI_SERVICE_NAME:
         required: true
+      TAILSCALE_OAUTH_CLIENT_ID:
+        required: true
+      TAILSCALE_OAUTH_CLIENT_SECRET:
+        required: true
   workflow_dispatch:
 
 jobs:
