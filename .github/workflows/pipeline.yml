@@ -2,8 +2,6 @@ name: Pipeline
 
 on:
   push:
-    branches:
-      - main
   workflow_dispatch:
 
 jobs:
@@ -23,6 +21,7 @@ jobs:
   deploy:
     name: Deploy
     needs: test
+    if: github.ref == 'refs/heads/main'
     uses: ./.github/workflows/deploy.yml
     secrets:
       PI_SSH_KEY: ${{ secrets.PI_SSH_KEY }}

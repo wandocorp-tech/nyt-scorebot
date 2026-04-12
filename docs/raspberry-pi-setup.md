@@ -557,7 +557,7 @@ git push origin main
 
 ### 8.2 — Monitor the Workflow
 
-**Note:** The entire pipeline (including deployment) only runs on pushes to the `main` branch. Other branches build and test, but skip deploy and release.
+**Note:** Build and test run on every branch push. Deploy and release only run on pushes to `main`.
 
 Watch the GitHub Actions run through each stage:
 
