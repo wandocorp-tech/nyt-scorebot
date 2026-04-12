@@ -13,6 +13,8 @@ import com.wandocorp.nytscorebot.service.ScoreboardService;
 import com.wandocorp.nytscorebot.discord.StatusChannelService;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.domain.interaction.ChatInputInteractionEvent;
+import discord4j.core.object.command.ApplicationCommandInteractionOption;
+import discord4j.core.object.command.ApplicationCommandInteractionOptionValue;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -102,16 +104,23 @@ public class SlashCommandListener {
         log.info("Received /lookups from Discord user {}", discordUserId);
 
         long count = event.getOption(BotText.CMD_LOOKUPS_OPTION)
-                .flatMap(opt -> opt.getValue())
-                .map(val -> val.asLong())
+                .flatMap(ApplicationCommandInteractionOption::getValue)
+                .map(ApplicationCommandInteractionOptionValue::asLong)
                 .orElse(0L);
 
-        SetFlagOutcome outcome = scoreboardService.setLookups(discordUserId, puzzleCalendar.today(), (int) count);
+        int countInt;
+        try {
+            countInt = Math.toIntExact(count);
+        } catch (ArithmeticException e) {
+            return event.reply().withEphemeral(true).withContent(BotText.MSG_INVALID_VALUE);
+        }
+
+        SetFlagOutcome outcome = scoreboardService.setLookups(discordUserId, puzzleCalendar.today(), countInt);
         if (outcome == SetFlagOutcome.FLAG_SET || outcome == SetFlagOutcome.FLAG_CLEARED) {
             refreshMainCrossword(discordUserId);
         }
         String reply = switch (outcome) {
-            case FLAG_SET              -> String.format(BotText.MSG_LOOKUPS_SET, (int) count);
+            case FLAG_SET              -> String.format(BotText.MSG_LOOKUPS_SET, countInt);
             case FLAG_CLEARED          -> BotText.MSG_LOOKUPS_CLEARED;
             case NO_MAIN_CROSSWORD     -> BotText.MSG_NO_MAIN_CROSSWORD;
             case NO_SCOREBOARD_FOR_DATE -> BotText.MSG_NO_SCOREBOARD_TODAY;
@@ -149,16 +158,23 @@ public class SlashCommandListener {
         log.info("Received /streak from Discord user {}", discordUserId);
 
         String game = event.getOption(BotText.CMD_STREAK_GAME_OPTION)
-                .flatMap(opt -> opt.getValue())
-                .map(val -> val.asString())
+                .flatMap(ApplicationCommandInteractionOption::getValue)
+                .map(ApplicationCommandInteractionOptionValue::asString)
                 .orElse("");
 
         long streakValue = event.getOption(BotText.CMD_STREAK_VALUE_OPTION)
-                .flatMap(opt -> opt.getValue())
-                .map(val -> val.asLong())
+                .flatMap(ApplicationCommandInteractionOption::getValue)
+                .map(ApplicationCommandInteractionOptionValue::asLong)
                 .orElse(0L);
 
-        if (streakValue < 0) {
+        int streakInt;
+        try {
+            streakInt = Math.toIntExact(streakValue);
+        } catch (ArithmeticException e) {
+            return event.reply().withEphemeral(true)
+                    .withContent(BotText.MSG_INVALID_VALUE);
+        }
+        if (streakInt < 0) {
             return event.reply().withEphemeral(true)
                     .withContent(BotText.MSG_INVALID_VALUE);
         }
@@ -173,7 +189,7 @@ public class SlashCommandListener {
                     .withContent(BotText.MSG_USER_NOT_FOUND);
         }
 
-        streakService.setStreak(userOpt.get(), game, (int) streakValue);
+        streakService.setStreak(userOpt.get(), game, streakInt);
         resultsChannelService.refresh();
 
         String reply = String.format(BotText.MSG_STREAK_SET, game, streakValue);
