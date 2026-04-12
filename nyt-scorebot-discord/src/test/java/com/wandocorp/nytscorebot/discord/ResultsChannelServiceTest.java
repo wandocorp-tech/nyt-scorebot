@@ -3,10 +3,10 @@ package com.wandocorp.nytscorebot.discord;
 import com.wandocorp.nytscorebot.config.DiscordChannelProperties;
 import com.wandocorp.nytscorebot.config.DiscordChannelProperties.ChannelConfig;
 import com.wandocorp.nytscorebot.entity.Scoreboard;
+import com.wandocorp.nytscorebot.entity.User;
 import com.wandocorp.nytscorebot.service.PuzzleCalendar;
 import com.wandocorp.nytscorebot.service.ScoreboardService;
 import com.wandocorp.nytscorebot.service.StreakService;
-import com.wandocorp.nytscorebot.entity.User;
 import com.wandocorp.nytscorebot.service.scoreboard.ScoreboardRenderer;
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
@@ -23,10 +23,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 @MockitoSettings(strictness = Strictness.LENIENT)
 class ResultsChannelServiceTest {
@@ -38,8 +41,6 @@ class ResultsChannelServiceTest {
     private GatewayDiscordClient client;
     private ScoreboardService scoreboardService;
     private ScoreboardRenderer scoreboardRenderer;
-    private StreakService streakService;
-    private PuzzleCalendar puzzleCalendar;
     private DiscordChannelProperties channelProperties;
     private ResultsChannelService service;
 
@@ -48,8 +49,8 @@ class ResultsChannelServiceTest {
         client = mock(GatewayDiscordClient.class);
         scoreboardService = mock(ScoreboardService.class);
         scoreboardRenderer = mock(ScoreboardRenderer.class);
-        streakService = mock(StreakService.class);
-        puzzleCalendar = mock(PuzzleCalendar.class);
+        StreakService streakService = mock(StreakService.class);
+        PuzzleCalendar puzzleCalendar = mock(PuzzleCalendar.class);
         when(puzzleCalendar.today()).thenReturn(LocalDate.now());
 
         channelProperties = new DiscordChannelProperties();
