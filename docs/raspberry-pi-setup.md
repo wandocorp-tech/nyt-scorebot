@@ -253,7 +253,7 @@ This creates a user named `scorebot` with no login shell — it can run processe
 ```bash
 sudo mkdir -p /opt/scorebot/data
 sudo chown YOUR_USERNAME:scorebot /opt/scorebot
-sudo chmod 775 /opt/scorebot
+sudo chmod 755 /opt/scorebot
 sudo chown scorebot:scorebot /opt/scorebot/data
 sudo chmod 750 /opt/scorebot/data
 ```
@@ -272,7 +272,8 @@ The directory layout:
 **Why this ownership split:**
 - `YOUR_USERNAME` owns `/opt/scorebot/` — so GitHub Actions can SCP the JAR there
 - `scorebot` owns `data/` — so the service process can write the H2 database
-- Group `scorebot` on `/opt/scorebot/` — so the service can read the JAR
+- Mode `755` on `/opt/scorebot/` allows the `scorebot` user to read the JAR without granting write access (prevents JAR tampering)
+- Mode `750` on `data/` confines write access to the `scorebot` user only (database isolation)
 
 ### 4.3 — Grant the Deploy User sudo Access for the Service
 
@@ -677,7 +678,7 @@ ls -la /opt/scorebot/
 
 # Fix if needed:
 sudo chown YOUR_USERNAME:scorebot /opt/scorebot
-sudo chmod 775 /opt/scorebot
+sudo chmod 755 /opt/scorebot
 ```
 
 ### Bot Connects but Doesn't Respond to Messages
