@@ -444,48 +444,22 @@ Replace `100.x.x.x` with the Pi's Tailscale IP from Step 3.
 | `PI_SSH_PORT` | `22` |
 | `PI_DEPLOY_PATH` | `/opt/scorebot/` |
 | `PI_SERVICE_NAME` | `nyt-scorebot` |
+| `TAILSCALE_OAUTH_CLIENT_ID` | OAuth credential (see Step 7) |
+| `TAILSCALE_OAUTH_CLIENT_SECRET` | OAuth credential (see Step 7) |
 
-**Step 7 — Set up GitHub Actions to use Tailscale (important):**
+**Step 7 — Create Tailscale OAuth Credentials:**
 
-GitHub Actions runners are not on your Tailscale network by default. You have two options:
+The deploy workflow uses OAuth for secure authentication. Create OAuth credentials in your Tailscale account:
 
-**Option A — Use a self-hosted runner** (more complex):
-- Set up a GitHub self-hosted runner on your Mac or a server on the Tailscale network
-- Configure the `deploy.yml` workflow to run on that runner instead of `ubuntu-latest`
+1. Go to [Tailscale Admin Console](https://login.tailscale.com/admin/settings/keys)
+2. Under **Keys**, find **OAuth clients** and click **Create OAuth client**
+3. Set the name to `github-actions` or similar
+4. Copy the **Client ID** and **Client Secret**
+5. Add them as GitHub secrets:
+   - `TAILSCALE_OAUTH_CLIENT_ID` ← Client ID
+   - `TAILSCALE_OAUTH_CLIENT_SECRET` ← Client Secret
 
-**Option B — Use Tailscale auth key** (simpler):
-- Create a Tailscale auth key in your account settings (Machine Auth Keys → Generate auth key)
-- Add it as a GitHub secret: `TAILSCALE_AUTH_KEY`
-- Modify the `deploy.yml` workflow to install and connect Tailscale before SSH
-
-For **Option B**, you'd need to modify `.github/workflows/deploy.yml` to add:
-
-```yaml
-- name: Connect to Tailscale
-  uses: tailscale/github-action@v2
-  with:
-    authkey: ${{ secrets.TAILSCALE_AUTH_KEY }}
-
-- name: Copy JAR to Raspberry Pi
-  uses: appleboy/scp-action@v0.1.7
-  with:
-    host: ${{ secrets.PI_HOST }}
-    username: ${{ secrets.PI_USER }}
-    key: ${{ secrets.PI_SSH_KEY }}
-    port: ${{ secrets.PI_SSH_PORT || 22 }}
-    source: deploy-staging/nyt-scorebot-app-1.0-SNAPSHOT.jar
-    target: ${{ secrets.PI_DEPLOY_PATH }}
-    strip_components: 1
-```
-
-This is a bit involved. **Easier alternative:** just use SSH from your local machine when testing:
-
-```bash
-# Locally, from your Mac
-ssh -i ~/.ssh/scorebot_deploy wando@100.x.x.x "sudo systemctl restart nyt-scorebot"
-```
-
-For now, **skip this complexity** and continue with the basic setup. Once the bot is running, you can add GitHub Actions integration if needed.
+> The OAuth approach is more secure than machine auth keys — each deployment authenticates through OAuth instead of sharing a static key.
 
 ### 6.3 — Security Hardening
 
