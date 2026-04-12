@@ -31,6 +31,7 @@ class ScoreboardServiceTest {
 
     private UserRepository userRepo;
     private ScoreboardRepository scoreboardRepo;
+    private StreakService streakService;
     private ScoreboardService service;
 
     private User user;
@@ -42,6 +43,7 @@ class ScoreboardServiceTest {
     void setUp() {
         userRepo = Mockito.mock(UserRepository.class);
         scoreboardRepo = Mockito.mock(ScoreboardRepository.class);
+        streakService = Mockito.mock(StreakService.class);
 
         user = new User(CHANNEL, PERSON, USER_ID);
         scoreboard = new Scoreboard(user, TODAY);
@@ -51,7 +53,7 @@ class ScoreboardServiceTest {
         when(scoreboardRepo.findByUserAndDate(user, TODAY)).thenReturn(Optional.of(scoreboard));
         when(scoreboardRepo.save(any(Scoreboard.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        service = new ScoreboardService(userRepo, scoreboardRepo, calendar);
+        service = new ScoreboardService(userRepo, scoreboardRepo, calendar, streakService);
     }
 
     // ── Puzzle number validation ─────────────────────────────────────────────
@@ -371,6 +373,36 @@ class ScoreboardServiceTest {
     @Test
     void toggleCheckReturnsNoMainCrosswordWhenAbsent() {
         assertThat(service.toggleCheck(USER_ID, TODAY)).isEqualTo(SetFlagOutcome.NO_MAIN_CROSSWORD);
+    }
+
+    // ── Streak integration ─────────────────────────────────────────────────
+
+    @Test
+    void streakIsUpdatedWhenSaveSucceeds() {
+        int expected = calendar.expectedWordle();
+        WordleResult result = new WordleResult("raw", PERSON, null, expected, 3, true, false);
+
+        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result)).isEqualTo(SaveOutcome.SAVED);
+        verify(streakService).updateStreak(eq(user), eq(result));
+    }
+
+    @Test
+    void streakNotUpdatedOnAlreadySubmitted() {
+        int expected = calendar.expectedWordle();
+        WordleResult first = new WordleResult("raw", PERSON, null, expected, 3, true, false);
+        scoreboard.setWordleResult(first);
+
+        WordleResult second = new WordleResult("raw2", PERSON, null, expected, 4, true, false);
+        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, second)).isEqualTo(SaveOutcome.ALREADY_SUBMITTED);
+        verify(streakService, never()).updateStreak(any(), any());
+    }
+
+    @Test
+    void streakNotUpdatedOnWrongPuzzleNumber() {
+        WordleResult result = new WordleResult("raw", PERSON, null, 1, 3, true, false);
+
+        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result)).isEqualTo(SaveOutcome.WRONG_PUZZLE_NUMBER);
+        verify(streakService, never()).updateStreak(any(), any());
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────

@@ -3,8 +3,10 @@ package com.wandocorp.nytscorebot.discord;
 import com.wandocorp.nytscorebot.config.DiscordChannelProperties;
 import com.wandocorp.nytscorebot.config.DiscordChannelProperties.ChannelConfig;
 import com.wandocorp.nytscorebot.entity.Scoreboard;
-import com.wandocorp.nytscorebot.service.ScoreboardService;
 import com.wandocorp.nytscorebot.entity.User;
+import com.wandocorp.nytscorebot.service.PuzzleCalendar;
+import com.wandocorp.nytscorebot.service.ScoreboardService;
+import com.wandocorp.nytscorebot.service.StreakService;
 import com.wandocorp.nytscorebot.service.scoreboard.ScoreboardRenderer;
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
@@ -21,10 +23,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 @MockitoSettings(strictness = Strictness.LENIENT)
 class ResultsChannelServiceTest {
@@ -44,6 +49,9 @@ class ResultsChannelServiceTest {
         client = mock(GatewayDiscordClient.class);
         scoreboardService = mock(ScoreboardService.class);
         scoreboardRenderer = mock(ScoreboardRenderer.class);
+        StreakService streakService = mock(StreakService.class);
+        PuzzleCalendar puzzleCalendar = mock(PuzzleCalendar.class);
+        when(puzzleCalendar.today()).thenReturn(LocalDate.now());
 
         channelProperties = new DiscordChannelProperties();
 
@@ -60,7 +68,7 @@ class ResultsChannelServiceTest {
         channelProperties.setChannels(List.of(c1, c2));
         channelProperties.setResultsChannelId(RESULTS_CHANNEL_ID);
 
-        service = new ResultsChannelService(client, channelProperties, scoreboardService, scoreboardRenderer);
+        service = new ResultsChannelService(client, channelProperties, scoreboardService, scoreboardRenderer, streakService, puzzleCalendar);
     }
 
     @Test
@@ -161,7 +169,7 @@ class ResultsChannelServiceTest {
     void refreshGamePostsNewMessageWhenNoExistingMessage() {
         when(scoreboardService.areBothPlayersFinishedToday()).thenReturn(true);
         setupScoreboards();
-        when(scoreboardRenderer.renderByGameType(eq("Main"), any(), anyString(), any(), anyString()))
+        when(scoreboardRenderer.renderByGameType(eq("Main"), any(), anyString(), any(), anyString(), any()))
                 .thenReturn(java.util.Optional.of("```\nMain crossword\n```"));
 
         MessageChannel channel = mock(MessageChannel.class);
@@ -169,7 +177,7 @@ class ResultsChannelServiceTest {
 
         service.refreshGame("Main");
 
-        verify(scoreboardRenderer).renderByGameType(eq("Main"), any(), eq(NAME1), any(), eq(NAME2));
+        verify(scoreboardRenderer).renderByGameType(eq("Main"), any(), eq(NAME1), any(), eq(NAME2), any());
         verify(channel).createMessage("```\nMain crossword\n```");
     }
 
@@ -177,7 +185,7 @@ class ResultsChannelServiceTest {
     void refreshGameDeletesAndRepostsWhenExistingMessageId() {
         when(scoreboardService.areBothPlayersFinishedToday()).thenReturn(true);
         setupScoreboards();
-        when(scoreboardRenderer.renderByGameType(eq("Main"), any(), anyString(), any(), anyString()))
+        when(scoreboardRenderer.renderByGameType(eq("Main"), any(), anyString(), any(), anyString(), any()))
                 .thenReturn(java.util.Optional.of("```\nMain crossword\n```"));
 
         Snowflake previousMsgId = Snowflake.of("22222");
@@ -202,7 +210,7 @@ class ResultsChannelServiceTest {
     void refreshGameNoOpWhenRendererReturnsEmpty() {
         when(scoreboardService.areBothPlayersFinishedToday()).thenReturn(true);
         setupScoreboards();
-        when(scoreboardRenderer.renderByGameType(eq("Main"), any(), anyString(), any(), anyString()))
+        when(scoreboardRenderer.renderByGameType(eq("Main"), any(), anyString(), any(), anyString(), any()))
                 .thenReturn(java.util.Optional.empty());
 
         service.refreshGame("Main");
@@ -213,7 +221,7 @@ class ResultsChannelServiceTest {
     private void setupRendered() {
         Map<String, String> rendered = new LinkedHashMap<>();
         rendered.put("Wordle", "```\nWordle stuff\n```");
-        when(scoreboardRenderer.renderAll(any(), anyString(), any(), anyString())).thenReturn(rendered);
+        when(scoreboardRenderer.renderAll(any(), anyString(), any(), anyString(), any())).thenReturn(rendered);
     }
 
 }

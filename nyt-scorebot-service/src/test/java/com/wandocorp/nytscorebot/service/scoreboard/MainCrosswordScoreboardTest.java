@@ -87,60 +87,59 @@ class MainCrosswordScoreboardTest {
     // ── Flags row rendering ───────────────────────────────────────────────────
 
     @Test
-    void noFlagsReturnsEmptyGrid() {
+    void noFlagsReturnsEmptyString() {
         Scoreboard sb = sbWith(result("15:00", 900));
-        assertThat(scoreboard.emojiGridRows(sb)).isEmpty();
+        assertThat(scoreboard.flagsRow(sb)).isEmpty();
     }
 
     @Test
-    void duoOnlyReturnsOneRow() {
+    void emojiGridRowsAlwaysEmpty() {
         CrosswordResult r = result("15:00", 900);
         r.setDuo(true);
-        List<String> rows = scoreboard.emojiGridRows(sbWith(r));
-        assertThat(rows).hasSize(1);
-        assertThat(rows.get(0)).isEqualTo("👫");
+        assertThat(scoreboard.emojiGridRows(sbWith(r))).isEmpty();
     }
 
     @Test
-    void lookupsOnlyReturnsOneRow() {
+    void duoOnlyReturnsDuoFlag() {
+        CrosswordResult r = result("15:00", 900);
+        r.setDuo(true);
+        assertThat(scoreboard.flagsRow(sbWith(r))).isEqualTo("👫");
+    }
+
+    @Test
+    void lookupsOnlyReturnsLookupsFlag() {
         CrosswordResult r = result("15:00", 900);
         r.setLookups(3);
-        List<String> rows = scoreboard.emojiGridRows(sbWith(r));
-        assertThat(rows).hasSize(1);
-        assertThat(rows.get(0)).isEqualTo("🔍×3");
+        assertThat(scoreboard.flagsRow(sbWith(r))).isEqualTo("🔍×3");
     }
 
     @Test
-    void checkOnlyReturnsOneRow() {
+    void checkOnlyReturnsCheckFlag() {
         CrosswordResult r = result("15:00", 900);
         r.setCheckUsed(true);
-        List<String> rows = scoreboard.emojiGridRows(sbWith(r));
-        assertThat(rows).hasSize(1);
-        assertThat(rows.get(0)).isEqualTo("✓");
+        assertThat(scoreboard.flagsRow(sbWith(r))).isEqualTo("✓");
     }
 
     @Test
-    void allFlagsReturnsCombinedRow() {
+    void allFlagsReturnsCombinedString() {
         CrosswordResult r = result("15:00", 900);
         r.setDuo(true);
         r.setLookups(2);
         r.setCheckUsed(true);
-        List<String> rows = scoreboard.emojiGridRows(sbWith(r));
-        assertThat(rows).hasSize(1);
-        assertThat(rows.get(0)).isEqualTo("👫 🔍×2 ✓");
+        assertThat(scoreboard.flagsRow(sbWith(r))).isEqualTo("👫 🔍×2 ✓");
     }
 
     @Test
     void zeroLookupsDoesNotShowFlag() {
         CrosswordResult r = result("15:00", 900);
         r.setLookups(0);
-        assertThat(scoreboard.emojiGridRows(sbWith(r))).isEmpty();
+        assertThat(scoreboard.flagsRow(sbWith(r))).isEmpty();
     }
 
     @Test
     void falseDuoDoesNotShowFlag() {
         CrosswordResult r = result("15:00", 900);
         r.setDuo(false);
-        assertThat(scoreboard.emojiGridRows(sbWith(r))).isEmpty();
+        assertThat(scoreboard.flagsRow(sbWith(r))).isEmpty();
     }
 }

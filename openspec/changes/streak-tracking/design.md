@@ -78,7 +78,7 @@ Streak
 **Decision:** Add a `boolean usesStreakDisplay()` method to `GameComparisonScoreboard`. Emoji scoreboards (Wordle, Connections, Strands) return `true`; crossword scoreboards return `false`.
 
 In `ScoreboardRenderer.renderTwoPlayer()`:
-- If `game.usesStreakDisplay()` → render a streak row (e.g., `🔥 Will: 5  |  Conor: 3`)
+- If `game.usesStreakDisplay()` → render a streak row (e.g., `🔥 5        🔥 3`, aligned with emoji grid columns)
 - Else → render the existing outcome row via `buildResultMessage()`
 
 **Rationale:** A method on the interface is the simplest, most extensible approach. No need for marker interfaces, enum-based dispatch, or instanceof checks. New game types added in the future simply implement the method.
@@ -89,15 +89,15 @@ In `ScoreboardRenderer.renderTwoPlayer()`:
 
 ### 5. Streak display in the scoreboard renderer
 
-**Decision:** The streak row replaces the announcement row at the bottom of emoji scoreboards. Format:
+**Decision:** The streak row replaces the announcement row at the bottom of emoji scoreboards. Each player's streak is aligned with their emoji grid column:
 
 ```
-🔥 Will: 5  |  Conor: 3
+🔥 5        🔥 3
 ```
 
-When one or both players haven't submitted, the streak row still shows current stored streaks (which may be stale until that player submits). The `⏳ hasn't submitted` message moves from the result row to a status indicator in the name/score row (no result posted yet means no score label — display `?` instead).
+Player names are not included in the streak row — they already appear in the header row. When one or both players haven't submitted, the streak row still shows current stored streaks (which may be stale until that player submits). The `⏳ hasn't submitted` message moves from the result row to a status indicator in the name/score row (no result posted yet means no score label — display `?` instead).
 
-**Rationale:** Streaks are always displayable because they are stored state. This means the scoreboard can always render a streak row even when only one player has submitted. The "waiting" concept shifts from the result row to the score label.
+**Rationale:** Streaks are always displayable because they are stored state. This means the scoreboard can always render a streak row even when only one player has submitted. The "waiting" concept shifts from the result row to the score label. Repeating names in the streak row is redundant since they appear in the header row above the emoji grids.
 
 ### 6. `/streak` slash command design
 

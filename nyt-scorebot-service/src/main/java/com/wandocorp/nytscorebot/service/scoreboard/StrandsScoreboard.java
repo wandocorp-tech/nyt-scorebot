@@ -2,7 +2,6 @@ package com.wandocorp.nytscorebot.service.scoreboard;
 
 import com.wandocorp.nytscorebot.BotText;
 import com.wandocorp.nytscorebot.entity.Scoreboard;
-import com.wandocorp.nytscorebot.model.StrandsResult;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
@@ -48,12 +47,32 @@ public class StrandsScoreboard implements GameComparisonScoreboard {
     @Override
     public List<String> emojiGridRows(Scoreboard scoreboard) {
         List<String> rows = new ArrayList<>();
+        StringBuilder emojiBuffer = new StringBuilder();
         String rawContent = scoreboard.getStrandsResult().getRawContent();
+        
+        // Collect all emojis from all lines
         for (String line : rawContent.split("\n")) {
             if (EmojiGridUtils.isEmojiRow(line, STRANDS_EMOJI_CODEPOINTS, -1)) {
-                rows.add(line);
+                emojiBuffer.append(line);
             }
         }
+        
+        // Group emojis into rows of 4 each
+        int emojisPerRow = maxEmojisPerRow();
+        int codePointIndex = 0;
+        
+        while (codePointIndex < emojiBuffer.length()) {
+            StringBuilder row = new StringBuilder();
+            for (int j = 0; j < emojisPerRow && codePointIndex < emojiBuffer.length(); j++) {
+                int cp = emojiBuffer.codePointAt(codePointIndex);
+                row.appendCodePoint(cp);
+                codePointIndex += Character.charCount(cp);
+            }
+            if (!row.isEmpty()) {
+                rows.add(row.toString());
+            }
+        }
+        
         return rows;
     }
 
@@ -75,4 +94,7 @@ public class StrandsScoreboard implements GameComparisonScoreboard {
 
     @Override
     public int maxEmojisPerRow() { return 4; }
+
+    @Override
+    public boolean usesStreakDisplay() { return true; }
 }
