@@ -2,7 +2,6 @@ package com.wandocorp.nytscorebot.service.scoreboard;
 
 import com.wandocorp.nytscorebot.BotText;
 import com.wandocorp.nytscorebot.entity.Scoreboard;
-import com.wandocorp.nytscorebot.model.StrandsResult;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
@@ -59,9 +58,7 @@ public class StrandsScoreboard implements GameComparisonScoreboard {
         }
         
         // Group emojis into rows of 4 each
-        int emojiCount = emojiBuffer.codePointCount(0, emojiBuffer.length());
         int emojisPerRow = maxEmojisPerRow();
-        int i = 0;
         int codePointIndex = 0;
         
         while (codePointIndex < emojiBuffer.length()) {
@@ -71,7 +68,7 @@ public class StrandsScoreboard implements GameComparisonScoreboard {
                 row.appendCodePoint(cp);
                 codePointIndex += Character.charCount(cp);
             }
-            if (row.length() > 0) {
+            if (!row.isEmpty()) {
                 rows.add(row.toString());
             }
         }
