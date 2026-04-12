@@ -54,7 +54,7 @@ public class ScoreboardRenderer {
             String presentName = has1 ? name1 : name2;
             String missingName = has1 ? name2 : name1;
             return Optional.of(renderSinglePlayer(game, header, presentSb, presentName, missingName,
-                    streaks, name1, name2));
+                    streaks));
         }
 
         List<String> rows1 = game.emojiGridRows(sb1);
@@ -76,8 +76,7 @@ public class ScoreboardRenderer {
 
     private String renderSinglePlayer(GameComparisonScoreboard game, String header,
                                        Scoreboard presentSb, String presentName, String missingName,
-                                       Map<String, Map<String, Integer>> streaks,
-                                       String name1, String name2) {
+                                       Map<String, Map<String, Integer>> streaks) {
         String nameRow = String.format("%" + PLAYER_COL_WIDTH + "s", presentName);
         String leading = " ".repeat(game.leadingSpaces());
 
