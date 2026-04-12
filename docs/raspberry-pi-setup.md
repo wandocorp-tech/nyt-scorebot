@@ -557,11 +557,13 @@ git push origin main
 
 ### 8.2 — Monitor the Workflow
 
+**Note:** The entire pipeline (including deployment) only runs on pushes to the `main` branch. Other branches build and test, but skip deploy and release.
+
 Watch the GitHub Actions run through each stage:
 
 1. ✅ **Build** — compiles, runs unit tests, uploads JAR artifact
 2. ✅ **Test** — runs E2E test against live Discord
-3. ✅ **Deploy** — SCPs JAR to Pi, restarts systemd service
+3. ✅ **Deploy** — SCPs JAR to Pi, restarts systemd service (main branch only)
 4. ✅ **Release** — creates a GitHub Release with the JAR attached (main branch only)
 
 If the Deploy stage is waiting, check that you created the `production` environment (step 7.1) — it's required by the workflow.
