@@ -67,6 +67,7 @@ public class SlashCommandRegistrar {
                         .description(BotText.CMD_STREAK_VALUE_OPTION_DESC)
                         .type(4) // INTEGER
                         .required(true)
+                        .minValue(0D)
                         .build())
                 .build();
 
