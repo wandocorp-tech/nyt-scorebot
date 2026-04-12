@@ -710,4 +710,3 @@ ssh -i ~/.ssh/scorebot_deploy -p 2222 YOUR_USERNAME@YOUR_PI_HOST
 # Run a single command
 ssh -i ~/.ssh/scorebot_deploy -p 2222 YOUR_USERNAME@YOUR_PI_HOST "sudo systemctl status nyt-scorebot"
 ```
-| Check database size | `ls -lh /opt/scorebot/data/` |
