@@ -1,3 +1,7 @@
+## Purpose
+
+Defines requirements for the CI build and E2E test workflows: compiling the project, running unit tests with JaCoCo coverage enforcement, and running the end-to-end test against a live Discord connection.
+
 ## ADDED Requirements
 
 ### Requirement: Build job compiles and runs unit tests

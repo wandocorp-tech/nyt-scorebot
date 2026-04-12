@@ -3,6 +3,12 @@ name: Deploy
 on:
   workflow_call:
     secrets:
+      # Tailscale OAuth credentials — mandatory for secure access to Raspberry Pi
+      # These secrets establish a secure tunnel from the CI runner to the deployment target
+      TAILSCALE_OAUTH_CLIENT_ID:
+        required: true
+      TAILSCALE_OAUTH_CLIENT_SECRET:
+        required: true
       PI_SSH_KEY:
         required: true
       PI_HOST:
@@ -49,6 +55,15 @@ jobs:
           mvn clean package -DskipTests --batch-mode --no-transfer-progress
           mkdir -p deploy-staging
           cp nyt-scorebot-app/target/nyt-scorebot-app-1.0-SNAPSHOT.jar deploy-staging/
+
+      # Tailscale is mandatory — it provides secure network access to the Raspberry Pi
+      # The CI runner authenticates via OAuth and joins the Tailscale network
+      - name: Tailscale
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TAILSCALE_OAUTH_CLIENT_SECRET }}
+          tags: tag:ci
 
       - name: Copy JAR to Raspberry Pi
         uses: appleboy/scp-action@v0.1.7

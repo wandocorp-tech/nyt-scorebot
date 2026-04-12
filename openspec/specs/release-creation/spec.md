@@ -1,5 +1,8 @@
-## ADDED Requirements
+# release-creation Specification
 
+## Purpose
+TBD - created by archiving change add-cicd-pipeline. Update Purpose after archive.
+## Requirements
 ### Requirement: Release workflow creates a GitHub Release
 The release workflow SHALL create a GitHub Release with a user-specified version tag and attach the built JAR as a release asset.
 
@@ -31,3 +34,4 @@ The release workflow SHALL build the Maven project to produce a fresh JAR before
 #### Scenario: Build before release
 - **WHEN** the release workflow is triggered
 - **THEN** it SHALL run `mvn clean package -DskipTests` to produce the JAR before attaching it to the release
+
