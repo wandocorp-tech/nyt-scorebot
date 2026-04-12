@@ -111,4 +111,18 @@ class StrandsScoreboardTest {
         Scoreboard sb = sbWith(result(0));
         assertThat(scoreboard.hasResult(sb)).isTrue();
     }
+
+    @Test
+    void sevenEmojisAreReorganizedIntoFourAndThree() {
+        String rawWith7Emojis = "Strands #999\n\"Test\"\n🔵🟡🔵\n🔵🔵\n🔵🔵";
+        StrandsResult result = new StrandsResult(rawWith7Emojis, "author", null, 999, 0);
+        Scoreboard sb = new Scoreboard(new User("c1", "test", "u1"), LocalDate.now());
+        sb.setStrandsResult(result);
+
+        List<String> rows = scoreboard.emojiGridRows(sb);
+
+        assertThat(rows).hasSize(2);
+        assertThat(rows.get(0).codePointCount(0, rows.get(0).length())).isEqualTo(4);
+        assertThat(rows.get(1).codePointCount(0, rows.get(1).length())).isEqualTo(3);
+    }
 }

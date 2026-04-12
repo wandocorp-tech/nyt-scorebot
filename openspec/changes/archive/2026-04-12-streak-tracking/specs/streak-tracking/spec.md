@@ -94,25 +94,25 @@ If the invoking user is not a tracked user in the bot, the command SHALL reply w
 - **THEN** the command replies with an ephemeral error: "⚠️ Value must be non-negative."
 
 ### Requirement: Emoji-based scoreboards display streak row instead of outcome row
-For emoji-based game scoreboards (Wordle, Connections, Strands), the bottom row of the two-player comparison SHALL display each player's current streak for that game instead of the win/tie/waiting outcome message. The streak row SHALL use the format:
+For emoji-based game scoreboards (Wordle, Connections, Strands), the bottom row of the two-player comparison SHALL display each player's current streak for that game instead of the win/tie/waiting outcome message. The streak row SHALL align each player's streak with their emoji grid column, using the format:
 
 ```
-🔥 <name1>: <streak1>  |  <name2>: <streak2>
+<streak1>        <streak2>
 ```
 
-Crossword scoreboards (Mini, Midi, Main) SHALL continue to display the existing win/tie outcome row.
+Player names are not repeated in the streak row — they are already present in the header row. Crossword scoreboards (Mini, Midi, Main) SHALL continue to display the existing win/tie outcome row.
 
 #### Scenario: Both players submitted Wordle with active streaks
 - **WHEN** both players have submitted Wordle results today, player A has a Wordle streak of 5, and player B has a Wordle streak of 3
-- **THEN** the Wordle scoreboard's bottom row displays `🔥 A: 5  |  B: 3` instead of a win/tie message
+- **THEN** the Wordle scoreboard's bottom row displays `5` under player A's column and `3` under player B's column, aligned with their emoji grids
 
 #### Scenario: Only one player submitted with streaks displayed
 - **WHEN** only player A has submitted a Wordle result and has a streak of 5, and player B has a stored streak of 3 (from yesterday)
-- **THEN** the Wordle scoreboard renders player A's grid on one side and the bottom row displays `🔥 A: 5  |  B: 3` using stored streak values
+- **THEN** the Wordle scoreboard renders player A's grid on one side and the bottom row displays `5` and `3` in each player's respective column, using stored streak values
 
 #### Scenario: Both players have zero streaks
 - **WHEN** both players have a Wordle streak of 0
-- **THEN** the scoreboard bottom row displays `🔥 A: 0  |  B: 0`
+- **THEN** the scoreboard bottom row displays `0` in each player's column
 
 #### Scenario: Crossword scoreboard retains outcome display
 - **WHEN** both players have submitted Mini crossword results

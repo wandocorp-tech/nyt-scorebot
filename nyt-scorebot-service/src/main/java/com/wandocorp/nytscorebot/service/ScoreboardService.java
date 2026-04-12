@@ -22,6 +22,7 @@ public class ScoreboardService {
     private final UserRepository userRepository;
     private final ScoreboardRepository scoreboardRepository;
     private final PuzzleCalendar puzzleCalendar;
+    private final StreakService streakService;
 
     public List<Scoreboard> getTodayScoreboards() {
         return scoreboardRepository.findAllByDateWithUser(puzzleCalendar.today());
@@ -78,6 +79,9 @@ public class ScoreboardService {
 
         applyResult(scoreboard, result);
         scoreboardRepository.save(scoreboard);
+
+        // Update streak within the same transaction
+        streakService.updateStreak(user, result);
 
         // Auto-set finished flag if all 6 games are now present
         if (allGamesPresent(scoreboard)) {
