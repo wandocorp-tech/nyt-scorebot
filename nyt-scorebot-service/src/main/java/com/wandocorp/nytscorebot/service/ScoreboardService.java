@@ -95,55 +95,41 @@ public class ScoreboardService {
     }
 
     private SaveOutcome validate(GameResult result) {
-        if (result instanceof WordleResult r) {
-            if (r.getPuzzleNumber() != puzzleCalendar.expectedWordle()) {
-                return SaveOutcome.WRONG_PUZZLE_NUMBER;
-            }
-        } else if (result instanceof ConnectionsResult r) {
-            if (r.getPuzzleNumber() != puzzleCalendar.expectedConnections()) {
-                return SaveOutcome.WRONG_PUZZLE_NUMBER;
-            }
-        } else if (result instanceof StrandsResult r) {
-            if (r.getPuzzleNumber() != puzzleCalendar.expectedStrands()) {
-                return SaveOutcome.WRONG_PUZZLE_NUMBER;
-            }
-        }
-        return SaveOutcome.SAVED;
+        return result.puzzleNumber()
+                .stream()
+                .mapToObj(pn -> {
+                    int expected = switch (result.gameType()) {
+                        case WORDLE -> puzzleCalendar.expectedWordle();
+                        case CONNECTIONS -> puzzleCalendar.expectedConnections();
+                        case STRANDS -> puzzleCalendar.expectedStrands();
+                        default -> pn; // crosswords don't have puzzle numbers
+                    };
+                    return pn != expected ? SaveOutcome.WRONG_PUZZLE_NUMBER : SaveOutcome.SAVED;
+                })
+                .findFirst()
+                .orElse(SaveOutcome.SAVED);
     }
 
     private boolean isAlreadySubmitted(Scoreboard scoreboard, GameResult result) {
-        GameResult existing;
-        if (result instanceof WordleResult) {
-            existing = scoreboard.getWordleResult();
-        } else if (result instanceof ConnectionsResult) {
-            existing = scoreboard.getConnectionsResult();
-        } else if (result instanceof StrandsResult) {
-            existing = scoreboard.getStrandsResult();
-        } else if (result instanceof CrosswordResult r) {
-            existing = switch (r.getType()) {
-                case MINI  -> scoreboard.getMiniCrosswordResult();
-                case MIDI  -> scoreboard.getMidiCrosswordResult();
-                case MAIN  -> scoreboard.getMainCrosswordResult();
-            };
-        } else {
-            return false;
-        }
+        GameResult existing = switch (result.gameType()) {
+            case WORDLE -> scoreboard.getWordleResult();
+            case CONNECTIONS -> scoreboard.getConnectionsResult();
+            case STRANDS -> scoreboard.getStrandsResult();
+            case MINI_CROSSWORD -> scoreboard.getMiniCrosswordResult();
+            case MIDI_CROSSWORD -> scoreboard.getMidiCrosswordResult();
+            case MAIN_CROSSWORD -> scoreboard.getMainCrosswordResult();
+        };
         return existing != null && existing.getRawContent() != null;
     }
 
     private void applyResult(Scoreboard scoreboard, GameResult result) {
-        if (result instanceof WordleResult r) {
-            scoreboard.setWordleResult(r);
-        } else if (result instanceof ConnectionsResult r) {
-            scoreboard.setConnectionsResult(r);
-        } else if (result instanceof StrandsResult r) {
-            scoreboard.setStrandsResult(r);
-        } else if (result instanceof CrosswordResult r) {
-            switch (r.getType()) {
-                case MINI  -> scoreboard.setMiniCrosswordResult(r);
-                case MIDI  -> scoreboard.setMidiCrosswordResult(r);
-                case MAIN  -> scoreboard.setMainCrosswordResult(r);
-            }
+        switch (result.gameType()) {
+            case WORDLE -> scoreboard.setWordleResult((WordleResult) result);
+            case CONNECTIONS -> scoreboard.setConnectionsResult((ConnectionsResult) result);
+            case STRANDS -> scoreboard.setStrandsResult((StrandsResult) result);
+            case MINI_CROSSWORD -> scoreboard.setMiniCrosswordResult((CrosswordResult) result);
+            case MIDI_CROSSWORD -> scoreboard.setMidiCrosswordResult((CrosswordResult) result);
+            case MAIN_CROSSWORD -> scoreboard.setMainCrosswordResult((MainCrosswordResult) result);
         }
     }
 
@@ -175,11 +161,11 @@ public class ScoreboardService {
     }
 
     private SetFlagOutcome withMainCrossword(String discordUserId, LocalDate date,
-                                              Function<CrosswordResult, SetFlagOutcome> action) {
+                                              Function<MainCrosswordResult, SetFlagOutcome> action) {
         return userRepository.findByUserId(discordUserId)
                 .map(user -> scoreboardRepository.findByUserAndDate(user, date)
                         .map(scoreboard -> {
-                            CrosswordResult main = scoreboard.getMainCrosswordResult();
+                            MainCrosswordResult main = scoreboard.getMainCrosswordResult();
                             if (main == null || main.getRawContent() == null) {
                                 return SetFlagOutcome.NO_MAIN_CROSSWORD;
                             }

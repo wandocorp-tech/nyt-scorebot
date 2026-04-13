@@ -3,12 +3,7 @@ package com.wandocorp.nytscorebot.listener;
 import com.wandocorp.nytscorebot.BotText;
 import com.wandocorp.nytscorebot.config.DiscordChannelProperties;
 import com.wandocorp.nytscorebot.config.DiscordChannelProperties.ChannelConfig;
-import com.wandocorp.nytscorebot.model.ConnectionsResult;
-import com.wandocorp.nytscorebot.model.CrosswordResult;
-import com.wandocorp.nytscorebot.model.CrosswordType;
 import com.wandocorp.nytscorebot.model.GameResult;
-import com.wandocorp.nytscorebot.model.StrandsResult;
-import com.wandocorp.nytscorebot.model.WordleResult;
 import com.wandocorp.nytscorebot.parser.GameResultParser;
 import com.wandocorp.nytscorebot.discord.ResultsChannelService;
 import com.wandocorp.nytscorebot.service.SaveOutcome;
@@ -73,10 +68,10 @@ public class MessageListener {
 
     public boolean isFromConfiguredUser(Snowflake channelId, String authorId) {
         String configuredUserId = channelUserIdMap.get(channelId);
-        return configuredUserId.equals(authorId);
+        return configuredUserId != null && configuredUserId.equals(authorId);
     }
 
-    public Mono<?> processMessage(Snowflake channelId, String content, Mono<MessageChannel> channelMono) {
+    public Mono<Void> processMessage(Snowflake channelId, String content, Mono<MessageChannel> channelMono) {
         String personName = channelPersonMap.get(channelId);
         String discordUserId = channelUserIdMap.get(channelId);
         return parser.parse(content, personName)
@@ -116,28 +111,20 @@ public class MessageListener {
                         event.getMessage().getChannelId(),
                         event.getMessage().getContent(),
                         event.getMessage().getChannel().subscribeOn(Schedulers.boundedElastic())))
-                .subscribe();
+                .subscribe(
+                        v -> {},
+                        error -> log.error("Error in message listener pipeline", error));
     }
 
-    public Mono<?> replyForOutcome(Mono<MessageChannel> channelMono, SaveOutcome outcome) {
+    public Mono<Void> replyForOutcome(Mono<MessageChannel> channelMono, SaveOutcome outcome) {
         return switch (outcome) {
             case SAVED -> Mono.empty();
-            case WRONG_PUZZLE_NUMBER -> channelMono.flatMap(ch -> ch.createMessage(BotText.MSG_WRONG_PUZZLE_NUMBER));
-            case ALREADY_SUBMITTED   -> channelMono.flatMap(ch -> ch.createMessage(BotText.MSG_ALREADY_SUBMITTED));
+            case WRONG_PUZZLE_NUMBER -> channelMono.flatMap(ch -> ch.createMessage(BotText.MSG_WRONG_PUZZLE_NUMBER)).then();
+            case ALREADY_SUBMITTED   -> channelMono.flatMap(ch -> ch.createMessage(BotText.MSG_ALREADY_SUBMITTED)).then();
         };
     }
 
     static String gameLabel(GameResult result) {
-        if (result instanceof WordleResult)      return BotText.GAME_LABEL_WORDLE;
-        if (result instanceof ConnectionsResult) return BotText.GAME_LABEL_CONNECTIONS;
-        if (result instanceof StrandsResult)     return BotText.GAME_LABEL_STRANDS;
-        if (result instanceof CrosswordResult r) {
-            return switch (r.getType()) {
-                case MINI -> BotText.GAME_LABEL_MINI;
-                case MIDI -> BotText.GAME_LABEL_MIDI;
-                case MAIN -> BotText.GAME_LABEL_MAIN;
-            };
-        }
-        return BotText.GAME_LABEL_GENERIC;
+        return result.gameLabel();
     }
 }

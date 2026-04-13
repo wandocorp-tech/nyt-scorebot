@@ -79,7 +79,9 @@ public class SlashCommandRegistrar {
             appService.createGlobalApplicationCommand(applicationId, cmd)
                     .doOnNext(c -> log.info("Registered global slash command: /{}", c.name()))
                     .doOnError(e -> log.error("Failed to register command", e))
-                    .subscribe();
+                    .subscribe(
+                            v -> {},
+                            error -> log.error("Error registering slash command", error));
         }
     }
 }

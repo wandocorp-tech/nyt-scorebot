@@ -51,7 +51,9 @@ public class SlashCommandListener {
                     case BotText.CMD_STREAK   -> handleStreak(event);
                     default -> Mono.empty();
                 })
-                .subscribe();
+                .subscribe(
+                        v -> {},
+                        error -> log.error("Error in slash command listener pipeline", error));
     }
 
     Mono<Void> handleFinished(ChatInputInteractionEvent event) {

@@ -87,15 +87,15 @@ public class StreakService {
     }
 
     static String resolveGameType(GameResult result) {
-        if (result instanceof WordleResult) return BotText.GAME_LABEL_WORDLE;
-        if (result instanceof ConnectionsResult) return BotText.GAME_LABEL_CONNECTIONS;
-        if (result instanceof StrandsResult) return BotText.GAME_LABEL_STRANDS;
-        return null; // Crosswords are not streak-tracked
+        return switch (result.gameType()) {
+            case WORDLE -> BotText.GAME_LABEL_WORDLE;
+            case CONNECTIONS -> BotText.GAME_LABEL_CONNECTIONS;
+            case STRANDS -> BotText.GAME_LABEL_STRANDS;
+            default -> null; // Crosswords are not streak-tracked
+        };
     }
 
     static boolean isSuccess(GameResult result) {
-        if (result instanceof WordleResult r) return Boolean.TRUE.equals(r.getCompleted());
-        if (result instanceof ConnectionsResult r) return Boolean.TRUE.equals(r.getCompleted());
-        return result instanceof StrandsResult; // Strands always succeeds
+        return result.isSuccess();
     }
 }

@@ -4,10 +4,10 @@ import com.wandocorp.nytscorebot.entity.Scoreboard;
 import com.wandocorp.nytscorebot.entity.User;
 import com.wandocorp.nytscorebot.model.CrosswordResult;
 import com.wandocorp.nytscorebot.model.CrosswordType;
+import com.wandocorp.nytscorebot.model.MainCrosswordResult;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -16,14 +16,14 @@ class MainCrosswordScoreboardTest {
     private static final LocalDate DATE = LocalDate.of(2026, 3, 31);
     private final MainCrosswordScoreboard scoreboard = new MainCrosswordScoreboard();
 
-    private Scoreboard sbWith(CrosswordResult result) {
+    private Scoreboard sbWith(MainCrosswordResult result) {
         Scoreboard sb = new Scoreboard(new User("c1", "test", "u1"), DATE);
         sb.setMainCrosswordResult(result);
         return sb;
     }
 
-    private CrosswordResult result(String time, int seconds) {
-        return new CrosswordResult("raw", "author", null, CrosswordType.MAIN, time, seconds, DATE);
+    private MainCrosswordResult result(String time, int seconds) {
+        return new MainCrosswordResult("raw", "author", null, time, seconds, DATE);
     }
 
     @Test
@@ -94,35 +94,35 @@ class MainCrosswordScoreboardTest {
 
     @Test
     void emojiGridRowsAlwaysEmpty() {
-        CrosswordResult r = result("15:00", 900);
+        MainCrosswordResult r = result("15:00", 900);
         r.setDuo(true);
         assertThat(scoreboard.emojiGridRows(sbWith(r))).isEmpty();
     }
 
     @Test
     void duoOnlyReturnsDuoFlag() {
-        CrosswordResult r = result("15:00", 900);
+        MainCrosswordResult r = result("15:00", 900);
         r.setDuo(true);
         assertThat(scoreboard.flagsRow(sbWith(r))).isEqualTo("👫");
     }
 
     @Test
     void lookupsOnlyReturnsLookupsFlag() {
-        CrosswordResult r = result("15:00", 900);
+        MainCrosswordResult r = result("15:00", 900);
         r.setLookups(3);
         assertThat(scoreboard.flagsRow(sbWith(r))).isEqualTo("🔍×3");
     }
 
     @Test
     void checkOnlyReturnsCheckFlag() {
-        CrosswordResult r = result("15:00", 900);
+        MainCrosswordResult r = result("15:00", 900);
         r.setCheckUsed(true);
         assertThat(scoreboard.flagsRow(sbWith(r))).isEqualTo("✓");
     }
 
     @Test
     void allFlagsReturnsCombinedString() {
-        CrosswordResult r = result("15:00", 900);
+        MainCrosswordResult r = result("15:00", 900);
         r.setDuo(true);
         r.setLookups(2);
         r.setCheckUsed(true);
@@ -131,14 +131,14 @@ class MainCrosswordScoreboardTest {
 
     @Test
     void zeroLookupsDoesNotShowFlag() {
-        CrosswordResult r = result("15:00", 900);
+        MainCrosswordResult r = result("15:00", 900);
         r.setLookups(0);
         assertThat(scoreboard.flagsRow(sbWith(r))).isEmpty();
     }
 
     @Test
     void falseDuoDoesNotShowFlag() {
-        CrosswordResult r = result("15:00", 900);
+        MainCrosswordResult r = result("15:00", 900);
         r.setDuo(false);
         assertThat(scoreboard.flagsRow(sbWith(r))).isEmpty();
     }

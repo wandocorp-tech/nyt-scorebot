@@ -95,8 +95,8 @@ class ScoreboardServiceTest {
 
     @Test
     void crosswordWithTodaysDateIsSaved() {
-        CrosswordResult result = new CrosswordResult("raw", PERSON, null,
-                CrosswordType.MAIN, "5:00", 300, TODAY);
+        MainCrosswordResult result = new MainCrosswordResult("raw", PERSON, null,
+                "5:00", 300, TODAY);
 
         assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result)).isEqualTo(SaveOutcome.SAVED);
     }
@@ -107,8 +107,8 @@ class ScoreboardServiceTest {
         Scoreboard yesterdayBoard = new Scoreboard(user, yesterday);
         when(scoreboardRepo.findByUserAndDate(user, yesterday)).thenReturn(Optional.of(yesterdayBoard));
 
-        CrosswordResult result = new CrosswordResult("raw", PERSON, null,
-                CrosswordType.MAIN, "5:00", 300, yesterday);
+        MainCrosswordResult result = new MainCrosswordResult("raw", PERSON, null,
+                "5:00", 300, yesterday);
 
         assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result)).isEqualTo(SaveOutcome.SAVED);
         verify(scoreboardRepo).save(any(Scoreboard.class));
@@ -254,7 +254,7 @@ class ScoreboardServiceTest {
         StrandsResult strands = new StrandsResult("raw", PERSON, null, expectedStrands, 0);
         CrosswordResult mini = new CrosswordResult("raw", PERSON, null, CrosswordType.MINI, "1:23", 83, TODAY);
         CrosswordResult midi = new CrosswordResult("raw", PERSON, null, CrosswordType.MIDI, "3:45", 225, TODAY);
-        CrosswordResult main = new CrosswordResult("raw", PERSON, null, CrosswordType.MAIN, "15:00", 900, TODAY);
+        MainCrosswordResult main = new MainCrosswordResult("raw", PERSON, null, "15:00", 900, TODAY);
 
         Scoreboard scoreboard = new Scoreboard(user, TODAY);
         when(scoreboardRepo.findByUserAndDate(user, TODAY)).thenReturn(Optional.of(scoreboard));
@@ -280,14 +280,14 @@ class ScoreboardServiceTest {
         assertThat(scoreboard.isFinished()).isTrue();
     }
 
-    // ── saveResult stores MAIN crossword as CrosswordResult ─────────────────
+    // ── saveResult stores MAIN crossword as MainCrosswordResult ─────────────
 
     @Test
-    void mainCrosswordIsStoredAsCrosswordResult() {
-        CrosswordResult result = new CrosswordResult("raw", PERSON, null,
-                CrosswordType.MAIN, "15:00", 900, TODAY);
+    void mainCrosswordIsStoredAsMainCrosswordResult() {
+        MainCrosswordResult result = new MainCrosswordResult("raw", PERSON, null,
+                "15:00", 900, TODAY);
         assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result)).isEqualTo(SaveOutcome.SAVED);
-        assertThat(scoreboard.getMainCrosswordResult()).isInstanceOf(CrosswordResult.class);
+        assertThat(scoreboard.getMainCrosswordResult()).isInstanceOf(MainCrosswordResult.class);
         assertThat(scoreboard.getMainCrosswordResult().getDuo()).isNull();
     }
 
@@ -408,7 +408,7 @@ class ScoreboardServiceTest {
     // ── helpers ──────────────────────────────────────────────────────────────
 
     private void setUpMainCrossword() {
-        CrosswordResult main = new CrosswordResult("raw", PERSON, null, CrosswordType.MAIN, "15:00", 900, TODAY);
+        MainCrosswordResult main = new MainCrosswordResult("raw", PERSON, null, "15:00", 900, TODAY);
         scoreboard.setMainCrosswordResult(main);
     }
 }

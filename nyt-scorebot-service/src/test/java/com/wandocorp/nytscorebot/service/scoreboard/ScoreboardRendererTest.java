@@ -4,6 +4,7 @@ import com.wandocorp.nytscorebot.entity.Scoreboard;
 import com.wandocorp.nytscorebot.entity.User;
 import com.wandocorp.nytscorebot.model.CrosswordResult;
 import com.wandocorp.nytscorebot.model.CrosswordType;
+import com.wandocorp.nytscorebot.model.MainCrosswordResult;
 import com.wandocorp.nytscorebot.model.WordleResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -193,13 +194,13 @@ class ScoreboardRendererTest {
         MainCrosswordScoreboard mainGame = new MainCrosswordScoreboard();
         ScoreboardRenderer crosswordRenderer = new ScoreboardRenderer(List.of(mainGame));
 
-        CrosswordResult r1 = new CrosswordResult("raw", "a", null, CrosswordType.MAIN, "5:00", 300, LocalDate.now());
+        MainCrosswordResult r1 = new MainCrosswordResult("raw", "a", null, "5:00", 300, LocalDate.now());
         r1.setDuo(true);
         r1.setLookups(2);
         Scoreboard sb1 = new Scoreboard(new User("c1", "test", "u1"), LocalDate.now());
         sb1.setMainCrosswordResult(r1);
 
-        CrosswordResult r2 = new CrosswordResult("raw", "a", null, CrosswordType.MAIN, "7:30", 450, LocalDate.now());
+        MainCrosswordResult r2 = new MainCrosswordResult("raw", "a", null, "7:30", 450, LocalDate.now());
         r2.setCheckUsed(true);
         Scoreboard sb2 = new Scoreboard(new User("c2", "test", "u2"), LocalDate.now());
         sb2.setMainCrosswordResult(r2);

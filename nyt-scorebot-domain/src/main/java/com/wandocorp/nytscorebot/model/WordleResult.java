@@ -1,7 +1,10 @@
 package com.wandocorp.nytscorebot.model;
 
+import com.wandocorp.nytscorebot.BotText;
 import jakarta.persistence.Embeddable;
 import lombok.Getter;
+
+import java.util.OptionalInt;
 
 @Getter
 @Embeddable
@@ -21,6 +24,26 @@ public class WordleResult extends GameResult {
         this.attempts = attempts;
         this.completed = completed;
         this.hardMode = hardMode;
+    }
+
+    @Override
+    public GameType gameType() {
+        return GameType.WORDLE;
+    }
+
+    @Override
+    public String gameLabel() {
+        return BotText.GAME_LABEL_WORDLE;
+    }
+
+    @Override
+    public boolean isSuccess() {
+        return Boolean.TRUE.equals(completed);
+    }
+
+    @Override
+    public OptionalInt puzzleNumber() {
+        return puzzleNumber != null ? OptionalInt.of(puzzleNumber) : OptionalInt.empty();
     }
 
     @Override

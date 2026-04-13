@@ -4,7 +4,7 @@ import com.wandocorp.nytscorebot.discord.ResultsChannelService;
 import com.wandocorp.nytscorebot.discord.StatusChannelService;
 import com.wandocorp.nytscorebot.entity.Scoreboard;
 import com.wandocorp.nytscorebot.entity.User;
-import com.wandocorp.nytscorebot.model.CrosswordResult;
+import com.wandocorp.nytscorebot.model.MainCrosswordResult;
 import com.wandocorp.nytscorebot.repository.ScoreboardRepository;
 import com.wandocorp.nytscorebot.repository.UserRepository;
 import com.wandocorp.nytscorebot.service.PuzzleCalendar;
@@ -154,7 +154,7 @@ class EndToEndTest {
         // ── Phase 2: William sets Main crossword flags ──────────────────────
 
         williamBoard = scoreboardRepository.findByUserAndDate(william, today).orElseThrow();
-        CrosswordResult mainResult = williamBoard.getMainCrosswordResult();
+        MainCrosswordResult mainResult = williamBoard.getMainCrosswordResult();
         mainResult.setDuo(true);
         mainResult.setLookups(2);
         mainResult.setCheckUsed(true);

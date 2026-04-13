@@ -3,6 +3,7 @@ package com.wandocorp.nytscorebot.parser;
 import com.wandocorp.nytscorebot.model.CrosswordResult;
 import com.wandocorp.nytscorebot.model.CrosswordType;
 import com.wandocorp.nytscorebot.model.GameResult;
+import com.wandocorp.nytscorebot.model.MainCrosswordResult;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
@@ -57,7 +58,7 @@ public class CrosswordParser implements GameParser {
         Matcher daily = DAILY.matcher(content);
         if (daily.find()) {
             LocalDate date = extractDate(content);
-            return Optional.of(build(content, discordAuthor, CrosswordType.MAIN, daily.group(1), date, daily));
+            return Optional.of(buildMain(content, discordAuthor, daily.group(1), date, daily));
         }
 
         return Optional.empty();
@@ -66,6 +67,11 @@ public class CrosswordParser implements GameParser {
     private CrosswordResult build(String content, String author, CrosswordType type, String timeString, LocalDate date, Matcher matcher) {
         String comment = extractComment(content, matcher);
         return new CrosswordResult(content, author, comment, type, timeString, parseTimeToSeconds(timeString), date);
+    }
+
+    private MainCrosswordResult buildMain(String content, String author, String timeString, LocalDate date, Matcher matcher) {
+        String comment = extractComment(content, matcher);
+        return new MainCrosswordResult(content, author, comment, timeString, parseTimeToSeconds(timeString), date);
     }
 
     /** Extract date from text format M/D/YYYY or URL format /daily/YYYY/M/DD. Text format takes priority. */
