@@ -8,8 +8,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.time.Duration;
+
 @Configuration
 public class DiscordConfig {
+
+    private static final Duration LOGIN_TIMEOUT = Duration.ofSeconds(30);
 
     @Value("${discord.token}")
     private String token;
@@ -25,6 +29,6 @@ public class DiscordConfig {
                         Intent.MESSAGE_CONTENT
                 ))
                 .login()
-                .block();
+                .block(LOGIN_TIMEOUT);
     }
 }

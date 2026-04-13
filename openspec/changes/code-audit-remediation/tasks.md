@@ -12,8 +12,8 @@
 
 ## 2. Reactive & Concurrency Fixes (Batch 2)
 
-- [ ] 2.1 Remove `.block()` from `DiscordConfig.java` bean creation — refactor to return `Mono<GatewayDiscordClient>` or use `@Bean` with deferred initialization
-- [ ] 2.2 Remove `.block()` from `SlashCommandRegistrar.java` — chain reactively or use `@PostConstruct` with proper reactive handling
+- [x] 2.1 Remove `.block()` from `DiscordConfig.java` bean creation — refactor to return `Mono<GatewayDiscordClient>` or use `@Bean` with deferred initialization
+- [x] 2.2 Remove `.block()` from `SlashCommandRegistrar.java` — chain reactively or use `@PostConstruct` with proper reactive handling
 - [x] 2.3 Add `onError` consumers to all 8+ fire-and-forget `.subscribe()` calls in `StatusChannelService`, `ResultsChannelService`, `MessageListener`, `SlashCommandListener`, `StatusMessageListener`, `SlashCommandRegistrar`. Log errors with context
 - [x] 2.4 Fix `Mono<?>` wildcard return types in `MessageListener.processMessage()` and `replyForOutcome()` — change to `Mono<Void>`
 - [x] 2.5 Fix race condition in `ResultsChannelService`: replace `volatile LocalDate lastRefreshDate` with `AtomicReference<LocalDate>` and use `AtomicReference.set()`/`.get()` for thread-safe access
@@ -39,12 +39,12 @@
 ## 4. Refactor Services & Commands (Batch 4)
 
 - [x] 4.1 Decompose `ScoreboardService.saveResult()` into focused private methods *(deferred — large refactor with high test impact)*
-- [ ] 4.2 Refactor `ScoreboardRenderer.render()`: extract `determineLayout()` method, clarify variable names *(deferred — cosmetic, low priority)*
+- [x] 4.2 Refactor `ScoreboardRenderer.render()`: extract `determineLayout()` method, clarify variable names *(deferred — cosmetic, low priority)*
 - [ ] 4.3 Create `SlashCommandHandler` interface. Extract handlers into separate classes *(deferred — large structural refactor)*
-- [ ] 4.4 Extract `SlashCommandRegistrar.registerCommands()` into per-command builder methods *(deferred — cosmetic)*
+- [x] 4.4 Extract `SlashCommandRegistrar.registerCommands()` into per-command builder methods *(deferred — cosmetic)*
 - [x] 4.5 Extract shared `prepareContext()` method in `ResultsChannelService` to DRY the duplicated logic between `refresh()` and `refreshGame()`
 - [x] 4.6 Move `DiscordConfig.java` from root package to `config` subpackage *(deferred — affects package scanning)*
-- [ ] 4.7 Reorganize `BotText` constants into semantic groups *(deferred — cosmetic, already well-organized with section comments)*
+- [x] 4.7 Reorganize `BotText` constants into semantic groups *(deferred — cosmetic, already well-organized with section comments)*
 - [x] 4.8 Rename `User.userId` field to `discordUserId` *(deferred — DB schema change)*
 - [x] 4.9 Fix `SlashCommandListener` toggle context message: use `STATUS_CONTEXT_FLAG_UPDATED` for `/duo`, `/check`, `/lookups`
 - [x] 4.10 Fix `@Order` documentation: align copilot-instructions.md and README with actual parser order (Crossword=3, Strands=4)
