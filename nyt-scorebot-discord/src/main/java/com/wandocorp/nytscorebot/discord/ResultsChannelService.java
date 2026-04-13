@@ -2,6 +2,7 @@ package com.wandocorp.nytscorebot.discord;
 
 import com.wandocorp.nytscorebot.config.DiscordChannelProperties;
 import com.wandocorp.nytscorebot.entity.Scoreboard;
+import com.wandocorp.nytscorebot.model.GameType;
 import com.wandocorp.nytscorebot.service.PuzzleCalendar;
 import com.wandocorp.nytscorebot.service.ScoreboardService;
 import com.wandocorp.nytscorebot.service.StreakService;
@@ -103,7 +104,7 @@ public class ResultsChannelService {
         Scoreboard sb2 = byName.get(name2);
 
         Snowflake channelSnowflake = Snowflake.of(resultsChannelId);
-        Map<String, Map<String, Integer>> streaks = buildStreakMap(sb1, name1, sb2, name2);
+        Map<String, Map<GameType, Integer>> streaks = buildStreakMap(sb1, name1, sb2, name2);
 
         return new RefreshContext(channelSnowflake, sb1, name1, sb2, name2, streaks);
     }
@@ -111,7 +112,7 @@ public class ResultsChannelService {
     private record RefreshContext(Snowflake channelSnowflake,
                                    Scoreboard sb1, String name1,
                                    Scoreboard sb2, String name2,
-                                   Map<String, Map<String, Integer>> streaks) {}
+                                   Map<String, Map<GameType, Integer>> streaks) {}
 
     private void deleteAndRepost(Snowflake channelSnowflake, Snowflake messageId,
                                   String gameType, String content) {
@@ -139,9 +140,9 @@ public class ResultsChannelService {
                 .then();
     }
 
-    private Map<String, Map<String, Integer>> buildStreakMap(Scoreboard sb1, String name1,
+    private Map<String, Map<GameType, Integer>> buildStreakMap(Scoreboard sb1, String name1,
                                                               Scoreboard sb2, String name2) {
-        Map<String, Map<String, Integer>> streaks = new HashMap<>();
+        Map<String, Map<GameType, Integer>> streaks = new HashMap<>();
         if (sb1 != null) streaks.put(name1, streakService.getStreaks(sb1.getUser()));
         if (sb2 != null) streaks.put(name2, streakService.getStreaks(sb2.getUser()));
         return streaks;

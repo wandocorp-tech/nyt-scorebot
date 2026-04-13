@@ -22,6 +22,6 @@ class FlywayMigrationTest {
 
     @Test
     void migrationCreatesValidSchema() {
-        // Context loads → Flyway ran V1, Hibernate validated the schema
+        // Context loads → Flyway ran all migrations, Hibernate validated the schema
     }
 }

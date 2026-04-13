@@ -1,4 +1,4 @@
-package com.wandocorp.nytscorebot;
+package com.wandocorp.nytscorebot.config;
 
 import discord4j.core.DiscordClientBuilder;
 import discord4j.core.GatewayDiscordClient;

@@ -3,6 +3,7 @@ package com.wandocorp.nytscorebot.listener;
 import com.wandocorp.nytscorebot.BotText;
 import com.wandocorp.nytscorebot.config.DiscordChannelProperties;
 import com.wandocorp.nytscorebot.entity.User;
+import com.wandocorp.nytscorebot.model.GameType;
 import com.wandocorp.nytscorebot.repository.UserRepository;
 import com.wandocorp.nytscorebot.service.MarkFinishedOutcome;
 import com.wandocorp.nytscorebot.service.PuzzleCalendar;
@@ -185,13 +186,13 @@ public class SlashCommandListener {
                 .filter(c -> discordUserId.equals(c.getUserId()))
                 .findFirst()
                 .flatMap(c -> userRepository.findByChannelId(c.getId()))
-                .or(() -> userRepository.findByUserId(discordUserId));
+                .or(() -> userRepository.findByDiscordUserId(discordUserId));
         if (userOpt.isEmpty()) {
             return event.reply().withEphemeral(true)
                     .withContent(BotText.MSG_USER_NOT_FOUND);
         }
 
-        streakService.setStreak(userOpt.get(), game, streakInt);
+        streakService.setStreak(userOpt.get(), GameType.fromLabel(game), streakInt);
         resultsChannelService.refresh();
 
         String reply = String.format(BotText.MSG_STREAK_SET, game, streakValue);

@@ -49,7 +49,7 @@ class ScoreboardServiceTest {
         scoreboard = new Scoreboard(user, TODAY);
 
         when(userRepo.findByChannelId(CHANNEL)).thenReturn(Optional.of(user));
-        when(userRepo.findByUserId(USER_ID)).thenReturn(Optional.of(user));
+        when(userRepo.findByDiscordUserId(USER_ID)).thenReturn(Optional.of(user));
         when(scoreboardRepo.findByUserAndDate(user, TODAY)).thenReturn(Optional.of(scoreboard));
         when(scoreboardRepo.save(any(Scoreboard.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -238,7 +238,7 @@ class ScoreboardServiceTest {
 
     @Test
     void markFinishedReturnsUserNotFoundForUnknownDiscordId() {
-        when(userRepo.findByUserId("unknown-id")).thenReturn(Optional.empty());
+        when(userRepo.findByDiscordUserId("unknown-id")).thenReturn(Optional.empty());
         assertThat(service.markFinished("unknown-id", TODAY)).isEqualTo(MarkFinishedOutcome.USER_NOT_FOUND);
     }
 
@@ -322,7 +322,7 @@ class ScoreboardServiceTest {
 
     @Test
     void toggleDuoReturnsUserNotFoundForUnknownUser() {
-        when(userRepo.findByUserId("unknown")).thenReturn(Optional.empty());
+        when(userRepo.findByDiscordUserId("unknown")).thenReturn(Optional.empty());
         assertThat(service.toggleDuo("unknown", TODAY)).isEqualTo(SetFlagOutcome.USER_NOT_FOUND);
     }
 

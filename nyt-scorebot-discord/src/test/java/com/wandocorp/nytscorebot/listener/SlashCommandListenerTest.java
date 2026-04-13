@@ -3,6 +3,7 @@ package com.wandocorp.nytscorebot.listener;
 import com.wandocorp.nytscorebot.BotText;
 import com.wandocorp.nytscorebot.config.DiscordChannelProperties;
 import com.wandocorp.nytscorebot.config.DiscordChannelProperties.ChannelConfig;
+import com.wandocorp.nytscorebot.model.GameType;
 import com.wandocorp.nytscorebot.repository.UserRepository;
 import com.wandocorp.nytscorebot.service.MarkFinishedOutcome;
 import com.wandocorp.nytscorebot.service.PuzzleCalendar;
@@ -357,14 +358,14 @@ class SlashCommandListenerTest {
         ChatInputInteractionEvent event = buildStreakEvent(DISCORD_USER_ID, "Wordle", 5);
         listener.handleStreak(event).subscribe();
 
-        verify(streakService).setStreak(eq(dbUser), eq("Wordle"), eq(5));
+        verify(streakService).setStreak(eq(dbUser), eq(GameType.WORDLE), eq(5));
         verify(resultsChannelService).refresh();
     }
 
     @Test
     void handleStreakReturnsUserNotFoundWhenUnknown() {
         when(userRepository.findByChannelId("ch1")).thenReturn(Optional.empty());
-        when(userRepository.findByUserId(DISCORD_USER_ID)).thenReturn(Optional.empty());
+        when(userRepository.findByDiscordUserId(DISCORD_USER_ID)).thenReturn(Optional.empty());
 
         InteractionApplicationCommandCallbackReplyMono replySpec =
                 mock(InteractionApplicationCommandCallbackReplyMono.class);

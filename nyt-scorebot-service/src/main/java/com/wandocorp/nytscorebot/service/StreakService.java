@@ -1,9 +1,9 @@
 package com.wandocorp.nytscorebot.service;
 
-import com.wandocorp.nytscorebot.BotText;
 import com.wandocorp.nytscorebot.entity.Streak;
 import com.wandocorp.nytscorebot.entity.User;
-import com.wandocorp.nytscorebot.model.*;
+import com.wandocorp.nytscorebot.model.GameResult;
+import com.wandocorp.nytscorebot.model.GameType;
 import com.wandocorp.nytscorebot.repository.StreakRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -23,7 +23,7 @@ public class StreakService {
 
     @Transactional
     public void updateStreak(User user, GameResult result) {
-        String gameType = resolveGameType(result);
+        GameType gameType = resolveGameType(result);
         if (gameType == null) return;
 
         boolean success = isSuccess(result);
@@ -64,7 +64,7 @@ public class StreakService {
     }
 
     @Transactional
-    public void setStreak(User user, String gameType, int value) {
+    public void setStreak(User user, GameType gameType, int value) {
         LocalDate today = puzzleCalendar.today();
 
         Streak streak = streakRepository.findByUserAndGameType(user, gameType)
@@ -75,22 +75,22 @@ public class StreakService {
         streakRepository.save(streak);
     }
 
-    public Map<String, Integer> getStreaks(User user) {
+    public Map<GameType, Integer> getStreaks(User user) {
         return streakRepository.findAllByUser(user).stream()
                 .collect(Collectors.toMap(Streak::getGameType, Streak::getCurrentStreak));
     }
 
-    public int getStreak(User user, String gameType) {
+    public int getStreak(User user, GameType gameType) {
         return streakRepository.findByUserAndGameType(user, gameType)
                 .map(Streak::getCurrentStreak)
                 .orElse(0);
     }
 
-    static String resolveGameType(GameResult result) {
+    static GameType resolveGameType(GameResult result) {
         return switch (result.gameType()) {
-            case WORDLE -> BotText.GAME_LABEL_WORDLE;
-            case CONNECTIONS -> BotText.GAME_LABEL_CONNECTIONS;
-            case STRANDS -> BotText.GAME_LABEL_STRANDS;
+            case WORDLE -> GameType.WORDLE;
+            case CONNECTIONS -> GameType.CONNECTIONS;
+            case STRANDS -> GameType.STRANDS;
             default -> null; // Crosswords are not streak-tracked
         };
     }

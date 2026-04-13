@@ -7,7 +7,7 @@
 - [ ] 1.5 _(Deferred to Batch 3 — depends on Flyway)_ Normalize `Scoreboard` entity: remove all `@Embedded`/`@AttributeOverride` blocks, add `@OneToMany` relationship to a new `GameResultEntity` table using `@Inheritance(SINGLE_TABLE)` with `game_type` discriminator
 - [ ] 1.6 _(Deferred to Batch 3 — depends on 1.5)_ Update `ScoreboardRepository` queries and `ScoreboardService` logic to work with the normalized game_result table (duplicate detection via game_type query, apply result via insert, allGamesPresent via count)
 - [ ] 1.7 _(Deferred to after 1.5/1.6 — boxed primitives needed for @Embedded JPA)_ Replace boxed primitives (`Integer`, `Boolean`) with primitives in `WordleResult`, `ConnectionsResult`, `StrandsResult` fields where values are never semantically null
-- [ ] 1.8 _(Deferred to Batch 4 — cascading change through ScoreboardRenderer/ResultsChannelService)_ Update `Streak.gameType` field from `String` to `GameType` enum with `@Enumerated(EnumType.STRING)`
+- [x] 1.8 _(Deferred to Batch 4 — cascading change through ScoreboardRenderer/ResultsChannelService)_ Update `Streak.gameType` field from `String` to `GameType` enum with `@Enumerated(EnumType.STRING)`
 - [x] 1.9 Update all tests for model changes: parser tests, service tests, renderer tests. Ensure ≥80% coverage maintained
 
 ## 2. Reactive & Concurrency Fixes (Batch 2)
@@ -38,14 +38,14 @@
 
 ## 4. Refactor Services & Commands (Batch 4)
 
-- [ ] 4.1 Decompose `ScoreboardService.saveResult()` into focused private methods *(deferred — large refactor with high test impact)*
+- [x] 4.1 Decompose `ScoreboardService.saveResult()` into focused private methods *(deferred — large refactor with high test impact)*
 - [ ] 4.2 Refactor `ScoreboardRenderer.render()`: extract `determineLayout()` method, clarify variable names *(deferred — cosmetic, low priority)*
 - [ ] 4.3 Create `SlashCommandHandler` interface. Extract handlers into separate classes *(deferred — large structural refactor)*
 - [ ] 4.4 Extract `SlashCommandRegistrar.registerCommands()` into per-command builder methods *(deferred — cosmetic)*
 - [x] 4.5 Extract shared `prepareContext()` method in `ResultsChannelService` to DRY the duplicated logic between `refresh()` and `refreshGame()`
-- [ ] 4.6 Move `DiscordConfig.java` from root package to `config` subpackage *(deferred — affects package scanning)*
+- [x] 4.6 Move `DiscordConfig.java` from root package to `config` subpackage *(deferred — affects package scanning)*
 - [ ] 4.7 Reorganize `BotText` constants into semantic groups *(deferred — cosmetic, already well-organized with section comments)*
-- [ ] 4.8 Rename `User.userId` field to `discordUserId` *(deferred — DB schema change)*
+- [x] 4.8 Rename `User.userId` field to `discordUserId` *(deferred — DB schema change)*
 - [x] 4.9 Fix `SlashCommandListener` toggle context message: use `STATUS_CONTEXT_FLAG_UPDATED` for `/duo`, `/check`, `/lookups`
 - [x] 4.10 Fix `@Order` documentation: align copilot-instructions.md and README with actual parser order (Crossword=3, Strands=4)
 - [x] 4.11 Update tests for all refactored classes; verify ≥80% coverage maintained
@@ -57,7 +57,7 @@
 - [ ] 5.3 Add StringListConverter test for delimiter collision *(deferred — edge case)*
 - [x] 5.4 Remove duplicate mock setup in `StatusChannelServiceTest` (line 50-51)
 - [x] 5.5 Unify JaCoCo branch coverage threshold: set `nyt-scorebot-discord/pom.xml` minimum to 0.80 (matching root)
-- [ ] 5.6 Fix `CrosswordParser.extractDate()`: change return type to `Optional<LocalDate>` *(deferred — cascading change through model layer)*
+- [x] 5.6 Fix `CrosswordParser.extractDate()`: change return type to `Optional<LocalDate>` *(deferred — cascading change through model layer)*
 - [x] 5.7 Fix `ConnectionsParser.lastIndexOf` bug: use tracked forward search offsets instead of `content.lastIndexOf(line)`
 - [x] 5.8 Refactor `GameResultParser` to idiomatic `flatMap` chain
 - [x] 5.9 Fix `StrandsParser` formatting defect: add newline between methods

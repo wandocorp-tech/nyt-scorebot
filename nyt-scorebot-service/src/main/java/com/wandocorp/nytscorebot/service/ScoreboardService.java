@@ -35,7 +35,7 @@ public class ScoreboardService {
 
     @Transactional
     public MarkFinishedOutcome markFinished(String discordUserId, LocalDate date) {
-        return userRepository.findByUserId(discordUserId)
+        return userRepository.findByDiscordUserId(discordUserId)
                 .map(user -> scoreboardRepository.findByUserAndDate(user, date)
                         .map(scoreboard -> {
                             if (scoreboard.isFinished()) {
@@ -52,45 +52,51 @@ public class ScoreboardService {
 
     @Transactional
     public SaveOutcome saveResult(String channelId, String personName, String discordUserId, GameResult result) {
-        LocalDate today = puzzleCalendar.today();
-
-        // Validate puzzle number (numbered games only)
         SaveOutcome validation = validate(result);
         if (validation != SaveOutcome.SAVED) {
             log.info("Rejected {} result for {}: {}", result.getClass().getSimpleName(), personName, validation);
             return validation;
         }
 
-        // Crosswords are stored against their own embedded date; all other results use today
-        LocalDate resultDate = result.resultDate() != null ? result.resultDate() : today;
+        LocalDate resultDate = resolveDate(result);
+        User user = findOrCreateUser(channelId, personName, discordUserId);
+        Scoreboard scoreboard = findOrCreateScoreboard(user, resultDate);
 
-        User user = userRepository.findByChannelId(channelId)
-                .orElseGet(() -> userRepository.save(new User(channelId, personName, discordUserId)));
-
-        Scoreboard scoreboard = scoreboardRepository.findByUserAndDate(user, resultDate)
-                .orElseGet(() -> scoreboardRepository.save(new Scoreboard(user, resultDate)));
-
-        // Check for duplicate submission
         if (isAlreadySubmitted(scoreboard, result)) {
-            log.info("Duplicate {} result for {} on {}", result.getClass().getSimpleName(), personName, today);
+            log.info("Duplicate {} result for {} on {}", result.getClass().getSimpleName(), personName, resultDate);
             return SaveOutcome.ALREADY_SUBMITTED;
         }
 
         applyResult(scoreboard, result);
         scoreboardRepository.save(scoreboard);
-
-        // Update streak within the same transaction
         streakService.updateStreak(user, result);
+        autoFinishIfComplete(scoreboard, personName, resultDate);
 
-        // Auto-set finished flag if all 6 games are now present
+        log.info("Saved {} result for {} on {}", result.getClass().getSimpleName(), personName, resultDate);
+        return SaveOutcome.SAVED;
+    }
+
+    private LocalDate resolveDate(GameResult result) {
+        LocalDate embedded = result.resultDate();
+        return embedded != null ? embedded : puzzleCalendar.today();
+    }
+
+    private User findOrCreateUser(String channelId, String personName, String discordUserId) {
+        return userRepository.findByChannelId(channelId)
+                .orElseGet(() -> userRepository.save(new User(channelId, personName, discordUserId)));
+    }
+
+    private Scoreboard findOrCreateScoreboard(User user, LocalDate date) {
+        return scoreboardRepository.findByUserAndDate(user, date)
+                .orElseGet(() -> scoreboardRepository.save(new Scoreboard(user, date)));
+    }
+
+    private void autoFinishIfComplete(Scoreboard scoreboard, String personName, LocalDate date) {
         if (allGamesPresent(scoreboard)) {
             scoreboard.setFinished(true);
             scoreboardRepository.save(scoreboard);
-            log.info("Auto-marked scoreboard finished for {} on {} (all 6 games present)", personName, resultDate);
+            log.info("Auto-marked scoreboard finished for {} on {} (all 6 games present)", personName, date);
         }
-
-        log.info("Saved {} result for {} on {}", result.getClass().getSimpleName(), personName, today);
-        return SaveOutcome.SAVED;
     }
 
     private SaveOutcome validate(GameResult result) {
@@ -161,7 +167,7 @@ public class ScoreboardService {
 
     private SetFlagOutcome withMainCrossword(String discordUserId, LocalDate date,
                                               Function<MainCrosswordResult, SetFlagOutcome> action) {
-        return userRepository.findByUserId(discordUserId)
+        return userRepository.findByDiscordUserId(discordUserId)
                 .map(user -> scoreboardRepository.findByUserAndDate(user, date)
                         .map(scoreboard -> {
                             MainCrosswordResult main = scoreboard.getMainCrosswordResult();

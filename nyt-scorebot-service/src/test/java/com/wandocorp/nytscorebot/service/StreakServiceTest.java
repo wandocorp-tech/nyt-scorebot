@@ -1,6 +1,5 @@
 package com.wandocorp.nytscorebot.service;
 
-import com.wandocorp.nytscorebot.BotText;
 import com.wandocorp.nytscorebot.entity.Streak;
 import com.wandocorp.nytscorebot.entity.User;
 import com.wandocorp.nytscorebot.model.*;
@@ -42,8 +41,8 @@ class StreakServiceTest {
 
     @Test
     void consecutiveDayWordleSuccessIncrementsStreak() {
-        Streak existing = new Streak(user, BotText.GAME_LABEL_WORDLE, 3, YESTERDAY);
-        when(streakRepo.findByUserAndGameType(user, BotText.GAME_LABEL_WORDLE))
+        Streak existing = new Streak(user, GameType.WORDLE, 3, YESTERDAY);
+        when(streakRepo.findByUserAndGameType(user, GameType.WORDLE))
                 .thenReturn(Optional.of(existing));
 
         WordleResult result = new WordleResult("raw", "author", null, 100, 4, true, false);
@@ -55,8 +54,8 @@ class StreakServiceTest {
 
     @Test
     void consecutiveDayConnectionsSuccessIncrementsStreak() {
-        Streak existing = new Streak(user, BotText.GAME_LABEL_CONNECTIONS, 7, YESTERDAY);
-        when(streakRepo.findByUserAndGameType(user, BotText.GAME_LABEL_CONNECTIONS))
+        Streak existing = new Streak(user, GameType.CONNECTIONS, 7, YESTERDAY);
+        when(streakRepo.findByUserAndGameType(user, GameType.CONNECTIONS))
                 .thenReturn(Optional.of(existing));
 
         ConnectionsResult result = new ConnectionsResult("raw", "author", null, 100, 0, true, List.of());
@@ -69,8 +68,8 @@ class StreakServiceTest {
 
     @Test
     void gapResetThenSuccessSetsStreakToOne() {
-        Streak existing = new Streak(user, BotText.GAME_LABEL_WORDLE, 5, TODAY.minusDays(3));
-        when(streakRepo.findByUserAndGameType(user, BotText.GAME_LABEL_WORDLE))
+        Streak existing = new Streak(user, GameType.WORDLE, 5, TODAY.minusDays(3));
+        when(streakRepo.findByUserAndGameType(user, GameType.WORDLE))
                 .thenReturn(Optional.of(existing));
 
         WordleResult result = new WordleResult("raw", "author", null, 100, 3, true, false);
@@ -84,8 +83,8 @@ class StreakServiceTest {
 
     @Test
     void gapResetThenFailureSetsStreakToZero() {
-        Streak existing = new Streak(user, BotText.GAME_LABEL_WORDLE, 5, TODAY.minusDays(2));
-        when(streakRepo.findByUserAndGameType(user, BotText.GAME_LABEL_WORDLE))
+        Streak existing = new Streak(user, GameType.WORDLE, 5, TODAY.minusDays(2));
+        when(streakRepo.findByUserAndGameType(user, GameType.WORDLE))
                 .thenReturn(Optional.of(existing));
 
         WordleResult result = new WordleResult("raw", "author", null, 100, 6, false, false);
@@ -99,7 +98,7 @@ class StreakServiceTest {
 
     @Test
     void firstEverSubmissionCreatesStreakOfOne() {
-        when(streakRepo.findByUserAndGameType(user, BotText.GAME_LABEL_WORDLE))
+        when(streakRepo.findByUserAndGameType(user, GameType.WORDLE))
                 .thenReturn(Optional.empty());
         when(streakRepo.save(any(Streak.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -113,7 +112,7 @@ class StreakServiceTest {
 
     @Test
     void firstEverFailedSubmissionCreatesStreakOfZero() {
-        when(streakRepo.findByUserAndGameType(user, BotText.GAME_LABEL_WORDLE))
+        when(streakRepo.findByUserAndGameType(user, GameType.WORDLE))
                 .thenReturn(Optional.empty());
         when(streakRepo.save(any(Streak.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -129,8 +128,8 @@ class StreakServiceTest {
 
     @Test
     void strandsAlwaysSucceeds() {
-        Streak existing = new Streak(user, BotText.GAME_LABEL_STRANDS, 10, YESTERDAY);
-        when(streakRepo.findByUserAndGameType(user, BotText.GAME_LABEL_STRANDS))
+        Streak existing = new Streak(user, GameType.STRANDS, 10, YESTERDAY);
+        when(streakRepo.findByUserAndGameType(user, GameType.STRANDS))
                 .thenReturn(Optional.of(existing));
 
         StrandsResult result = new StrandsResult("raw", "author", null, 100, 3);
@@ -143,8 +142,8 @@ class StreakServiceTest {
 
     @Test
     void wordleFailureResetsStreakToZero() {
-        Streak existing = new Streak(user, BotText.GAME_LABEL_WORDLE, 8, YESTERDAY);
-        when(streakRepo.findByUserAndGameType(user, BotText.GAME_LABEL_WORDLE))
+        Streak existing = new Streak(user, GameType.WORDLE, 8, YESTERDAY);
+        when(streakRepo.findByUserAndGameType(user, GameType.WORDLE))
                 .thenReturn(Optional.of(existing));
 
         WordleResult result = new WordleResult("raw", "author", null, 100, 6, false, false);
@@ -158,8 +157,8 @@ class StreakServiceTest {
 
     @Test
     void connectionsFailureResetsStreakToZero() {
-        Streak existing = new Streak(user, BotText.GAME_LABEL_CONNECTIONS, 4, YESTERDAY);
-        when(streakRepo.findByUserAndGameType(user, BotText.GAME_LABEL_CONNECTIONS))
+        Streak existing = new Streak(user, GameType.CONNECTIONS, 4, YESTERDAY);
+        when(streakRepo.findByUserAndGameType(user, GameType.CONNECTIONS))
                 .thenReturn(Optional.of(existing));
 
         ConnectionsResult result = new ConnectionsResult("raw", "author", null, 100, 4, false, List.of());
@@ -184,8 +183,8 @@ class StreakServiceTest {
 
     @Test
     void sameDayUpdateIsNoOp() {
-        Streak existing = new Streak(user, BotText.GAME_LABEL_WORDLE, 5, TODAY);
-        when(streakRepo.findByUserAndGameType(user, BotText.GAME_LABEL_WORDLE))
+        Streak existing = new Streak(user, GameType.WORDLE, 5, TODAY);
+        when(streakRepo.findByUserAndGameType(user, GameType.WORDLE))
                 .thenReturn(Optional.of(existing));
 
         WordleResult result = new WordleResult("raw", "author", null, 100, 3, true, false);
@@ -200,11 +199,11 @@ class StreakServiceTest {
 
     @Test
     void setStreakUpdatesExistingRecord() {
-        Streak existing = new Streak(user, BotText.GAME_LABEL_WORDLE, 3, YESTERDAY);
-        when(streakRepo.findByUserAndGameType(user, BotText.GAME_LABEL_WORDLE))
+        Streak existing = new Streak(user, GameType.WORDLE, 3, YESTERDAY);
+        when(streakRepo.findByUserAndGameType(user, GameType.WORDLE))
                 .thenReturn(Optional.of(existing));
 
-        service.setStreak(user, BotText.GAME_LABEL_WORDLE, 10);
+        service.setStreak(user, GameType.WORDLE, 10);
 
         assertThat(existing.getCurrentStreak()).isEqualTo(10);
         assertThat(existing.getLastUpdatedDate()).isEqualTo(TODAY);
@@ -213,10 +212,10 @@ class StreakServiceTest {
 
     @Test
     void setStreakCreatesNewRecordWhenNoneExists() {
-        when(streakRepo.findByUserAndGameType(user, BotText.GAME_LABEL_WORDLE))
+        when(streakRepo.findByUserAndGameType(user, GameType.WORDLE))
                 .thenReturn(Optional.empty());
 
-        service.setStreak(user, BotText.GAME_LABEL_WORDLE, 5);
+        service.setStreak(user, GameType.WORDLE, 5);
 
         verify(streakRepo).save(any(Streak.class));
     }
@@ -225,32 +224,32 @@ class StreakServiceTest {
 
     @Test
     void getStreaksReturnsMapOfGameTypeToStreak() {
-        Streak wordleStreak = new Streak(user, BotText.GAME_LABEL_WORDLE, 5, TODAY);
-        Streak strandsStreak = new Streak(user, BotText.GAME_LABEL_STRANDS, 3, TODAY);
+        Streak wordleStreak = new Streak(user, GameType.WORDLE, 5, TODAY);
+        Streak strandsStreak = new Streak(user, GameType.STRANDS, 3, TODAY);
         when(streakRepo.findAllByUser(user)).thenReturn(List.of(wordleStreak, strandsStreak));
 
         var streaks = service.getStreaks(user);
 
-        assertThat(streaks).containsEntry(BotText.GAME_LABEL_WORDLE, 5);
-        assertThat(streaks).containsEntry(BotText.GAME_LABEL_STRANDS, 3);
+        assertThat(streaks).containsEntry(GameType.WORDLE, 5);
+        assertThat(streaks).containsEntry(GameType.STRANDS, 3);
         assertThat(streaks).hasSize(2);
     }
 
     @Test
     void getStreakReturnsZeroWhenNoRecord() {
-        when(streakRepo.findByUserAndGameType(user, BotText.GAME_LABEL_WORDLE))
+        when(streakRepo.findByUserAndGameType(user, GameType.WORDLE))
                 .thenReturn(Optional.empty());
 
-        assertThat(service.getStreak(user, BotText.GAME_LABEL_WORDLE)).isEqualTo(0);
+        assertThat(service.getStreak(user, GameType.WORDLE)).isEqualTo(0);
     }
 
     @Test
     void getStreakReturnsCurrentValue() {
-        Streak existing = new Streak(user, BotText.GAME_LABEL_WORDLE, 7, TODAY);
-        when(streakRepo.findByUserAndGameType(user, BotText.GAME_LABEL_WORDLE))
+        Streak existing = new Streak(user, GameType.WORDLE, 7, TODAY);
+        when(streakRepo.findByUserAndGameType(user, GameType.WORDLE))
                 .thenReturn(Optional.of(existing));
 
-        assertThat(service.getStreak(user, BotText.GAME_LABEL_WORDLE)).isEqualTo(7);
+        assertThat(service.getStreak(user, GameType.WORDLE)).isEqualTo(7);
     }
 
     // ── resolveGameType / isSuccess ──────────────────────────────────────────

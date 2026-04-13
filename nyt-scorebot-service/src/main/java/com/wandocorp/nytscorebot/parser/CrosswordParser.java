@@ -45,19 +45,19 @@ public class CrosswordParser implements GameParser {
     public Optional<GameResult> parse(String content, String discordAuthor) {
         Matcher mini = MINI.matcher(content);
         if (mini.find()) {
-            LocalDate date = extractDate(content);
+            LocalDate date = extractDate(content).orElse(null);
             return Optional.of(build(content, discordAuthor, CrosswordType.MINI, mini.group(1), date, mini));
         }
 
         Matcher midi = MIDI.matcher(content);
         if (midi.find()) {
-            LocalDate date = extractDate(content);
+            LocalDate date = extractDate(content).orElse(null);
             return Optional.of(build(content, discordAuthor, CrosswordType.MIDI, midi.group(1), date, midi));
         }
 
         Matcher daily = DAILY.matcher(content);
         if (daily.find()) {
-            LocalDate date = extractDate(content);
+            LocalDate date = extractDate(content).orElse(null);
             return Optional.of(buildMain(content, discordAuthor, daily.group(1), date, daily));
         }
 
@@ -75,14 +75,14 @@ public class CrosswordParser implements GameParser {
     }
 
     /** Extract date from text format M/D/YYYY or URL format /daily/YYYY/M/DD. Text format takes priority. */
-    private LocalDate extractDate(String content) {
+    private Optional<LocalDate> extractDate(String content) {
         // Try text format first (M/D/YYYY)
         Matcher textDate = TEXT_DATE.matcher(content);
         if (textDate.find()) {
             int month = Integer.parseInt(textDate.group(1));
             int day = Integer.parseInt(textDate.group(2));
             int year = Integer.parseInt(textDate.group(3));
-            return LocalDate.of(year, month, day);
+            return Optional.of(LocalDate.of(year, month, day));
         }
 
         // Fall back to URL format (/daily/YYYY/M/DD)
@@ -91,10 +91,10 @@ public class CrosswordParser implements GameParser {
             int year = Integer.parseInt(urlDate.group(1));
             int month = Integer.parseInt(urlDate.group(2));
             int day = Integer.parseInt(urlDate.group(3));
-            return LocalDate.of(year, month, day);
+            return Optional.of(LocalDate.of(year, month, day));
         }
 
-        return null;
+        return Optional.empty();
     }
 
     private String extractComment(String content, Matcher matcher) {
