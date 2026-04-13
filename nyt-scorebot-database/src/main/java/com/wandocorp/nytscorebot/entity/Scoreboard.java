@@ -79,10 +79,7 @@ public class Scoreboard {
         @AttributeOverride(name = "type",          column = @Column(name = "crossword_mini_type")),
         @AttributeOverride(name = "timeString",    column = @Column(name = "crossword_mini_time_string")),
         @AttributeOverride(name = "totalSeconds",  column = @Column(name = "crossword_mini_total_seconds")),
-        @AttributeOverride(name = "date",          column = @Column(name = "crossword_mini_date")),
-        @AttributeOverride(name = "duo",           column = @Column(name = "crossword_mini_duo")),
-        @AttributeOverride(name = "lookups",       column = @Column(name = "crossword_mini_lookups")),
-        @AttributeOverride(name = "checkUsed",     column = @Column(name = "crossword_mini_check_used"))
+        @AttributeOverride(name = "date",          column = @Column(name = "crossword_mini_date"))
     })
     private CrosswordResult miniCrosswordResult;
 
@@ -95,10 +92,7 @@ public class Scoreboard {
         @AttributeOverride(name = "type",          column = @Column(name = "crossword_midi_type")),
         @AttributeOverride(name = "timeString",    column = @Column(name = "crossword_midi_time_string")),
         @AttributeOverride(name = "totalSeconds",  column = @Column(name = "crossword_midi_total_seconds")),
-        @AttributeOverride(name = "date",          column = @Column(name = "crossword_midi_date")),
-        @AttributeOverride(name = "duo",           column = @Column(name = "crossword_midi_duo")),
-        @AttributeOverride(name = "lookups",       column = @Column(name = "crossword_midi_lookups")),
-        @AttributeOverride(name = "checkUsed",     column = @Column(name = "crossword_midi_check_used"))
+        @AttributeOverride(name = "date",          column = @Column(name = "crossword_midi_date"))
     })
     private CrosswordResult midiCrosswordResult;
 
@@ -116,7 +110,7 @@ public class Scoreboard {
         @AttributeOverride(name = "lookups",       column = @Column(name = "crossword_daily_lookups")),
         @AttributeOverride(name = "checkUsed",     column = @Column(name = "crossword_daily_check_used"))
     })
-    private CrosswordResult mainCrosswordResult;
+    private MainCrosswordResult mainCrosswordResult;
 
     public Scoreboard(User user, LocalDate date) {
         this.user = user;

@@ -1,7 +1,10 @@
 package com.wandocorp.nytscorebot.model;
 
+import com.wandocorp.nytscorebot.BotText;
 import jakarta.persistence.Embeddable;
 import lombok.Getter;
+
+import java.util.OptionalInt;
 
 @Getter
 @Embeddable
@@ -17,6 +20,26 @@ public class StrandsResult extends GameResult {
         super(rawContent, discordAuthor, comment);
         this.puzzleNumber = puzzleNumber;
         this.hintsUsed = hintsUsed;
+    }
+
+    @Override
+    public GameType gameType() {
+        return GameType.STRANDS;
+    }
+
+    @Override
+    public String gameLabel() {
+        return BotText.GAME_LABEL_STRANDS;
+    }
+
+    @Override
+    public boolean isSuccess() {
+        return true; // Strands is always a success (you always finish)
+    }
+
+    @Override
+    public OptionalInt puzzleNumber() {
+        return puzzleNumber != null ? OptionalInt.of(puzzleNumber) : OptionalInt.empty();
     }
 
     @Override

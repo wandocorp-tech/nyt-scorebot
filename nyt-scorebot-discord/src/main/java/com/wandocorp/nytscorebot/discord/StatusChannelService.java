@@ -9,12 +9,14 @@ import discord4j.core.GatewayDiscordClient;
 import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.channel.MessageChannel;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
+@Slf4j
 @RequiredArgsConstructor
 @Service
 public class StatusChannelService {
@@ -34,7 +36,9 @@ public class StatusChannelService {
         deletePreviousMessage(channelSnowflake)
                 .then(postNewMessage(channelSnowflake, table))
                 .doOnNext(msg -> lastMessageId.set(msg.getId()))
-                .subscribe();
+                .subscribe(
+                        v -> {},
+                        error -> log.error("Error refreshing status channel", error));
     }
 
     private Mono<Void> deletePreviousMessage(Snowflake channelSnowflake) {

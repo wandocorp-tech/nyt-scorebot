@@ -6,9 +6,11 @@ import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.domain.message.MessageCreateEvent;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
+@Slf4j
 @RequiredArgsConstructor
 @Component
 public class StatusMessageListener {
@@ -34,6 +36,8 @@ public class StatusMessageListener {
                         .map(u -> !u.getId().equals(botId))
                         .orElse(true))
                 .flatMap(e -> e.getMessage().delete())
-                .subscribe();
+                .subscribe(
+                        v -> {},
+                        error -> log.error("Error in status message listener pipeline", error));
     }
 }

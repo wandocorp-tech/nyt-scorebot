@@ -42,5 +42,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: app-jar
-          path: nyt-scorebot-app/target/nyt-scorebot-app-1.0-SNAPSHOT.jar
+          path: nyt-scorebot-app/target/nyt-scorebot-app-*.jar
           retention-days: 7

@@ -1,5 +1,6 @@
 package com.wandocorp.nytscorebot.entity;
 
+import com.wandocorp.nytscorebot.model.GameType;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -25,8 +26,9 @@ public class Streak {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "game_type", nullable = false)
-    private String gameType;
+    private GameType gameType;
 
     @Setter
     @Column(name = "current_streak", nullable = false)
@@ -36,7 +38,7 @@ public class Streak {
     @Column(name = "last_updated_date", nullable = false)
     private LocalDate lastUpdatedDate;
 
-    public Streak(User user, String gameType, int currentStreak, LocalDate lastUpdatedDate) {
+    public Streak(User user, GameType gameType, int currentStreak, LocalDate lastUpdatedDate) {
         this.user = user;
         this.gameType = gameType;
         this.currentStreak = currentStreak;

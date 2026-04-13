@@ -2,7 +2,7 @@ package com.wandocorp.nytscorebot.service.scoreboard;
 
 import com.wandocorp.nytscorebot.BotText;
 import com.wandocorp.nytscorebot.entity.Scoreboard;
-import com.wandocorp.nytscorebot.model.CrosswordResult;
+import com.wandocorp.nytscorebot.model.MainCrosswordResult;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
@@ -30,7 +30,7 @@ public class MainCrosswordScoreboard implements GameComparisonScoreboard {
 
     @Override
     public String header(Scoreboard scoreboard) {
-        CrosswordResult r = scoreboard.getMainCrosswordResult();
+        MainCrosswordResult r = scoreboard.getMainCrosswordResult();
         String dateStr = r.getDate() != null ? r.getDate().format(DATE_FMT) : "?";
         return String.format(BotText.SCOREBOARD_MAIN_HEADER, dateStr);
     }
@@ -47,7 +47,8 @@ public class MainCrosswordScoreboard implements GameComparisonScoreboard {
 
     @Override
     public String flagsRow(Scoreboard scoreboard) {
-        return buildFlagsString(scoreboard.getMainCrosswordResult());
+        MainCrosswordResult main = scoreboard.getMainCrosswordResult();
+        return buildFlagsString(main);
     }
 
     @Override
@@ -64,7 +65,7 @@ public class MainCrosswordScoreboard implements GameComparisonScoreboard {
     @Override public int maxEmojisPerRow() { return 6; }
     @Override public boolean usesScoreLabelRow() { return true; }
 
-    static String buildFlagsString(CrosswordResult r) {
+    static String buildFlagsString(MainCrosswordResult r) {
         List<String> parts = new ArrayList<>();
         if (Boolean.TRUE.equals(r.getDuo())) {
             parts.add(BotText.FLAG_DUO);

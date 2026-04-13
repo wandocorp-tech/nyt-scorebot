@@ -4,6 +4,8 @@ import com.wandocorp.nytscorebot.entity.Scoreboard;
 import com.wandocorp.nytscorebot.entity.User;
 import com.wandocorp.nytscorebot.model.CrosswordResult;
 import com.wandocorp.nytscorebot.model.CrosswordType;
+import com.wandocorp.nytscorebot.model.GameType;
+import com.wandocorp.nytscorebot.model.MainCrosswordResult;
 import com.wandocorp.nytscorebot.model.WordleResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,9 +24,9 @@ class ScoreboardRendererTest {
     private static final String WORDLE_4 =
             "Wordle 1738 4/6\n\n⬛⬛⬛🟨⬛\n⬛⬛⬛⬛🟨\n🟨🟨🟩⬛⬛\n🟩🟩🟩🟩🟩";
 
-    private static final Map<String, Map<String, Integer>> STREAKS = Map.of(
-            "William", Map.of("Wordle", 5),
-            "Conor", Map.of("Wordle", 3)
+    private static final Map<String, Map<GameType, Integer>> STREAKS = Map.of(
+            "William", Map.of(GameType.WORDLE, 5),
+            "Conor", Map.of(GameType.WORDLE, 3)
     );
 
     private WordleScoreboard wordleGame;
@@ -176,7 +178,7 @@ class ScoreboardRendererTest {
         sb2.setMiniCrosswordResult(new CrosswordResult("raw", "a", null, CrosswordType.MINI, "1:00", 60, LocalDate.now()));
 
         Optional<String> rendered = crosswordRenderer.render(miniGame, sb1, "William", sb2, "Conor",
-                Map.of("William", Map.of("Mini", 5), "Conor", Map.of("Mini", 3)));
+                Map.of("William", Map.of(GameType.MINI_CROSSWORD, 5), "Conor", Map.of(GameType.MINI_CROSSWORD, 3)));
 
         assertThat(rendered).isPresent();
         String output = rendered.get();
@@ -193,13 +195,13 @@ class ScoreboardRendererTest {
         MainCrosswordScoreboard mainGame = new MainCrosswordScoreboard();
         ScoreboardRenderer crosswordRenderer = new ScoreboardRenderer(List.of(mainGame));
 
-        CrosswordResult r1 = new CrosswordResult("raw", "a", null, CrosswordType.MAIN, "5:00", 300, LocalDate.now());
+        MainCrosswordResult r1 = new MainCrosswordResult("raw", "a", null, "5:00", 300, LocalDate.now());
         r1.setDuo(true);
         r1.setLookups(2);
         Scoreboard sb1 = new Scoreboard(new User("c1", "test", "u1"), LocalDate.now());
         sb1.setMainCrosswordResult(r1);
 
-        CrosswordResult r2 = new CrosswordResult("raw", "a", null, CrosswordType.MAIN, "7:30", 450, LocalDate.now());
+        MainCrosswordResult r2 = new MainCrosswordResult("raw", "a", null, "7:30", 450, LocalDate.now());
         r2.setCheckUsed(true);
         Scoreboard sb2 = new Scoreboard(new User("c2", "test", "u2"), LocalDate.now());
         sb2.setMainCrosswordResult(r2);
@@ -245,7 +247,7 @@ class ScoreboardRendererTest {
         Scoreboard william = sbWith(wordle(WORDLE_4, 4, true));
         Scoreboard conor = sbWith(wordle(WORDLE_4, 4, true));
 
-        Map<String, Map<String, Integer>> emptyStreaks = Map.of();
+        Map<String, Map<GameType, Integer>> emptyStreaks = Map.of();
         Optional<String> rendered = renderer.render(wordleGame, william, "William", conor, "Conor", emptyStreaks);
 
         assertThat(rendered).isPresent();

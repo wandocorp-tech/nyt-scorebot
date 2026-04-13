@@ -3,6 +3,7 @@ package com.wandocorp.nytscorebot.listener;
 import com.wandocorp.nytscorebot.BotText;
 import com.wandocorp.nytscorebot.config.DiscordChannelProperties;
 import com.wandocorp.nytscorebot.entity.User;
+import com.wandocorp.nytscorebot.model.GameType;
 import com.wandocorp.nytscorebot.repository.UserRepository;
 import com.wandocorp.nytscorebot.service.MarkFinishedOutcome;
 import com.wandocorp.nytscorebot.service.PuzzleCalendar;
@@ -51,7 +52,9 @@ public class SlashCommandListener {
                     case BotText.CMD_STREAK   -> handleStreak(event);
                     default -> Mono.empty();
                 })
-                .subscribe();
+                .subscribe(
+                        v -> {},
+                        error -> log.error("Error in slash command listener pipeline", error));
     }
 
     Mono<Void> handleFinished(ChatInputInteractionEvent event) {
@@ -148,7 +151,7 @@ public class SlashCommandListener {
                 .map(DiscordChannelProperties.ChannelConfig::getName)
                 .findFirst()
                 .orElse(discordUserId);
-        String contextMessage = String.format(BotText.STATUS_CONTEXT_PLAYER_FINISHED, playerName);
+        String contextMessage = String.format(BotText.STATUS_CONTEXT_FLAG_UPDATED, playerName, BotText.GAME_LABEL_MAIN);
         statusChannelService.refresh(contextMessage);
         resultsChannelService.refreshGame(BotText.GAME_LABEL_MAIN);
     }
@@ -183,13 +186,13 @@ public class SlashCommandListener {
                 .filter(c -> discordUserId.equals(c.getUserId()))
                 .findFirst()
                 .flatMap(c -> userRepository.findByChannelId(c.getId()))
-                .or(() -> userRepository.findByUserId(discordUserId));
+                .or(() -> userRepository.findByDiscordUserId(discordUserId));
         if (userOpt.isEmpty()) {
             return event.reply().withEphemeral(true)
                     .withContent(BotText.MSG_USER_NOT_FOUND);
         }
 
-        streakService.setStreak(userOpt.get(), game, streakInt);
+        streakService.setStreak(userOpt.get(), GameType.fromLabel(game), streakInt);
         resultsChannelService.refresh();
 
         String reply = String.format(BotText.MSG_STREAK_SET, game, streakValue);

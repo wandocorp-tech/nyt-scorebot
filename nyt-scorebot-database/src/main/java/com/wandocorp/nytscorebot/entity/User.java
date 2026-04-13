@@ -24,8 +24,8 @@ public class User {
     @Column(nullable = false)
     private String name;
 
-    @Column
-    private String userId;
+    @Column(name = "discord_user_id")
+    private String discordUserId;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     @OrderBy("date ASC")
@@ -34,6 +34,6 @@ public class User {
     public User(String channelId, String name, String discordUserId) {
         this.channelId = channelId;
         this.name = name;
-        this.userId = discordUserId;
+        this.discordUserId = discordUserId;
     }
 }

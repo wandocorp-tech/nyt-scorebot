@@ -35,7 +35,7 @@ public class ScoreboardService {
 
     @Transactional
     public MarkFinishedOutcome markFinished(String discordUserId, LocalDate date) {
-        return userRepository.findByUserId(discordUserId)
+        return userRepository.findByDiscordUserId(discordUserId)
                 .map(user -> scoreboardRepository.findByUserAndDate(user, date)
                         .map(scoreboard -> {
                             if (scoreboard.isFinished()) {
@@ -52,98 +52,89 @@ public class ScoreboardService {
 
     @Transactional
     public SaveOutcome saveResult(String channelId, String personName, String discordUserId, GameResult result) {
-        LocalDate today = puzzleCalendar.today();
-
-        // Validate puzzle number (numbered games only)
         SaveOutcome validation = validate(result);
         if (validation != SaveOutcome.SAVED) {
             log.info("Rejected {} result for {}: {}", result.getClass().getSimpleName(), personName, validation);
             return validation;
         }
 
-        // Crosswords are stored against their own embedded date; all other results use today
-        LocalDate resultDate = (result instanceof CrosswordResult r && r.getDate() != null)
-                ? r.getDate() : today;
+        LocalDate resultDate = resolveDate(result);
+        User user = findOrCreateUser(channelId, personName, discordUserId);
+        Scoreboard scoreboard = findOrCreateScoreboard(user, resultDate);
 
-        User user = userRepository.findByChannelId(channelId)
-                .orElseGet(() -> userRepository.save(new User(channelId, personName, discordUserId)));
-
-        Scoreboard scoreboard = scoreboardRepository.findByUserAndDate(user, resultDate)
-                .orElseGet(() -> scoreboardRepository.save(new Scoreboard(user, resultDate)));
-
-        // Check for duplicate submission
         if (isAlreadySubmitted(scoreboard, result)) {
-            log.info("Duplicate {} result for {} on {}", result.getClass().getSimpleName(), personName, today);
+            log.info("Duplicate {} result for {} on {}", result.getClass().getSimpleName(), personName, resultDate);
             return SaveOutcome.ALREADY_SUBMITTED;
         }
 
         applyResult(scoreboard, result);
         scoreboardRepository.save(scoreboard);
-
-        // Update streak within the same transaction
         streakService.updateStreak(user, result);
+        autoFinishIfComplete(scoreboard, personName, resultDate);
 
-        // Auto-set finished flag if all 6 games are now present
+        log.info("Saved {} result for {} on {}", result.getClass().getSimpleName(), personName, resultDate);
+        return SaveOutcome.SAVED;
+    }
+
+    private LocalDate resolveDate(GameResult result) {
+        LocalDate embedded = result.resultDate();
+        return embedded != null ? embedded : puzzleCalendar.today();
+    }
+
+    private User findOrCreateUser(String channelId, String personName, String discordUserId) {
+        return userRepository.findByChannelId(channelId)
+                .orElseGet(() -> userRepository.save(new User(channelId, personName, discordUserId)));
+    }
+
+    private Scoreboard findOrCreateScoreboard(User user, LocalDate date) {
+        return scoreboardRepository.findByUserAndDate(user, date)
+                .orElseGet(() -> scoreboardRepository.save(new Scoreboard(user, date)));
+    }
+
+    private void autoFinishIfComplete(Scoreboard scoreboard, String personName, LocalDate date) {
         if (allGamesPresent(scoreboard)) {
             scoreboard.setFinished(true);
             scoreboardRepository.save(scoreboard);
-            log.info("Auto-marked scoreboard finished for {} on {} (all 6 games present)", personName, resultDate);
+            log.info("Auto-marked scoreboard finished for {} on {} (all 6 games present)", personName, date);
         }
-
-        log.info("Saved {} result for {} on {}", result.getClass().getSimpleName(), personName, today);
-        return SaveOutcome.SAVED;
     }
 
     private SaveOutcome validate(GameResult result) {
-        if (result instanceof WordleResult r) {
-            if (r.getPuzzleNumber() != puzzleCalendar.expectedWordle()) {
-                return SaveOutcome.WRONG_PUZZLE_NUMBER;
-            }
-        } else if (result instanceof ConnectionsResult r) {
-            if (r.getPuzzleNumber() != puzzleCalendar.expectedConnections()) {
-                return SaveOutcome.WRONG_PUZZLE_NUMBER;
-            }
-        } else if (result instanceof StrandsResult r) {
-            if (r.getPuzzleNumber() != puzzleCalendar.expectedStrands()) {
-                return SaveOutcome.WRONG_PUZZLE_NUMBER;
-            }
-        }
-        return SaveOutcome.SAVED;
+        return result.puzzleNumber()
+                .stream()
+                .mapToObj(pn -> {
+                    int expected = switch (result.gameType()) {
+                        case WORDLE -> puzzleCalendar.expectedWordle();
+                        case CONNECTIONS -> puzzleCalendar.expectedConnections();
+                        case STRANDS -> puzzleCalendar.expectedStrands();
+                        default -> pn; // crosswords don't have puzzle numbers
+                    };
+                    return pn != expected ? SaveOutcome.WRONG_PUZZLE_NUMBER : SaveOutcome.SAVED;
+                })
+                .findFirst()
+                .orElse(SaveOutcome.SAVED);
     }
 
     private boolean isAlreadySubmitted(Scoreboard scoreboard, GameResult result) {
-        GameResult existing;
-        if (result instanceof WordleResult) {
-            existing = scoreboard.getWordleResult();
-        } else if (result instanceof ConnectionsResult) {
-            existing = scoreboard.getConnectionsResult();
-        } else if (result instanceof StrandsResult) {
-            existing = scoreboard.getStrandsResult();
-        } else if (result instanceof CrosswordResult r) {
-            existing = switch (r.getType()) {
-                case MINI  -> scoreboard.getMiniCrosswordResult();
-                case MIDI  -> scoreboard.getMidiCrosswordResult();
-                case MAIN  -> scoreboard.getMainCrosswordResult();
-            };
-        } else {
-            return false;
-        }
+        GameResult existing = switch (result.gameType()) {
+            case WORDLE -> scoreboard.getWordleResult();
+            case CONNECTIONS -> scoreboard.getConnectionsResult();
+            case STRANDS -> scoreboard.getStrandsResult();
+            case MINI_CROSSWORD -> scoreboard.getMiniCrosswordResult();
+            case MIDI_CROSSWORD -> scoreboard.getMidiCrosswordResult();
+            case MAIN_CROSSWORD -> scoreboard.getMainCrosswordResult();
+        };
         return existing != null && existing.getRawContent() != null;
     }
 
     private void applyResult(Scoreboard scoreboard, GameResult result) {
-        if (result instanceof WordleResult r) {
-            scoreboard.setWordleResult(r);
-        } else if (result instanceof ConnectionsResult r) {
-            scoreboard.setConnectionsResult(r);
-        } else if (result instanceof StrandsResult r) {
-            scoreboard.setStrandsResult(r);
-        } else if (result instanceof CrosswordResult r) {
-            switch (r.getType()) {
-                case MINI  -> scoreboard.setMiniCrosswordResult(r);
-                case MIDI  -> scoreboard.setMidiCrosswordResult(r);
-                case MAIN  -> scoreboard.setMainCrosswordResult(r);
-            }
+        switch (result.gameType()) {
+            case WORDLE -> scoreboard.setWordleResult((WordleResult) result);
+            case CONNECTIONS -> scoreboard.setConnectionsResult((ConnectionsResult) result);
+            case STRANDS -> scoreboard.setStrandsResult((StrandsResult) result);
+            case MINI_CROSSWORD -> scoreboard.setMiniCrosswordResult((CrosswordResult) result);
+            case MIDI_CROSSWORD -> scoreboard.setMidiCrosswordResult((CrosswordResult) result);
+            case MAIN_CROSSWORD -> scoreboard.setMainCrosswordResult((MainCrosswordResult) result);
         }
     }
 
@@ -175,11 +166,11 @@ public class ScoreboardService {
     }
 
     private SetFlagOutcome withMainCrossword(String discordUserId, LocalDate date,
-                                              Function<CrosswordResult, SetFlagOutcome> action) {
-        return userRepository.findByUserId(discordUserId)
+                                              Function<MainCrosswordResult, SetFlagOutcome> action) {
+        return userRepository.findByDiscordUserId(discordUserId)
                 .map(user -> scoreboardRepository.findByUserAndDate(user, date)
                         .map(scoreboard -> {
-                            CrosswordResult main = scoreboard.getMainCrosswordResult();
+                            MainCrosswordResult main = scoreboard.getMainCrosswordResult();
                             if (main == null || main.getRawContent() == null) {
                                 return SetFlagOutcome.NO_MAIN_CROSSWORD;
                             }

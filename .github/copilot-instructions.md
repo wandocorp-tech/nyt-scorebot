@@ -64,7 +64,7 @@ Current status: 47 issues (2 critical, 6 major, 39 minor)
 
 ## Key Conventions
 
-**Parsers use `@Order` — order matters.** More specific regex patterns come first (Wordle=1, Connections=2, Strands=3, Crossword=4) so the chain short-circuits correctly.
+**Parsers use `@Order` — order matters.** More specific regex patterns come first (Wordle=1, Connections=2, Crossword=3, Strands=4) so the chain short-circuits correctly.
 
 **Outcome enums for explicit failure reasons.** `ScoreboardService` returns `SaveOutcome` / `MarkFinishedOutcome` enums rather than throwing exceptions. `MessageListener` maps these to Discord reply strings.
 
