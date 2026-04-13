@@ -2,6 +2,7 @@ package com.wandocorp.nytscorebot;
 
 public final class BotText {
 
+    /** Max width of a scoreboard line — fits two player columns in Discord monospace font. */
     public static final int MAX_LINE_WIDTH = 33;
 
     // ── Emojis ───────────────────────────────────────────────────────────────
@@ -50,6 +51,7 @@ public final class BotText {
     // %s placeholders: %1$s = player name, %2$s = game label
     public static final String STATUS_CONTEXT_GAME_SUBMITTED    = "%s submitted %s";
     public static final String STATUS_CONTEXT_PLAYER_FINISHED   = "%s is done for today";
+    public static final String STATUS_CONTEXT_FLAG_UPDATED      = "%s updated %s";
 
     public static final String GAME_LABEL_WORDLE      = "Wordle";
     public static final String GAME_LABEL_CONNECTIONS = "Connections";

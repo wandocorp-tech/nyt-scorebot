@@ -22,10 +22,8 @@ public class GameResultParser {
      */
     public Optional<GameResult> parse(String content, String discordAuthor) {
         return parsers.stream()
-                .map(p -> p.parse(content, discordAuthor))
-                .filter(Optional::isPresent)
-                .findFirst()
-                .flatMap(o -> o);
+                .flatMap(p -> p.parse(content, discordAuthor).stream())
+                .findFirst();
     }
 }
 

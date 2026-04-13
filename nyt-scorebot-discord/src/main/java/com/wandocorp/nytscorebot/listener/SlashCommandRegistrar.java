@@ -2,6 +2,7 @@ package com.wandocorp.nytscorebot.listener;
 
 import com.wandocorp.nytscorebot.BotText;
 import discord4j.core.GatewayDiscordClient;
+import discord4j.core.object.command.ApplicationCommandOption;
 import java.util.Objects;
 import discord4j.discordjson.json.ApplicationCommandOptionChoiceData;
 import discord4j.discordjson.json.ApplicationCommandOptionData;
@@ -39,7 +40,7 @@ public class SlashCommandRegistrar {
                 .addOption(ApplicationCommandOptionData.builder()
                         .name(BotText.CMD_LOOKUPS_OPTION)
                         .description(BotText.CMD_LOOKUPS_OPTION_DESC)
-                        .type(4) // INTEGER
+                        .type(ApplicationCommandOption.Type.INTEGER.getValue())
                         .required(true)
                         .build())
                 .build();
@@ -55,7 +56,7 @@ public class SlashCommandRegistrar {
                 .addOption(ApplicationCommandOptionData.builder()
                         .name(BotText.CMD_STREAK_GAME_OPTION)
                         .description(BotText.CMD_STREAK_GAME_OPTION_DESC)
-                        .type(3) // STRING
+                        .type(ApplicationCommandOption.Type.STRING.getValue())
                         .required(true)
                         .addChoice(ApplicationCommandOptionChoiceData.builder()
                                 .name(BotText.GAME_LABEL_WORDLE).value(BotText.GAME_LABEL_WORDLE).build())
@@ -67,7 +68,7 @@ public class SlashCommandRegistrar {
                 .addOption(ApplicationCommandOptionData.builder()
                         .name(BotText.CMD_STREAK_VALUE_OPTION)
                         .description(BotText.CMD_STREAK_VALUE_OPTION_DESC)
-                        .type(4) // INTEGER
+                        .type(ApplicationCommandOption.Type.INTEGER.getValue())
                         .required(true)
                         .minValue(0D)
                         .build())

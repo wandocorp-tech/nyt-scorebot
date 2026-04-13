@@ -89,8 +89,8 @@ Once both players have finished for the day (either by submitting all games or u
 **Parsing Order:**
 1. WordleParser
 2. ConnectionsParser
-3. StrandsParser
-4. CrosswordParser (lowest priority due to generic formats)
+3. CrosswordParser (Mini/Midi patterns are specific; daily crossword is last within this parser)
+4. StrandsParser
 
 **Design Rationale:** Ordering ensures more specific parsers run first, avoiding false positives from generic crossword-like text.
 
@@ -491,8 +491,8 @@ Results are validated against the expected puzzle numbers for the current date (
 **Parsing Order:**
 1. WordleParser
 2. ConnectionsParser
-3. StrandsParser
-4. CrosswordParser (lowest priority due to generic formats)
+3. CrosswordParser (Mini/Midi patterns are specific; daily crossword is last within this parser)
+4. StrandsParser
 
 **Design Rationale:** Ordering ensures more specific parsers run first, avoiding false positives from generic crossword-like text.
 

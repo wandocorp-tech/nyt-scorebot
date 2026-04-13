@@ -54,7 +54,7 @@ jobs:
         run: |
           mvn clean package -DskipTests --batch-mode --no-transfer-progress
           mkdir -p deploy-staging
-          cp nyt-scorebot-app/target/nyt-scorebot-app-1.0-SNAPSHOT.jar deploy-staging/
+          cp nyt-scorebot-app/target/nyt-scorebot-app-*.jar deploy-staging/
 
       # Tailscale is mandatory — it provides secure network access to the Raspberry Pi
       # The CI runner authenticates via OAuth and joins the Tailscale network
@@ -72,7 +72,7 @@ jobs:
           username: ${{ secrets.PI_USER }}
           key: ${{ secrets.PI_SSH_KEY }}
           port: ${{ secrets.PI_SSH_PORT || 22 }}
-          source: deploy-staging/nyt-scorebot-app-1.0-SNAPSHOT.jar
+          source: deploy-staging/nyt-scorebot-app-*.jar
           target: ${{ secrets.PI_DEPLOY_PATH }}
           strip_components: 1
 

@@ -39,13 +39,18 @@ public class ConnectionsParser implements GameParser {
         List<String> solveOrder = new ArrayList<>();
         int totalRows = 0;
         int lastRowEnd = 0;
+        int searchFrom = 0;
 
         for (String line : content.lines().toList()) {
             int[] codepoints = line.strip().codePoints().toArray();
             if (!isConnectionsRow(codepoints)) continue;
 
             totalRows++;
-            lastRowEnd = Math.max(lastRowEnd, content.lastIndexOf(line) + line.length());
+            int linePos = content.indexOf(line, searchFrom);
+            if (linePos >= 0) {
+                lastRowEnd = linePos + line.length();
+                searchFrom = lastRowEnd;
+            }
             if (isPureRow(codepoints)) {
                 solveOrder.add(new String(codepoints, 0, 1));
             }

@@ -150,7 +150,7 @@ public class SlashCommandListener {
                 .map(DiscordChannelProperties.ChannelConfig::getName)
                 .findFirst()
                 .orElse(discordUserId);
-        String contextMessage = String.format(BotText.STATUS_CONTEXT_PLAYER_FINISHED, playerName);
+        String contextMessage = String.format(BotText.STATUS_CONTEXT_FLAG_UPDATED, playerName, BotText.GAME_LABEL_MAIN);
         statusChannelService.refresh(contextMessage);
         resultsChannelService.refreshGame(BotText.GAME_LABEL_MAIN);
     }

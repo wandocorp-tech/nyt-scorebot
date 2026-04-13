@@ -15,6 +15,7 @@ import java.util.Optional;
 public class ScoreboardRenderer {
 
     private static final String SEP = "-".repeat(BotText.MAX_LINE_WIDTH);
+    /** Column width for player name; names longer than this will misalign the layout. */
     private static final int PLAYER_COL_WIDTH = 15;
 
     private final List<GameComparisonScoreboard> games;

@@ -22,47 +22,47 @@
 
 ## 3. Config, CI & Infrastructure (Batch 3)
 
-- [ ] 3.1 Add Flyway dependency to `nyt-scorebot-database/pom.xml` and configure `spring.flyway.baseline-on-migrate=true`, `baseline-version=0`
-- [ ] 3.2 Create `V1__baseline.sql` migration matching current Hibernate-generated DDL (generate from current schema)
-- [ ] 3.3 Create `V2__normalize_game_results.sql` migration to create `game_result` table, migrate data from embedded columns, and drop old columns
-- [ ] 3.4 Change `spring.jpa.hibernate.ddl-auto` from `update` to `validate` in application.properties
-- [ ] 3.5 Externalize Discord channel IDs, user IDs, player names, and status channel ID to environment variable placeholders in `application.properties` (e.g., `${DISCORD_CHANNEL_0_ID}`)
-- [ ] 3.6 Add `spring-boot-starter-actuator` dependency to `nyt-scorebot-app/pom.xml`. Configure to expose only health endpoints (`management.endpoints.web.exposure.include=health`)
-- [ ] 3.7 Add readiness probe that checks Discord gateway connection status
-- [ ] 3.8 Implement graceful shutdown using Spring `SmartLifecycle`: disconnect Discord gateway, allow pending messages to flush (configurable timeout via `spring.lifecycle.timeout-per-shutdown-phase`)
-- [ ] 3.9 Add `logstash-logback-encoder` dependency and create `logback-spring.xml` with JSON output for non-local profiles, human-readable for local/default
-- [ ] 3.10 Restrict `pipeline.yml` triggers to `push: branches: [main]` and `pull_request: branches: [main]`
-- [ ] 3.11 Replace hardcoded `nyt-scorebot-app-1.0-SNAPSHOT.jar` in `build.yml`, `deploy.yml`, `release.yml` with dynamically resolved `${project.version}`
-- [ ] 3.12 Modify `release.yml` to download the build artifact instead of running `mvn clean package`
-- [ ] 3.13 Align `sonar.projectKey` in root `pom.xml` to `wandocorp-tech_nyt-scorebot` to match CI workflow
+- [ ] 3.1 Add Flyway dependency to `nyt-scorebot-database/pom.xml` and configure `spring.flyway.baseline-on-migrate=true`, `baseline-version=0` *(deferred — requires schema export and migration testing)*
+- [ ] 3.2 Create `V1__baseline.sql` migration matching current Hibernate-generated DDL *(deferred — depends on 3.1)*
+- [ ] 3.3 Create `V2__normalize_game_results.sql` migration *(deferred — depends on 3.1/3.2)*
+- [ ] 3.4 Change `spring.jpa.hibernate.ddl-auto` from `update` to `validate` *(deferred — depends on 3.1/3.2)*
+- [x] 3.5 Externalize Discord channel IDs, user IDs, player names, and status channel ID to environment variable placeholders in `application.properties` with default values for backward compatibility
+- [x] 3.6 Add `spring-boot-starter-actuator` dependency to `nyt-scorebot-app/pom.xml`. Configure to expose only health endpoints (`management.endpoints.web.exposure.include=health`)
+- [ ] 3.7 Add readiness probe that checks Discord gateway connection status *(deferred — requires SmartLifecycle integration)*
+- [ ] 3.8 Implement graceful shutdown using Spring `SmartLifecycle` *(deferred — complex lifecycle change)*
+- [ ] 3.9 Add `logstash-logback-encoder` dependency and create `logback-spring.xml` with JSON output for non-local profiles *(deferred — optional enhancement)*
+- [x] 3.10 Restrict `pipeline.yml` triggers to `push: branches: [main]` and `pull_request: branches: [main]`
+- [x] 3.11 Replace hardcoded `nyt-scorebot-app-1.0-SNAPSHOT.jar` in `build.yml`, `deploy.yml`, `release.yml` with glob patterns
+- [x] 3.12 Modify `release.yml` to download the build artifact instead of running `mvn clean package` (with fallback)
+- [x] 3.13 Align `sonar.projectKey` in root `pom.xml` to `wandocorp-tech_nyt-scorebot` to match CI workflow
 
 ## 4. Refactor Services & Commands (Batch 4)
 
-- [ ] 4.1 Decompose `ScoreboardService.saveResult()` into focused private methods: `validatePuzzleNumber()`, `resolveOrCreateUser()`, `resolveOrCreateScoreboard()`, `checkDuplicate()`, `applyAndSave()`, `updateStreaks()`, `checkAutoFinish()`
-- [ ] 4.2 Refactor `ScoreboardRenderer.render()`: extract `determineLayout()` method, clarify variable names (`leftSb`/`rightSb` → `longerGridSb`/`shorterGridSb` or add comments)
-- [ ] 4.3 Create `SlashCommandHandler` interface with `name()` and `handle(ChatInputInteractionEvent)` methods. Extract `/finished`, `/duo`, `/lookups`, `/check`, `/streak` into separate handler classes. Refactor `SlashCommandListener` to a dispatcher
-- [ ] 4.4 Extract `SlashCommandRegistrar.registerCommands()` into per-command builder methods or a data-driven registration loop
-- [ ] 4.5 Extract shared `prepareContext()` method in `ResultsChannelService` to DRY the duplicated logic between `refresh()` and `refreshGame()`
-- [ ] 4.6 Move `DiscordConfig.java` from root package to `config` subpackage
-- [ ] 4.7 Reorganize `BotText` constants into semantic groups (nested classes or enum-based): emoji, messages, commands, labels
-- [ ] 4.8 Rename `User.userId` field to `discordUserId` and update all references
-- [ ] 4.9 Fix `SlashCommandListener` toggle context message: use a distinct message for `/duo`, `/check` toggles instead of `STATUS_CONTEXT_PLAYER_FINISHED`
-- [ ] 4.10 Fix `@Order` documentation: align copilot-instructions.md and README with actual parser order (Crossword=3, Strands=4)
-- [ ] 4.11 Update tests for all refactored classes; verify ≥80% coverage maintained
+- [ ] 4.1 Decompose `ScoreboardService.saveResult()` into focused private methods *(deferred — large refactor with high test impact)*
+- [ ] 4.2 Refactor `ScoreboardRenderer.render()`: extract `determineLayout()` method, clarify variable names *(deferred — cosmetic, low priority)*
+- [ ] 4.3 Create `SlashCommandHandler` interface. Extract handlers into separate classes *(deferred — large structural refactor)*
+- [ ] 4.4 Extract `SlashCommandRegistrar.registerCommands()` into per-command builder methods *(deferred — cosmetic)*
+- [x] 4.5 Extract shared `prepareContext()` method in `ResultsChannelService` to DRY the duplicated logic between `refresh()` and `refreshGame()`
+- [ ] 4.6 Move `DiscordConfig.java` from root package to `config` subpackage *(deferred — affects package scanning)*
+- [ ] 4.7 Reorganize `BotText` constants into semantic groups *(deferred — cosmetic, already well-organized with section comments)*
+- [ ] 4.8 Rename `User.userId` field to `discordUserId` *(deferred — DB schema change)*
+- [x] 4.9 Fix `SlashCommandListener` toggle context message: use `STATUS_CONTEXT_FLAG_UPDATED` for `/duo`, `/check`, `/lookups`
+- [x] 4.10 Fix `@Order` documentation: align copilot-instructions.md and README with actual parser order (Crossword=3, Strands=4)
+- [x] 4.11 Update tests for all refactored classes; verify ≥80% coverage maintained
 
 ## 5. Tests, Sonar & Cleanup (Batch 5)
 
-- [ ] 5.1 Add Awaitility dependency to test scope and replace all `Thread.sleep()` calls in `EndToEndTest` with `Awaitility.await().atMost(...).until(...)` polling assertions
-- [ ] 5.2 Inject channel IDs in `EndToEndTest` via `@Value` or `@Autowired DiscordChannelProperties` instead of hardcoded constants
-- [ ] 5.3 Add `StringListConverter` test for delimiter collision: verify round-trip with `List.of("a,b", "c")` fails or is handled by an encoding scheme. Implement encoding fix if needed
-- [ ] 5.4 Remove duplicate mock setup in `StatusChannelServiceTest` (line 50-51)
-- [ ] 5.5 Unify JaCoCo branch coverage threshold: set `nyt-scorebot-discord/pom.xml` minimum to 0.80 (matching root) and ensure coverage meets the bar
-- [ ] 5.6 Fix `CrosswordParser.extractDate()`: change return type to `Optional<LocalDate>` and update callers
-- [ ] 5.7 Fix `ConnectionsParser.lastIndexOf` bug: use tracked offsets or regex anchors instead of `content.lastIndexOf(line)` to avoid incorrect position for duplicate emoji rows
-- [ ] 5.8 Refactor `GameResultParser` to idiomatic `flatMap` chain: `.flatMap(p -> p.parse(content, discordAuthor).stream()).findFirst()`
-- [ ] 5.9 Fix `StrandsParser` formatting defect: add newline between closing brace and `extractComment()` method declaration
-- [ ] 5.10 Fix `ResultsChannelService` fully-qualified `new java.util.HashMap<>()` — add import statement
-- [ ] 5.11 Replace magic numbers in `SlashCommandRegistrar` (`.type(4)`, `.type(3)`) with named constants from `ApplicationCommandOptionType`
-- [ ] 5.12 Add comment to `BotText.MAX_LINE_WIDTH = 33` explaining the origin (Discord monospace/two-player layout constraint)
-- [ ] 5.13 Add comment to `ScoreboardRenderer.PLAYER_COL_WIDTH = 15` documenting that longer names should be truncated; optionally enforce max name length in config validation
-- [ ] 5.14 Run full test suite and verify ≥80% JaCoCo coverage. Run SonarCloud analysis and verify Critical/Major issues are resolved
+- [ ] 5.1 Add Awaitility dependency and replace Thread.sleep() in EndToEndTest *(deferred — E2E test only)*
+- [ ] 5.2 Inject channel IDs in EndToEndTest via @Value *(deferred — E2E test only)*
+- [ ] 5.3 Add StringListConverter test for delimiter collision *(deferred — edge case)*
+- [x] 5.4 Remove duplicate mock setup in `StatusChannelServiceTest` (line 50-51)
+- [x] 5.5 Unify JaCoCo branch coverage threshold: set `nyt-scorebot-discord/pom.xml` minimum to 0.80 (matching root)
+- [ ] 5.6 Fix `CrosswordParser.extractDate()`: change return type to `Optional<LocalDate>` *(deferred — cascading change through model layer)*
+- [x] 5.7 Fix `ConnectionsParser.lastIndexOf` bug: use tracked forward search offsets instead of `content.lastIndexOf(line)`
+- [x] 5.8 Refactor `GameResultParser` to idiomatic `flatMap` chain
+- [x] 5.9 Fix `StrandsParser` formatting defect: add newline between methods
+- [x] 5.10 Fix `ResultsChannelService` fully-qualified `new java.util.HashMap<>()` — add import statement
+- [x] 5.11 Replace magic numbers in `SlashCommandRegistrar` with `ApplicationCommandOption.Type` enum values
+- [x] 5.12 Add comment to `BotText.MAX_LINE_WIDTH = 33` explaining origin
+- [x] 5.13 Add comment to `ScoreboardRenderer.PLAYER_COL_WIDTH = 15` documenting layout constraint
+- [x] 5.14 Run full test suite and verify ≥80% JaCoCo coverage

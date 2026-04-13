@@ -48,7 +48,6 @@ class StatusChannelServiceTest {
     @Test
     void buildStatusTableDelegatestoBuilder() {
         when(scoreboardService.getTodayScoreboards()).thenReturn(List.of());
-        when(scoreboardService.getTodayScoreboards()).thenReturn(List.of());
         String table = service.buildStatusTable("test context");
         // Table wrapping and structure validation moved to StatusMessageBuilderTest
         verify(scoreboardService, times(1)).getTodayScoreboards();

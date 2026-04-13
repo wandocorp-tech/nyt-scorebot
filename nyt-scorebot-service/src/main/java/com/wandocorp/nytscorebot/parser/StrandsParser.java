@@ -40,7 +40,9 @@ public class StrandsParser implements GameParser {
         String comment = extractComment(content, m);
 
         return Optional.of(new StrandsResult(content, discordAuthor, comment, puzzleNumber, hintsUsed));
-    }    private String extractComment(String content, Matcher matcher) {
+    }
+
+    private String extractComment(String content, Matcher matcher) {
         // After the header: skip the theme line (enclosed in quotes) and all emoji grid rows.
         // The first non-empty, non-grid line after at least one grid row has been seen is the
         // start of any user-added comment.
