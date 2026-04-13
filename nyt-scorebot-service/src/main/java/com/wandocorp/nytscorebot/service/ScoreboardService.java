@@ -62,8 +62,7 @@ public class ScoreboardService {
         }
 
         // Crosswords are stored against their own embedded date; all other results use today
-        LocalDate resultDate = (result instanceof CrosswordResult r && r.getDate() != null)
-                ? r.getDate() : today;
+        LocalDate resultDate = result.resultDate() != null ? result.resultDate() : today;
 
         User user = userRepository.findByChannelId(channelId)
                 .orElseGet(() -> userRepository.save(new User(channelId, personName, discordUserId)));

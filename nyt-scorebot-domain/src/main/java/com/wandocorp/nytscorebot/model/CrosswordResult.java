@@ -64,6 +64,11 @@ public class CrosswordResult extends GameResult {
     }
 
     @Override
+    public LocalDate resultDate() {
+        return date;
+    }
+
+    @Override
     public String toString() {
         return "CrosswordResult{type=%s, date=%s, time='%s' (%ds), comment='%s', author='%s'}"
                 .formatted(type, date, timeString, totalSeconds, getComment(), getDiscordAuthor());

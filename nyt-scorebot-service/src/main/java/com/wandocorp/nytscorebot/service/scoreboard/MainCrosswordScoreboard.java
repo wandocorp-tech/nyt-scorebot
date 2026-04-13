@@ -2,7 +2,6 @@ package com.wandocorp.nytscorebot.service.scoreboard;
 
 import com.wandocorp.nytscorebot.BotText;
 import com.wandocorp.nytscorebot.entity.Scoreboard;
-import com.wandocorp.nytscorebot.model.CrosswordResult;
 import com.wandocorp.nytscorebot.model.MainCrosswordResult;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -31,7 +30,7 @@ public class MainCrosswordScoreboard implements GameComparisonScoreboard {
 
     @Override
     public String header(Scoreboard scoreboard) {
-        CrosswordResult r = scoreboard.getMainCrosswordResult();
+        MainCrosswordResult r = scoreboard.getMainCrosswordResult();
         String dateStr = r.getDate() != null ? r.getDate().format(DATE_FMT) : "?";
         return String.format(BotText.SCOREBOARD_MAIN_HEADER, dateStr);
     }
@@ -48,11 +47,8 @@ public class MainCrosswordScoreboard implements GameComparisonScoreboard {
 
     @Override
     public String flagsRow(Scoreboard scoreboard) {
-        CrosswordResult main = scoreboard.getMainCrosswordResult();
-        if (main instanceof MainCrosswordResult mcr) {
-            return buildFlagsString(mcr);
-        }
-        return "";
+        MainCrosswordResult main = scoreboard.getMainCrosswordResult();
+        return buildFlagsString(main);
     }
 
     @Override
