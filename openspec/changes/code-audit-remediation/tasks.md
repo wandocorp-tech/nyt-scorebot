@@ -22,10 +22,10 @@
 
 ## 3. Config, CI & Infrastructure (Batch 3)
 
-- [ ] 3.1 Add Flyway dependency to `nyt-scorebot-database/pom.xml` and configure `spring.flyway.baseline-on-migrate=true`, `baseline-version=0` *(deferred — requires schema export and migration testing)*
-- [ ] 3.2 Create `V1__baseline.sql` migration matching current Hibernate-generated DDL *(deferred — depends on 3.1)*
-- [ ] 3.3 Create `V2__normalize_game_results.sql` migration *(deferred — depends on 3.1/3.2)*
-- [ ] 3.4 Change `spring.jpa.hibernate.ddl-auto` from `update` to `validate` *(deferred — depends on 3.1/3.2)*
+- [x] 3.1 Add Flyway dependency to `nyt-scorebot-database/pom.xml` and configure `spring.flyway.baseline-on-migrate=true`, `baseline-version=1`
+- [x] 3.2 Create `V1__baseline.sql` migration matching current Hibernate-generated DDL
+- [ ] 3.3 Create `V2__normalize_game_results.sql` migration *(deferred — depends on entity normalization 1.5/1.6)*
+- [x] 3.4 Change `spring.jpa.hibernate.ddl-auto` from `update` to `validate`
 - [x] 3.5 Externalize Discord channel IDs, user IDs, player names, and status channel ID to environment variable placeholders in `application.properties` with default values for backward compatibility
 - [x] 3.6 Add `spring-boot-starter-actuator` dependency to `nyt-scorebot-app/pom.xml`. Configure to expose only health endpoints (`management.endpoints.web.exposure.include=health`)
 - [ ] 3.7 Add readiness probe that checks Discord gateway connection status *(deferred — requires SmartLifecycle integration)*
