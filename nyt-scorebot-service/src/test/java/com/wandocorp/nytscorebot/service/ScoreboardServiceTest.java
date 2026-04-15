@@ -120,7 +120,7 @@ class ScoreboardServiceTest {
     void duplicateWordleIsRejected() {
         int expected = calendar.expectedWordle();
         WordleResult first = new WordleResult("raw", PERSON, null, expected, 3, true, false);
-        scoreboard.setWordleResult(first);
+        scoreboard.addResult(first);
 
         WordleResult second = new WordleResult("raw2", PERSON, null, expected, 4, true, false);
         assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, second)).isEqualTo(SaveOutcome.ALREADY_SUBMITTED);
@@ -128,12 +128,12 @@ class ScoreboardServiceTest {
 
     @Test
     void duplicateMiniCrosswordIsRejected() {
-        CrosswordResult first = new CrosswordResult("raw", PERSON, null,
-                CrosswordType.MINI, "0:30", 30, TODAY);
-        scoreboard.setMiniCrosswordResult(first);
+        MiniCrosswordResult first = new MiniCrosswordResult("raw", PERSON, null,
+                "0:30", 30, TODAY);
+        scoreboard.addResult(first);
 
-        CrosswordResult second = new CrosswordResult("raw2", PERSON, null,
-                CrosswordType.MINI, "0:25", 25, TODAY);
+        MiniCrosswordResult second = new MiniCrosswordResult("raw2", PERSON, null,
+                "0:25", 25, TODAY);
         assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, second)).isEqualTo(SaveOutcome.ALREADY_SUBMITTED);
     }
 
@@ -162,16 +162,16 @@ class ScoreboardServiceTest {
 
     @Test
     void midiCrosswordWithTodaysDateIsSaved() {
-        CrosswordResult result = new CrosswordResult("raw", PERSON, null,
-                CrosswordType.MIDI, "3:00", 180, TODAY);
+        MidiCrosswordResult result = new MidiCrosswordResult("raw", PERSON, null,
+                "3:00", 180, TODAY);
 
         assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result)).isEqualTo(SaveOutcome.SAVED);
     }
 
     @Test
     void miniCrosswordWithTodaysDateIsSaved() {
-        CrosswordResult result = new CrosswordResult("raw", PERSON, null,
-                CrosswordType.MINI, "0:30", 30, TODAY);
+        MiniCrosswordResult result = new MiniCrosswordResult("raw", PERSON, null,
+                "0:30", 30, TODAY);
 
         assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result)).isEqualTo(SaveOutcome.SAVED);
     }
@@ -179,8 +179,8 @@ class ScoreboardServiceTest {
     @Test
     void crosswordWithNullDateIsAlwaysSaved() {
         // A crossword result with no extracted date (null) skips date validation
-        CrosswordResult result = new CrosswordResult("raw", PERSON, null,
-                CrosswordType.MINI, "0:30", 30, null);
+        MiniCrosswordResult result = new MiniCrosswordResult("raw", PERSON, null,
+                "0:30", 30, null);
 
         assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result)).isEqualTo(SaveOutcome.SAVED);
     }
@@ -252,8 +252,8 @@ class ScoreboardServiceTest {
         WordleResult wordle = new WordleResult("raw", PERSON, null, expectedWordle, 3, true, false);
         ConnectionsResult connections = new ConnectionsResult("raw", PERSON, null, expectedConnections, 0, true, List.of());
         StrandsResult strands = new StrandsResult("raw", PERSON, null, expectedStrands, 0);
-        CrosswordResult mini = new CrosswordResult("raw", PERSON, null, CrosswordType.MINI, "1:23", 83, TODAY);
-        CrosswordResult midi = new CrosswordResult("raw", PERSON, null, CrosswordType.MIDI, "3:45", 225, TODAY);
+        MiniCrosswordResult mini = new MiniCrosswordResult("raw", PERSON, null, "1:23", 83, TODAY);
+        MidiCrosswordResult midi = new MidiCrosswordResult("raw", PERSON, null, "3:45", 225, TODAY);
         MainCrosswordResult main = new MainCrosswordResult("raw", PERSON, null, "15:00", 900, TODAY);
 
         Scoreboard scoreboard = new Scoreboard(user, TODAY);
@@ -390,7 +390,7 @@ class ScoreboardServiceTest {
     void streakNotUpdatedOnAlreadySubmitted() {
         int expected = calendar.expectedWordle();
         WordleResult first = new WordleResult("raw", PERSON, null, expected, 3, true, false);
-        scoreboard.setWordleResult(first);
+        scoreboard.addResult(first);
 
         WordleResult second = new WordleResult("raw2", PERSON, null, expected, 4, true, false);
         assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, second)).isEqualTo(SaveOutcome.ALREADY_SUBMITTED);
@@ -409,6 +409,6 @@ class ScoreboardServiceTest {
 
     private void setUpMainCrossword() {
         MainCrosswordResult main = new MainCrosswordResult("raw", PERSON, null, "15:00", 900, TODAY);
-        scoreboard.setMainCrosswordResult(main);
+        scoreboard.addResult(main);
     }
 }

@@ -1,13 +1,15 @@
 package com.wandocorp.nytscorebot.model;
 
 import com.wandocorp.nytscorebot.BotText;
-import jakarta.persistence.Embeddable;
+import jakarta.persistence.DiscriminatorValue;
+import jakarta.persistence.Entity;
 import lombok.Getter;
 
 import java.util.OptionalInt;
 
 @Getter
-@Embeddable
+@Entity
+@DiscriminatorValue("STRANDS")
 public class StrandsResult extends GameResult {
 
     private Integer puzzleNumber;

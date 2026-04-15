@@ -171,8 +171,8 @@ class StreakServiceTest {
 
     @Test
     void crosswordResultDoesNotCreateStreak() {
-        CrosswordResult result = new CrosswordResult("raw", "author", null,
-                CrosswordType.MINI, "0:30", 30, TODAY);
+        MiniCrosswordResult result = new MiniCrosswordResult("raw", "author", null,
+                "0:30", 30, TODAY);
         service.updateStreak(user, result);
 
         verify(streakRepo, never()).findByUserAndGameType(any(), any());
@@ -257,7 +257,7 @@ class StreakServiceTest {
     @Test
     void resolveGameTypeReturnsNullForCrossword() {
         assertThat(StreakService.resolveGameType(
-                new CrosswordResult("raw", "a", null, CrosswordType.MINI, "0:30", 30, TODAY)))
+                new MiniCrosswordResult("raw", "a", null, "0:30", 30, TODAY)))
                 .isNull();
     }
 

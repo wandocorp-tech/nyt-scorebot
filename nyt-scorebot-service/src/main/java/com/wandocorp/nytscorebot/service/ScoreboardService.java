@@ -116,26 +116,11 @@ public class ScoreboardService {
     }
 
     private boolean isAlreadySubmitted(Scoreboard scoreboard, GameResult result) {
-        GameResult existing = switch (result.gameType()) {
-            case WORDLE -> scoreboard.getWordleResult();
-            case CONNECTIONS -> scoreboard.getConnectionsResult();
-            case STRANDS -> scoreboard.getStrandsResult();
-            case MINI_CROSSWORD -> scoreboard.getMiniCrosswordResult();
-            case MIDI_CROSSWORD -> scoreboard.getMidiCrosswordResult();
-            case MAIN_CROSSWORD -> scoreboard.getMainCrosswordResult();
-        };
-        return existing != null && existing.getRawContent() != null;
+        return scoreboard.hasResult(result.gameType());
     }
 
     private void applyResult(Scoreboard scoreboard, GameResult result) {
-        switch (result.gameType()) {
-            case WORDLE -> scoreboard.setWordleResult((WordleResult) result);
-            case CONNECTIONS -> scoreboard.setConnectionsResult((ConnectionsResult) result);
-            case STRANDS -> scoreboard.setStrandsResult((StrandsResult) result);
-            case MINI_CROSSWORD -> scoreboard.setMiniCrosswordResult((CrosswordResult) result);
-            case MIDI_CROSSWORD -> scoreboard.setMidiCrosswordResult((CrosswordResult) result);
-            case MAIN_CROSSWORD -> scoreboard.setMainCrosswordResult((MainCrosswordResult) result);
-        }
+        scoreboard.addResult(result);
     }
 
     @Transactional
@@ -183,11 +168,6 @@ public class ScoreboardService {
     }
 
     private boolean allGamesPresent(Scoreboard scoreboard) {
-        return scoreboard.getWordleResult() != null
-            && scoreboard.getConnectionsResult() != null
-            && scoreboard.getStrandsResult() != null
-            && scoreboard.getMiniCrosswordResult() != null
-            && scoreboard.getMidiCrosswordResult() != null
-            && scoreboard.getMainCrosswordResult() != null;
+        return scoreboard.getGameResults().size() >= GameType.values().length;
     }
 }

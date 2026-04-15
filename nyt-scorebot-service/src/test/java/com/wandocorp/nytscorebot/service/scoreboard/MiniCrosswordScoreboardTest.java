@@ -3,7 +3,7 @@ package com.wandocorp.nytscorebot.service.scoreboard;
 import com.wandocorp.nytscorebot.entity.Scoreboard;
 import com.wandocorp.nytscorebot.entity.User;
 import com.wandocorp.nytscorebot.model.CrosswordResult;
-import com.wandocorp.nytscorebot.model.CrosswordType;
+import com.wandocorp.nytscorebot.model.MiniCrosswordResult;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
@@ -18,12 +18,12 @@ class MiniCrosswordScoreboardTest {
 
     private Scoreboard sbWith(CrosswordResult result) {
         Scoreboard sb = new Scoreboard(new User("c1", "test", "u1"), DATE);
-        sb.setMiniCrosswordResult(result);
+        sb.addResult(result);
         return sb;
     }
 
     private CrosswordResult result(String time, int seconds) {
-        return new CrosswordResult("raw", "author", null, CrosswordType.MINI, time, seconds, DATE);
+        return new MiniCrosswordResult("raw", "author", null, time, seconds, DATE);
     }
 
     @Test

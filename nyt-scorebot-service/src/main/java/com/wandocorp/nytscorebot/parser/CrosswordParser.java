@@ -1,9 +1,10 @@
 package com.wandocorp.nytscorebot.parser;
 
 import com.wandocorp.nytscorebot.model.CrosswordResult;
-import com.wandocorp.nytscorebot.model.CrosswordType;
 import com.wandocorp.nytscorebot.model.GameResult;
 import com.wandocorp.nytscorebot.model.MainCrosswordResult;
+import com.wandocorp.nytscorebot.model.MidiCrosswordResult;
+import com.wandocorp.nytscorebot.model.MiniCrosswordResult;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
@@ -46,13 +47,13 @@ public class CrosswordParser implements GameParser {
         Matcher mini = MINI.matcher(content);
         if (mini.find()) {
             LocalDate date = extractDate(content).orElse(null);
-            return Optional.of(build(content, discordAuthor, CrosswordType.MINI, mini.group(1), date, mini));
+            return Optional.of(buildMini(content, discordAuthor, mini.group(1), date, mini));
         }
 
         Matcher midi = MIDI.matcher(content);
         if (midi.find()) {
             LocalDate date = extractDate(content).orElse(null);
-            return Optional.of(build(content, discordAuthor, CrosswordType.MIDI, midi.group(1), date, midi));
+            return Optional.of(buildMidi(content, discordAuthor, midi.group(1), date, midi));
         }
 
         Matcher daily = DAILY.matcher(content);
@@ -64,9 +65,14 @@ public class CrosswordParser implements GameParser {
         return Optional.empty();
     }
 
-    private CrosswordResult build(String content, String author, CrosswordType type, String timeString, LocalDate date, Matcher matcher) {
+    private CrosswordResult buildMini(String content, String author, String timeString, LocalDate date, Matcher matcher) {
         String comment = extractComment(content, matcher);
-        return new CrosswordResult(content, author, comment, type, timeString, parseTimeToSeconds(timeString), date);
+        return new MiniCrosswordResult(content, author, comment, timeString, parseTimeToSeconds(timeString), date);
+    }
+
+    private CrosswordResult buildMidi(String content, String author, String timeString, LocalDate date, Matcher matcher) {
+        String comment = extractComment(content, matcher);
+        return new MidiCrosswordResult(content, author, comment, timeString, parseTimeToSeconds(timeString), date);
     }
 
     private MainCrosswordResult buildMain(String content, String author, String timeString, LocalDate date, Matcher matcher) {
