@@ -4,8 +4,8 @@
 - [x] 1.2 Split `CrosswordResult` into base `CrosswordResult` (Mini/Midi) and `MainCrosswordResult extends CrosswordResult` (adds duo, lookups, checkUsed). Update `CrosswordParser` to return `MainCrosswordResult` for MAIN type
 - [x] 1.3 Add abstract methods to `GameResult`: `gameType()`, `gameLabel()`, `isSuccess()`, `puzzleNumber()`. Implement in all subclasses (WordleResult, ConnectionsResult, StrandsResult, CrosswordResult, MainCrosswordResult)
 - [x] 1.4 Replace all `instanceof` chains in `ScoreboardService`, `MessageListener`, `StreakService`, and `MainCrosswordScoreboard` with calls to the new polymorphic methods. Update `Scoreboard.mainCrosswordResult` field type to `MainCrosswordResult`
-- [ ] 1.5 _(Deferred to Batch 3 — depends on Flyway)_ Normalize `Scoreboard` entity: remove all `@Embedded`/`@AttributeOverride` blocks, add `@OneToMany` relationship to a new `GameResultEntity` table using `@Inheritance(SINGLE_TABLE)` with `game_type` discriminator
-- [ ] 1.6 _(Deferred to Batch 3 — depends on 1.5)_ Update `ScoreboardRepository` queries and `ScoreboardService` logic to work with the normalized game_result table (duplicate detection via game_type query, apply result via insert, allGamesPresent via count)
+- [x] 1.5 _(Deferred to Batch 3 — depends on Flyway)_ Normalize `Scoreboard` entity: remove all `@Embedded`/`@AttributeOverride` blocks, add `@OneToMany` relationship to a new `GameResultEntity` table using `@Inheritance(SINGLE_TABLE)` with `game_type` discriminator
+- [x] 1.6 _(Deferred to Batch 3 — depends on 1.5)_ Update `ScoreboardRepository` queries and `ScoreboardService` logic to work with the normalized game_result table (duplicate detection via game_type query, apply result via insert, allGamesPresent via count)
 - [ ] 1.7 _(Deferred to after 1.5/1.6 — boxed primitives needed for @Embedded JPA)_ Replace boxed primitives (`Integer`, `Boolean`) with primitives in `WordleResult`, `ConnectionsResult`, `StrandsResult` fields where values are never semantically null
 - [x] 1.8 _(Deferred to Batch 4 — cascading change through ScoreboardRenderer/ResultsChannelService)_ Update `Streak.gameType` field from `String` to `GameType` enum with `@Enumerated(EnumType.STRING)`
 - [x] 1.9 Update all tests for model changes: parser tests, service tests, renderer tests. Ensure ≥80% coverage maintained
@@ -24,7 +24,7 @@
 
 - [x] 3.1 Add Flyway dependency to `nyt-scorebot-database/pom.xml` and configure `spring.flyway.baseline-on-migrate=true`, `baseline-version=1`
 - [x] 3.2 Create `V1__baseline.sql` migration matching current Hibernate-generated DDL
-- [ ] 3.3 Create `V2__normalize_game_results.sql` migration *(deferred — depends on entity normalization 1.5/1.6)*
+- [x] 3.3 Create `V4__normalize_game_results.sql` migration for entity normalization 1.5/1.6
 - [x] 3.4 Change `spring.jpa.hibernate.ddl-auto` from `update` to `validate`
 - [x] 3.5 Externalize Discord channel IDs, user IDs, player names, and status channel ID to environment variable placeholders in `application.properties` with default values for backward compatibility
 - [x] 3.6 Add `spring-boot-starter-actuator` dependency to `nyt-scorebot-app/pom.xml`. Configure to expose only health endpoints (`management.endpoints.web.exposure.include=health`)

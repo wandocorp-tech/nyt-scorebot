@@ -2,7 +2,8 @@ package com.wandocorp.nytscorebot.model;
 
 import com.wandocorp.nytscorebot.BotText;
 import jakarta.persistence.Convert;
-import jakarta.persistence.Embeddable;
+import jakarta.persistence.DiscriminatorValue;
+import jakarta.persistence.Entity;
 import com.wandocorp.nytscorebot.entity.StringListConverter;
 import lombok.Getter;
 
@@ -10,7 +11,8 @@ import java.util.List;
 import java.util.OptionalInt;
 
 @Getter
-@Embeddable
+@Entity
+@DiscriminatorValue("CONNECTIONS")
 public class ConnectionsResult extends GameResult {
 
     private Integer puzzleNumber;

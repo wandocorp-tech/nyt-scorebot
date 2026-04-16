@@ -3,7 +3,7 @@ package com.wandocorp.nytscorebot.service.scoreboard;
 import com.wandocorp.nytscorebot.entity.Scoreboard;
 import com.wandocorp.nytscorebot.entity.User;
 import com.wandocorp.nytscorebot.model.CrosswordResult;
-import com.wandocorp.nytscorebot.model.CrosswordType;
+import com.wandocorp.nytscorebot.model.MiniCrosswordResult;
 import com.wandocorp.nytscorebot.model.GameType;
 import com.wandocorp.nytscorebot.model.MainCrosswordResult;
 import com.wandocorp.nytscorebot.model.WordleResult;
@@ -40,7 +40,7 @@ class ScoreboardRendererTest {
 
     private Scoreboard sbWith(WordleResult result) {
         Scoreboard sb = new Scoreboard(new User("c1", "test", "u1"), LocalDate.now());
-        sb.setWordleResult(result);
+        sb.addResult(result);
         return sb;
     }
 
@@ -173,9 +173,9 @@ class ScoreboardRendererTest {
         ScoreboardRenderer crosswordRenderer = new ScoreboardRenderer(List.of(miniGame));
 
         Scoreboard sb1 = new Scoreboard(new User("c1", "test", "u1"), LocalDate.now());
-        sb1.setMiniCrosswordResult(new CrosswordResult("raw", "a", null, CrosswordType.MINI, "0:30", 30, LocalDate.now()));
+        sb1.addResult(new MiniCrosswordResult("raw", "a", null, "0:30", 30, LocalDate.now()));
         Scoreboard sb2 = new Scoreboard(new User("c2", "test", "u2"), LocalDate.now());
-        sb2.setMiniCrosswordResult(new CrosswordResult("raw", "a", null, CrosswordType.MINI, "1:00", 60, LocalDate.now()));
+        sb2.addResult(new MiniCrosswordResult("raw", "a", null, "1:00", 60, LocalDate.now()));
 
         Optional<String> rendered = crosswordRenderer.render(miniGame, sb1, "William", sb2, "Conor",
                 Map.of("William", Map.of(GameType.MINI_CROSSWORD, 5), "Conor", Map.of(GameType.MINI_CROSSWORD, 3)));
@@ -199,12 +199,12 @@ class ScoreboardRendererTest {
         r1.setDuo(true);
         r1.setLookups(2);
         Scoreboard sb1 = new Scoreboard(new User("c1", "test", "u1"), LocalDate.now());
-        sb1.setMainCrosswordResult(r1);
+        sb1.addResult(r1);
 
         MainCrosswordResult r2 = new MainCrosswordResult("raw", "a", null, "7:30", 450, LocalDate.now());
         r2.setCheckUsed(true);
         Scoreboard sb2 = new Scoreboard(new User("c2", "test", "u2"), LocalDate.now());
-        sb2.setMainCrosswordResult(r2);
+        sb2.addResult(r2);
 
         Optional<String> rendered = crosswordRenderer.render(mainGame, sb1, "William", sb2, "Conor",
                 Map.of());
@@ -230,7 +230,7 @@ class ScoreboardRendererTest {
         ScoreboardRenderer crosswordRenderer = new ScoreboardRenderer(List.of(miniGame));
 
         Scoreboard sb1 = new Scoreboard(new User("c1", "test", "u1"), LocalDate.now());
-        sb1.setMiniCrosswordResult(new CrosswordResult("raw", "a", null, CrosswordType.MINI, "0:45", 45, LocalDate.now()));
+        sb1.addResult(new MiniCrosswordResult("raw", "a", null, "0:45", 45, LocalDate.now()));
 
         Optional<String> rendered = crosswordRenderer.render(miniGame, sb1, "William", null, "Conor",
                 Map.of());

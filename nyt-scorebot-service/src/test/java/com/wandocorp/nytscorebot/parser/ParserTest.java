@@ -217,7 +217,7 @@ class ParserTest {
         assertThat(result).isPresent();
         assertThat(result.get()).isInstanceOf(MainCrosswordResult.class);
         MainCrosswordResult cr = (MainCrosswordResult) result.get();
-        assertThat(cr.getType()).isEqualTo(CrosswordType.MAIN);
+        assertThat(cr.gameType()).isEqualTo(GameType.MAIN_CROSSWORD);
         assertThat(cr.getTimeString()).isEqualTo("6:25");
         assertThat(cr.getTotalSeconds()).isEqualTo(6 * 60 + 25);
         assertThat(cr.getDate()).isEqualTo(LocalDate.of(2026, 3, 23));
@@ -229,8 +229,8 @@ class ParserTest {
     void crosswordMidi() {
         Optional<GameResult> result = crosswordParser.parse(CROSSWORD_MIDI, AUTHOR);
         assertThat(result).isPresent();
-        CrosswordResult cr = (CrosswordResult) result.get();
-        assertThat(cr.getType()).isEqualTo(CrosswordType.MIDI);
+        MidiCrosswordResult cr = (MidiCrosswordResult) result.get();
+        assertThat(cr.gameType()).isEqualTo(GameType.MIDI_CROSSWORD);
         assertThat(cr.getTimeString()).isEqualTo("2:13");
         assertThat(cr.getTotalSeconds()).isEqualTo(2 * 60 + 13);
         assertThat(cr.getDate()).isEqualTo(LocalDate.of(2026, 3, 23));
@@ -249,7 +249,7 @@ class ParserTest {
         assertThat(result).isPresent();
         assertThat(result.get()).isInstanceOf(MainCrosswordResult.class);
         MainCrosswordResult cr = (MainCrosswordResult) result.get();
-        assertThat(cr.getType()).isEqualTo(CrosswordType.MAIN);
+        assertThat(cr.gameType()).isEqualTo(GameType.MAIN_CROSSWORD);
         assertThat(cr.getDate()).isEqualTo(LocalDate.of(2026, 3, 23));
         assertThat(cr.getComment()).isNull();
     }

@@ -23,7 +23,7 @@ class WordleScoreboardTest {
 
     private Scoreboard sbWith(WordleResult result) {
         Scoreboard sb = new Scoreboard(new User("c1", "test", "u1"), LocalDate.now());
-        sb.setWordleResult(result);
+        sb.addResult(result);
         return sb;
     }
 

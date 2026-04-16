@@ -2,8 +2,6 @@ package com.wandocorp.nytscorebot.service.scoreboard;
 
 import com.wandocorp.nytscorebot.entity.Scoreboard;
 import com.wandocorp.nytscorebot.entity.User;
-import com.wandocorp.nytscorebot.model.CrosswordResult;
-import com.wandocorp.nytscorebot.model.CrosswordType;
 import com.wandocorp.nytscorebot.model.MainCrosswordResult;
 import org.junit.jupiter.api.Test;
 
@@ -18,7 +16,7 @@ class MainCrosswordScoreboardTest {
 
     private Scoreboard sbWith(MainCrosswordResult result) {
         Scoreboard sb = new Scoreboard(new User("c1", "test", "u1"), DATE);
-        sb.setMainCrosswordResult(result);
+        sb.addResult(result);
         return sb;
     }
 

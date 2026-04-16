@@ -8,6 +8,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -33,87 +35,55 @@ public class Scoreboard {
     @Column(nullable = false)
     private boolean finished = false;
 
-    @Setter
-    @Embedded
-    @AttributeOverrides({
-        @AttributeOverride(name = "rawContent",    column = @Column(name = "wordle_raw_content")),
-        @AttributeOverride(name = "discordAuthor", column = @Column(name = "wordle_discord_author")),
-        @AttributeOverride(name = "comment",       column = @Column(name = "wordle_comment")),
-        @AttributeOverride(name = "puzzleNumber",  column = @Column(name = "wordle_puzzle_number")),
-        @AttributeOverride(name = "attempts",      column = @Column(name = "wordle_attempts")),
-        @AttributeOverride(name = "completed",     column = @Column(name = "wordle_completed")),
-        @AttributeOverride(name = "hardMode",      column = @Column(name = "wordle_hard_mode"))
-    })
-    private WordleResult wordleResult;
-
-    @Setter
-    @Embedded
-    @AttributeOverrides({
-        @AttributeOverride(name = "rawContent",    column = @Column(name = "connections_raw_content")),
-        @AttributeOverride(name = "discordAuthor", column = @Column(name = "connections_discord_author")),
-        @AttributeOverride(name = "comment",       column = @Column(name = "connections_comment")),
-        @AttributeOverride(name = "puzzleNumber",  column = @Column(name = "connections_puzzle_number")),
-        @AttributeOverride(name = "mistakes",      column = @Column(name = "connections_mistakes")),
-        @AttributeOverride(name = "completed",     column = @Column(name = "connections_completed")),
-        @AttributeOverride(name = "solveOrder",    column = @Column(name = "connections_solve_order"))
-    })
-    private ConnectionsResult connectionsResult;
-
-    @Setter
-    @Embedded
-    @AttributeOverrides({
-        @AttributeOverride(name = "rawContent",       column = @Column(name = "strands_raw_content")),
-        @AttributeOverride(name = "discordAuthor",    column = @Column(name = "strands_discord_author")),
-        @AttributeOverride(name = "comment",          column = @Column(name = "strands_comment")),
-        @AttributeOverride(name = "puzzleNumber",     column = @Column(name = "strands_puzzle_number")),
-        @AttributeOverride(name = "hintsUsed",        column = @Column(name = "strands_hints_used"))
-    })
-    private StrandsResult strandsResult;
-
-    @Setter
-    @Embedded
-    @AttributeOverrides({
-        @AttributeOverride(name = "rawContent",    column = @Column(name = "crossword_mini_raw_content")),
-        @AttributeOverride(name = "discordAuthor", column = @Column(name = "crossword_mini_discord_author")),
-        @AttributeOverride(name = "comment",       column = @Column(name = "crossword_mini_comment")),
-        @AttributeOverride(name = "type",          column = @Column(name = "crossword_mini_type")),
-        @AttributeOverride(name = "timeString",    column = @Column(name = "crossword_mini_time_string")),
-        @AttributeOverride(name = "totalSeconds",  column = @Column(name = "crossword_mini_total_seconds")),
-        @AttributeOverride(name = "date",          column = @Column(name = "crossword_mini_date"))
-    })
-    private CrosswordResult miniCrosswordResult;
-
-    @Setter
-    @Embedded
-    @AttributeOverrides({
-        @AttributeOverride(name = "rawContent",    column = @Column(name = "crossword_midi_raw_content")),
-        @AttributeOverride(name = "discordAuthor", column = @Column(name = "crossword_midi_discord_author")),
-        @AttributeOverride(name = "comment",       column = @Column(name = "crossword_midi_comment")),
-        @AttributeOverride(name = "type",          column = @Column(name = "crossword_midi_type")),
-        @AttributeOverride(name = "timeString",    column = @Column(name = "crossword_midi_time_string")),
-        @AttributeOverride(name = "totalSeconds",  column = @Column(name = "crossword_midi_total_seconds")),
-        @AttributeOverride(name = "date",          column = @Column(name = "crossword_midi_date"))
-    })
-    private CrosswordResult midiCrosswordResult;
-
-    @Setter
-    @Embedded
-    @AttributeOverrides({
-        @AttributeOverride(name = "rawContent",    column = @Column(name = "crossword_daily_raw_content")),
-        @AttributeOverride(name = "discordAuthor", column = @Column(name = "crossword_daily_discord_author")),
-        @AttributeOverride(name = "comment",       column = @Column(name = "crossword_daily_comment")),
-        @AttributeOverride(name = "type",          column = @Column(name = "crossword_daily_type")),
-        @AttributeOverride(name = "timeString",    column = @Column(name = "crossword_daily_time_string")),
-        @AttributeOverride(name = "totalSeconds",  column = @Column(name = "crossword_daily_total_seconds")),
-        @AttributeOverride(name = "date",          column = @Column(name = "crossword_daily_date")),
-        @AttributeOverride(name = "duo",           column = @Column(name = "crossword_daily_duo")),
-        @AttributeOverride(name = "lookups",       column = @Column(name = "crossword_daily_lookups")),
-        @AttributeOverride(name = "checkUsed",     column = @Column(name = "crossword_daily_check_used"))
-    })
-    private MainCrosswordResult mainCrosswordResult;
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @JoinColumn(name = "scoreboard_id")
+    private List<GameResult> gameResults = new ArrayList<>();
 
     public Scoreboard(User user, LocalDate date) {
         this.user = user;
         this.date = date;
+    }
+
+    // ── Mutators ─────────────────────────────────────────────────────────────
+
+    public void addResult(GameResult result) {
+        gameResults.add(result);
+    }
+
+    public boolean hasResult(GameType gameType) {
+        return findResult(gameType) != null;
+    }
+
+    // ── Convenience getters (backward-compatible) ────────────────────────────
+
+    public WordleResult getWordleResult() {
+        return (WordleResult) findResult(GameType.WORDLE);
+    }
+
+    public ConnectionsResult getConnectionsResult() {
+        return (ConnectionsResult) findResult(GameType.CONNECTIONS);
+    }
+
+    public StrandsResult getStrandsResult() {
+        return (StrandsResult) findResult(GameType.STRANDS);
+    }
+
+    public CrosswordResult getMiniCrosswordResult() {
+        return (CrosswordResult) findResult(GameType.MINI_CROSSWORD);
+    }
+
+    public CrosswordResult getMidiCrosswordResult() {
+        return (CrosswordResult) findResult(GameType.MIDI_CROSSWORD);
+    }
+
+    public MainCrosswordResult getMainCrosswordResult() {
+        return (MainCrosswordResult) findResult(GameType.MAIN_CROSSWORD);
+    }
+
+    private GameResult findResult(GameType gameType) {
+        return gameResults.stream()
+                .filter(r -> r.gameType() == gameType)
+                .findFirst()
+                .orElse(null);
     }
 }

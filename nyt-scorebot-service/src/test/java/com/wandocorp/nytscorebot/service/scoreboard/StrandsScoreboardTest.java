@@ -19,7 +19,7 @@ class StrandsScoreboardTest {
 
     private Scoreboard sbWith(StrandsResult result) {
         Scoreboard sb = new Scoreboard(new User("c1", "test", "u1"), LocalDate.now());
-        sb.setStrandsResult(result);
+        sb.addResult(result);
         return sb;
     }
 
@@ -117,7 +117,7 @@ class StrandsScoreboardTest {
         String rawWith7Emojis = "Strands #999\n\"Test\"\n🔵🟡🔵\n🔵🔵\n🔵🔵";
         StrandsResult result = new StrandsResult(rawWith7Emojis, "author", null, 999, 0);
         Scoreboard sb = new Scoreboard(new User("c1", "test", "u1"), LocalDate.now());
-        sb.setStrandsResult(result);
+        sb.addResult(result);
 
         List<String> rows = scoreboard.emojiGridRows(sb);
 

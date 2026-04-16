@@ -1,14 +1,21 @@
 package com.wandocorp.nytscorebot.model;
 
-import jakarta.persistence.MappedSuperclass;
+import jakarta.persistence.*;
 import lombok.Getter;
 
 import java.time.LocalDate;
 import java.util.OptionalInt;
 
 @Getter
-@MappedSuperclass
+@Entity
+@Table(name = "game_result")
+@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
+@DiscriminatorColumn(name = "game_type", discriminatorType = DiscriminatorType.STRING)
 public abstract class GameResult {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     private String rawContent;
     private String discordAuthor;

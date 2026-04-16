@@ -23,7 +23,7 @@ class ConnectionsScoreboardTest {
 
     private Scoreboard sbWith(ConnectionsResult result) {
         Scoreboard sb = new Scoreboard(new User("c1", "test", "u1"), LocalDate.now());
-        sb.setConnectionsResult(result);
+        sb.addResult(result);
         return sb;
     }
 
