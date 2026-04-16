@@ -12,8 +12,8 @@ import java.util.OptionalInt;
 @DiscriminatorValue("STRANDS")
 public class StrandsResult extends GameResult {
 
-    private Integer puzzleNumber;
-    private Integer hintsUsed;
+    private int puzzleNumber;
+    private int hintsUsed;
 
     protected StrandsResult() {}
 
@@ -41,7 +41,7 @@ public class StrandsResult extends GameResult {
 
     @Override
     public OptionalInt puzzleNumber() {
-        return puzzleNumber != null ? OptionalInt.of(puzzleNumber) : OptionalInt.empty();
+        return OptionalInt.of(puzzleNumber);
     }
 
     @Override

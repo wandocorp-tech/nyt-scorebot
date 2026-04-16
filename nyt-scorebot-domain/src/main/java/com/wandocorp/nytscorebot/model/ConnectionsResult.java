@@ -15,9 +15,9 @@ import java.util.OptionalInt;
 @DiscriminatorValue("CONNECTIONS")
 public class ConnectionsResult extends GameResult {
 
-    private Integer puzzleNumber;
-    private Integer mistakes;
-    private Boolean completed;
+    private int puzzleNumber;
+    private int mistakes;
+    private boolean completed;
 
     @Convert(converter = StringListConverter.class)
     private List<String> solveOrder;
@@ -46,12 +46,12 @@ public class ConnectionsResult extends GameResult {
 
     @Override
     public boolean isSuccess() {
-        return Boolean.TRUE.equals(completed);
+        return completed;
     }
 
     @Override
     public OptionalInt puzzleNumber() {
-        return puzzleNumber != null ? OptionalInt.of(puzzleNumber) : OptionalInt.empty();
+        return OptionalInt.of(puzzleNumber);
     }
 
     @Override

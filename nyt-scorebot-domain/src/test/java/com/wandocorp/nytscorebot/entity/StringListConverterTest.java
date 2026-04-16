@@ -65,4 +65,28 @@ class StringListConverterTest {
         String db = converter.convertToDatabaseColumn(original);
         assertThat(converter.convertToEntityAttribute(db)).isEqualTo(original);
     }
+
+    // ── delimiter collision ──────────────────────────────────────────────────
+
+    @Test
+    void itemContainingDelimiterCorruptsRoundTrip() {
+        // Documents the known limitation: items containing commas will be split
+        // incorrectly on read-back, producing more elements than the original list.
+        List<String> original = List.of("a,b", "c");
+        String db = converter.convertToDatabaseColumn(original);
+        assertThat(db).isEqualTo("a,b,c");
+        List<String> restored = converter.convertToEntityAttribute(db);
+        assertThat(restored).as("delimiter collision produces extra elements")
+                .hasSize(3)
+                .containsExactly("a", "b", "c");
+    }
+
+    @Test
+    void emojiItemsNeverCollideWithCommaDelimiter() {
+        // In practice, stored values are emoji codepoints (🟩🟨🟦🟪) which never
+        // contain commas, so the delimiter choice is safe for this domain.
+        List<String> emojis = List.of("🟩🟩🟩🟩", "🟪🟪🟪🟪", "🟨🟨🟨🟨", "🟦🟦🟦🟦");
+        String db = converter.convertToDatabaseColumn(emojis);
+        assertThat(converter.convertToEntityAttribute(db)).isEqualTo(emojis);
+    }
 }
