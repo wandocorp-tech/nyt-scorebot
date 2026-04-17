@@ -1,9 +1,4 @@
-# ci-build-test Specification
-
-## Purpose
-Comprehensive CI/CD build and test automation for multi-module Maven project with JaCoCo coverage, Sonar analysis, and end-to-end testing.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Build job compiles and runs unit tests
 The build workflow SHALL compile the multi-module Maven project, run all unit tests (excluding `EndToEndTest`), enforce JaCoCo coverage thresholds (≥80%), and produce the Spring Boot executable JAR artifact.
