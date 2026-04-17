@@ -129,10 +129,15 @@ class EndToEndTest {
         // ── Phase 1: William submits 6 games → auto-finishes ────────────────
 
         postTo(williamChannel, williamWordle);
+        Thread.sleep(1000);
         postTo(williamChannel, williamConnections);
+        Thread.sleep(1000);
         postTo(williamChannel, williamStrands);
+        Thread.sleep(1000);
         postTo(williamChannel, williamMini);
+        Thread.sleep(1000);
         postTo(williamChannel, williamMidi);
+        Thread.sleep(1000);
         postTo(williamChannel, williamMain);
 
         Thread.sleep(5000);
@@ -164,9 +169,13 @@ class EndToEndTest {
         // ── Phase 3: Conor submits 5 games (no Midi) ────────────────────────
 
         postTo(conorChannel, conorWordle);
+        Thread.sleep(1000);
         postTo(conorChannel, conorConnections);
+        Thread.sleep(1000);
         postTo(conorChannel, conorStrands);
+        Thread.sleep(1000);
         postTo(conorChannel, conorMini);
+        Thread.sleep(1000);
         postTo(conorChannel, conorMain);
 
         Thread.sleep(5000);
@@ -198,7 +207,7 @@ class EndToEndTest {
 
         postTo(conorChannel, conorMidi);
 
-        Thread.sleep(3000);
+        Thread.sleep(5000);
         Scoreboard conorBoardPhase5 = scoreboardRepository.findByUserAndDate(conor, today).orElseThrow();
         assertThat(conorBoardPhase5.getMidiCrosswordResult()).as("Conor now has Midi result").isNotNull();
         assertThat(conorBoardPhase5.getMidiCrosswordResult().getTimeString()).isEqualTo("4:10");
