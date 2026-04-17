@@ -2,7 +2,12 @@ package com.wandocorp.nytscorebot.service;
 
 import com.wandocorp.nytscorebot.entity.Scoreboard;
 import com.wandocorp.nytscorebot.entity.User;
-import com.wandocorp.nytscorebot.model.*;
+import com.wandocorp.nytscorebot.model.ConnectionsResult;
+import com.wandocorp.nytscorebot.model.MainCrosswordResult;
+import com.wandocorp.nytscorebot.model.MidiCrosswordResult;
+import com.wandocorp.nytscorebot.model.MiniCrosswordResult;
+import com.wandocorp.nytscorebot.model.StrandsResult;
+import com.wandocorp.nytscorebot.model.WordleResult;
 import com.wandocorp.nytscorebot.repository.ScoreboardRepository;
 import com.wandocorp.nytscorebot.repository.UserRepository;
 import com.wandocorp.nytscorebot.testutil.FixedPuzzleCalendar;
@@ -16,7 +21,11 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for {@link ScoreboardService} validation and deduplication logic.
