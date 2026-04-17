@@ -23,10 +23,8 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
 import java.util.Locale;
-import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
 
 /**
  * Live end-to-end test — requires a real Discord connection and the E2E channels to exist.
@@ -63,7 +61,7 @@ class EndToEndTest {
 
     @Test
     @DisplayName("E2E: Full day scenario — two players, flags, and late submission")
-    void fullDayScenario() {
+    void fullDayScenario() throws InterruptedException {
         Snowflake williamChannel = Snowflake.of(williamChannelId);
         Snowflake conorChannel   = Snowflake.of(conorChannelId);
 
@@ -137,21 +135,19 @@ class EndToEndTest {
         postTo(williamChannel, williamMidi);
         postTo(williamChannel, williamMain);
 
-        await().atMost(15, TimeUnit.SECONDS).untilAsserted(() -> {
-            User william = userRepository.findByChannelId(williamChannelId).orElseThrow();
-            Scoreboard board = scoreboardRepository.findByUserAndDate(william, today).orElseThrow();
-            assertThat(board.isFinished()).as("William auto-finished with 6 games").isTrue();
-            assertThat(board.getWordleResult().getAttempts()).isEqualTo(3);
-            assertThat(board.getConnectionsResult().getMistakes()).isEqualTo(0);
-            assertThat(board.getStrandsResult().getHintsUsed()).isEqualTo(1);
-            assertThat(board.getMiniCrosswordResult().getTimeString()).isEqualTo("1:23");
-            assertThat(board.getMidiCrosswordResult().getTimeString()).isEqualTo("3:45");
-            assertThat(board.getMainCrosswordResult().getTimeString()).isEqualTo("15:00");
-        });
+        Thread.sleep(5000);
+        User william = userRepository.findByChannelId(williamChannelId).orElseThrow();
+        Scoreboard williamBoardPhase1 = scoreboardRepository.findByUserAndDate(william, today).orElseThrow();
+        assertThat(williamBoardPhase1.isFinished()).as("William auto-finished with 6 games").isTrue();
+        assertThat(williamBoardPhase1.getWordleResult().getAttempts()).isEqualTo(3);
+        assertThat(williamBoardPhase1.getConnectionsResult().getMistakes()).isEqualTo(0);
+        assertThat(williamBoardPhase1.getStrandsResult().getHintsUsed()).isEqualTo(1);
+        assertThat(williamBoardPhase1.getMiniCrosswordResult().getTimeString()).isEqualTo("1:23");
+        assertThat(williamBoardPhase1.getMidiCrosswordResult().getTimeString()).isEqualTo("3:45");
+        assertThat(williamBoardPhase1.getMainCrosswordResult().getTimeString()).isEqualTo("15:00");
 
         // ── Phase 2: William sets Main crossword flags ──────────────────────
 
-        User william = userRepository.findByChannelId(williamChannelId).orElseThrow();
         Scoreboard williamBoard = scoreboardRepository.findByUserAndDate(william, today).orElseThrow();
         MainCrosswordResult mainResult = williamBoard.getMainCrosswordResult();
         mainResult.setDuo(true);
@@ -173,22 +169,20 @@ class EndToEndTest {
         postTo(conorChannel, conorMini);
         postTo(conorChannel, conorMain);
 
-        await().atMost(15, TimeUnit.SECONDS).untilAsserted(() -> {
-            User conor = userRepository.findByChannelId(conorChannelId).orElseThrow();
-            Scoreboard board = scoreboardRepository.findByUserAndDate(conor, today).orElseThrow();
-            assertThat(board.getMainCrosswordResult()).as("Conor Main result persisted").isNotNull();
-            assertThat(board.isFinished()).as("Conor not auto-finished with 5/6 games").isFalse();
-            assertThat(board.getWordleResult().getAttempts()).isEqualTo(4);
-            assertThat(board.getConnectionsResult().getMistakes()).isEqualTo(1);
-            assertThat(board.getStrandsResult().getHintsUsed()).isEqualTo(0);
-            assertThat(board.getMiniCrosswordResult().getTimeString()).isEqualTo("1:23");
-            assertThat(board.getMidiCrosswordResult()).as("Conor has not submitted Midi yet").isNull();
-            assertThat(board.getMainCrosswordResult().getTimeString()).isEqualTo("22:02");
-        });
+        Thread.sleep(5000);
+        User conor = userRepository.findByChannelId(conorChannelId).orElseThrow();
+        Scoreboard conorBoardPhase3 = scoreboardRepository.findByUserAndDate(conor, today).orElseThrow();
+        assertThat(conorBoardPhase3.getMainCrosswordResult()).as("Conor Main result persisted").isNotNull();
+        assertThat(conorBoardPhase3.isFinished()).as("Conor not auto-finished with 5/6 games").isFalse();
+        assertThat(conorBoardPhase3.getWordleResult().getAttempts()).isEqualTo(4);
+        assertThat(conorBoardPhase3.getConnectionsResult().getMistakes()).isEqualTo(1);
+        assertThat(conorBoardPhase3.getStrandsResult().getHintsUsed()).isEqualTo(0);
+        assertThat(conorBoardPhase3.getMiniCrosswordResult().getTimeString()).isEqualTo("1:23");
+        assertThat(conorBoardPhase3.getMidiCrosswordResult()).as("Conor has not submitted Midi yet").isNull();
+        assertThat(conorBoardPhase3.getMainCrosswordResult().getTimeString()).isEqualTo("22:02");
 
         // ── Phase 4: Mark Conor finished → both finished → scoreboards ──────
 
-        User conor = userRepository.findByChannelId(conorChannelId).orElseThrow();
         Scoreboard conorBoard = scoreboardRepository.findByUserAndDate(conor, today).orElseThrow();
         conorBoard.setFinished(true);
         scoreboardRepository.save(conorBoard);
@@ -204,11 +198,10 @@ class EndToEndTest {
 
         postTo(conorChannel, conorMidi);
 
-        await().atMost(15, TimeUnit.SECONDS).untilAsserted(() -> {
-            Scoreboard board = scoreboardRepository.findByUserAndDate(conor, today).orElseThrow();
-            assertThat(board.getMidiCrosswordResult()).as("Conor now has Midi result").isNotNull();
-            assertThat(board.getMidiCrosswordResult().getTimeString()).isEqualTo("4:10");
-        });
+        Thread.sleep(3000);
+        Scoreboard conorBoardPhase5 = scoreboardRepository.findByUserAndDate(conor, today).orElseThrow();
+        assertThat(conorBoardPhase5.getMidiCrosswordResult()).as("Conor now has Midi result").isNotNull();
+        assertThat(conorBoardPhase5.getMidiCrosswordResult().getTimeString()).isEqualTo("4:10");
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
