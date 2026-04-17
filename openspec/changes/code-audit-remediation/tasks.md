@@ -28,9 +28,8 @@
 - [x] 3.4 Change `spring.jpa.hibernate.ddl-auto` from `update` to `validate`
 - [x] 3.5 Externalize Discord channel IDs, user IDs, player names, and status channel ID to environment variable placeholders in `application.properties` with default values for backward compatibility
 - [x] 3.6 Add `spring-boot-starter-actuator` dependency to `nyt-scorebot-app/pom.xml`. Configure to expose only health endpoints (`management.endpoints.web.exposure.include=health`)
-- [ ] 3.7 Add readiness probe that checks Discord gateway connection status *(deferred — requires SmartLifecycle integration)*
-- [ ] 3.8 Implement graceful shutdown using Spring `SmartLifecycle` *(deferred — complex lifecycle change)*
-- [ ] 3.9 Add `logstash-logback-encoder` dependency and create `logback-spring.xml` with JSON output for non-local profiles *(deferred — optional enhancement)*
+- [x] 3.7 Add readiness probe that checks Discord gateway connection status
+- [x] 3.8 Implement graceful shutdown using Spring `SmartLifecycle`
 - [x] 3.10 Restrict `pipeline.yml` triggers to `push: branches: [main]` and `pull_request: branches: [main]`
 - [x] 3.11 Replace hardcoded `nyt-scorebot-app-1.0-SNAPSHOT.jar` in `build.yml`, `deploy.yml`, `release.yml` with glob patterns
 - [x] 3.12 Modify `release.yml` to download the build artifact instead of running `mvn clean package` (with fallback)
