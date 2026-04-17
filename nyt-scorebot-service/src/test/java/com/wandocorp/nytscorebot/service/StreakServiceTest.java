@@ -2,7 +2,11 @@ package com.wandocorp.nytscorebot.service;
 
 import com.wandocorp.nytscorebot.entity.Streak;
 import com.wandocorp.nytscorebot.entity.User;
-import com.wandocorp.nytscorebot.model.*;
+import com.wandocorp.nytscorebot.model.ConnectionsResult;
+import com.wandocorp.nytscorebot.model.GameType;
+import com.wandocorp.nytscorebot.model.MiniCrosswordResult;
+import com.wandocorp.nytscorebot.model.StrandsResult;
+import com.wandocorp.nytscorebot.model.WordleResult;
 import com.wandocorp.nytscorebot.repository.StreakRepository;
 import com.wandocorp.nytscorebot.testutil.FixedPuzzleCalendar;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,7 +19,11 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.argThat;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class StreakServiceTest {
 

@@ -6,7 +6,7 @@
 - [x] 1.4 Replace all `instanceof` chains in `ScoreboardService`, `MessageListener`, `StreakService`, and `MainCrosswordScoreboard` with calls to the new polymorphic methods. Update `Scoreboard.mainCrosswordResult` field type to `MainCrosswordResult`
 - [x] 1.5 _(Deferred to Batch 3 — depends on Flyway)_ Normalize `Scoreboard` entity: remove all `@Embedded`/`@AttributeOverride` blocks, add `@OneToMany` relationship to a new `GameResultEntity` table using `@Inheritance(SINGLE_TABLE)` with `game_type` discriminator
 - [x] 1.6 _(Deferred to Batch 3 — depends on 1.5)_ Update `ScoreboardRepository` queries and `ScoreboardService` logic to work with the normalized game_result table (duplicate detection via game_type query, apply result via insert, allGamesPresent via count)
-- [ ] 1.7 _(Deferred to after 1.5/1.6 — boxed primitives needed for @Embedded JPA)_ Replace boxed primitives (`Integer`, `Boolean`) with primitives in `WordleResult`, `ConnectionsResult`, `StrandsResult` fields where values are never semantically null
+- [x] 1.7 _(Deferred to after 1.5/1.6 — boxed primitives needed for @Embedded JPA)_ Replace boxed primitives (`Integer`, `Boolean`) with primitives in `WordleResult`, `ConnectionsResult`, `StrandsResult` fields where values are never semantically null
 - [x] 1.8 _(Deferred to Batch 4 — cascading change through ScoreboardRenderer/ResultsChannelService)_ Update `Streak.gameType` field from `String` to `GameType` enum with `@Enumerated(EnumType.STRING)`
 - [x] 1.9 Update all tests for model changes: parser tests, service tests, renderer tests. Ensure ≥80% coverage maintained
 
@@ -28,9 +28,8 @@
 - [x] 3.4 Change `spring.jpa.hibernate.ddl-auto` from `update` to `validate`
 - [x] 3.5 Externalize Discord channel IDs, user IDs, player names, and status channel ID to environment variable placeholders in `application.properties` with default values for backward compatibility
 - [x] 3.6 Add `spring-boot-starter-actuator` dependency to `nyt-scorebot-app/pom.xml`. Configure to expose only health endpoints (`management.endpoints.web.exposure.include=health`)
-- [ ] 3.7 Add readiness probe that checks Discord gateway connection status *(deferred — requires SmartLifecycle integration)*
-- [ ] 3.8 Implement graceful shutdown using Spring `SmartLifecycle` *(deferred — complex lifecycle change)*
-- [ ] 3.9 Add `logstash-logback-encoder` dependency and create `logback-spring.xml` with JSON output for non-local profiles *(deferred — optional enhancement)*
+- [x] 3.7 Add readiness probe that checks Discord gateway connection status
+- [x] 3.8 Implement graceful shutdown using Spring `SmartLifecycle`
 - [x] 3.10 Restrict `pipeline.yml` triggers to `push: branches: [main]` and `pull_request: branches: [main]`
 - [x] 3.11 Replace hardcoded `nyt-scorebot-app-1.0-SNAPSHOT.jar` in `build.yml`, `deploy.yml`, `release.yml` with glob patterns
 - [x] 3.12 Modify `release.yml` to download the build artifact instead of running `mvn clean package` (with fallback)
@@ -40,7 +39,7 @@
 
 - [x] 4.1 Decompose `ScoreboardService.saveResult()` into focused private methods *(deferred — large refactor with high test impact)*
 - [x] 4.2 Refactor `ScoreboardRenderer.render()`: extract `determineLayout()` method, clarify variable names *(deferred — cosmetic, low priority)*
-- [ ] 4.3 Create `SlashCommandHandler` interface. Extract handlers into separate classes *(deferred — large structural refactor)*
+- [x] 4.3 Create `SlashCommandHandler` interface. Extract handlers into separate classes *(deferred — large structural refactor)*
 - [x] 4.4 Extract `SlashCommandRegistrar.registerCommands()` into per-command builder methods *(deferred — cosmetic)*
 - [x] 4.5 Extract shared `prepareContext()` method in `ResultsChannelService` to DRY the duplicated logic between `refresh()` and `refreshGame()`
 - [x] 4.6 Move `DiscordConfig.java` from root package to `config` subpackage *(deferred — affects package scanning)*
@@ -52,9 +51,9 @@
 
 ## 5. Tests, Sonar & Cleanup (Batch 5)
 
-- [ ] 5.1 Add Awaitility dependency and replace Thread.sleep() in EndToEndTest *(deferred — E2E test only)*
-- [ ] 5.2 Inject channel IDs in EndToEndTest via @Value *(deferred — E2E test only)*
-- [ ] 5.3 Add StringListConverter test for delimiter collision *(deferred — edge case)*
+- [x] 5.1 Add Awaitility dependency and replace Thread.sleep() in EndToEndTest *(deferred — E2E test only)*
+- [x] 5.2 Inject channel IDs in EndToEndTest via @Value *(deferred — E2E test only)*
+- [x] 5.3 Add StringListConverter test for delimiter collision *(deferred — edge case)*
 - [x] 5.4 Remove duplicate mock setup in `StatusChannelServiceTest` (line 50-51)
 - [x] 5.5 Unify JaCoCo branch coverage threshold: set `nyt-scorebot-discord/pom.xml` minimum to 0.80 (matching root)
 - [x] 5.6 Fix `CrosswordParser.extractDate()`: change return type to `Optional<LocalDate>` *(deferred — cascading change through model layer)*

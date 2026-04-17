@@ -12,10 +12,10 @@ import java.util.OptionalInt;
 @DiscriminatorValue("WORDLE")
 public class WordleResult extends GameResult {
 
-    private Integer puzzleNumber;
-    private Integer attempts;
-    private Boolean completed;
-    private Boolean hardMode;
+    private int puzzleNumber;
+    private int attempts;
+    private boolean completed;
+    private boolean hardMode;
 
     protected WordleResult() {}
 
@@ -40,12 +40,12 @@ public class WordleResult extends GameResult {
 
     @Override
     public boolean isSuccess() {
-        return Boolean.TRUE.equals(completed);
+        return completed;
     }
 
     @Override
     public OptionalInt puzzleNumber() {
-        return puzzleNumber != null ? OptionalInt.of(puzzleNumber) : OptionalInt.empty();
+        return OptionalInt.of(puzzleNumber);
     }
 
     @Override

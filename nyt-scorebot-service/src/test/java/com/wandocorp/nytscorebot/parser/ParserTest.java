@@ -42,8 +42,8 @@ class ParserTest {
         WordleResult wr = (WordleResult) result.get();
         assertThat(wr.getPuzzleNumber()).isEqualTo(1738);
         assertThat(wr.getAttempts()).isEqualTo(5);
-        assertThat(wr.getCompleted()).isTrue();
-        assertThat(wr.getHardMode()).isFalse();
+        assertThat(wr.isCompleted()).isTrue();
+        assertThat(wr.isHardMode()).isFalse();
         assertThat(wr.getRawContent()).isEqualTo(WORDLE_1);
         assertThat(wr.getComment()).isNull();
     }
@@ -55,8 +55,8 @@ class ParserTest {
         WordleResult wr = (WordleResult) result.get();
         assertThat(wr.getPuzzleNumber()).isEqualTo(1737);
         assertThat(wr.getAttempts()).isEqualTo(4);
-        assertThat(wr.getCompleted()).isTrue();
-        assertThat(wr.getHardMode()).isFalse();
+        assertThat(wr.isCompleted()).isTrue();
+        assertThat(wr.isHardMode()).isFalse();
         assertThat(wr.getRawContent()).isEqualTo(WORDLE_2);
         assertThat(wr.getComment()).isEqualTo("that was hard");
     }
@@ -68,8 +68,8 @@ class ParserTest {
         WordleResult wr = (WordleResult) result.get();
         assertThat(wr.getPuzzleNumber()).isEqualTo(1497);
         assertThat(wr.getAttempts()).isEqualTo(0); // X = failed, stored as 0
-        assertThat(wr.getCompleted()).isFalse();
-        assertThat(wr.getHardMode()).isFalse();
+        assertThat(wr.isCompleted()).isFalse();
+        assertThat(wr.isHardMode()).isFalse();
         assertThat(wr.getRawContent()).isEqualTo(WORDLE_3);
         assertThat(wr.getComment()).isNull();
     }
@@ -101,7 +101,7 @@ class ParserTest {
         ConnectionsResult cr = (ConnectionsResult) result.get();
         assertThat(cr.getPuzzleNumber()).isEqualTo(961);
         assertThat(cr.getMistakes()).isEqualTo(4);
-        assertThat(cr.getCompleted()).isFalse();
+        assertThat(cr.isCompleted()).isFalse();
         assertThat(cr.getSolveOrder()).containsExactly("🟨", "🟪");
         assertThat(cr.getRawContent()).isEqualTo(CONNECTIONS_1);
         assertThat(cr.getComment()).isNull();
@@ -114,7 +114,7 @@ class ParserTest {
         ConnectionsResult cr = (ConnectionsResult) result.get();
         assertThat(cr.getPuzzleNumber()).isEqualTo(963);
         assertThat(cr.getMistakes()).isEqualTo(1);
-        assertThat(cr.getCompleted()).isTrue();
+        assertThat(cr.isCompleted()).isTrue();
         assertThat(cr.getSolveOrder()).containsExactly("🟩", "🟨", "🟦", "🟪");
         assertThat(cr.getRawContent()).isEqualTo(CONNECTIONS_2);
         assertThat(cr.getComment()).isEqualTo("nailed it");
@@ -127,7 +127,7 @@ class ParserTest {
         ConnectionsResult cr = (ConnectionsResult) result.get();
         assertThat(cr.getPuzzleNumber()).isEqualTo(962);
         assertThat(cr.getMistakes()).isEqualTo(0);
-        assertThat(cr.getCompleted()).isTrue();
+        assertThat(cr.isCompleted()).isTrue();
         assertThat(cr.getSolveOrder()).containsExactly("🟦", "🟨", "🟩", "🟪");
         assertThat(cr.getRawContent()).isEqualTo(CONNECTIONS_3);
         assertThat(cr.getComment()).isNull();

@@ -2,10 +2,9 @@ package com.wandocorp.nytscorebot.service.scoreboard;
 
 import com.wandocorp.nytscorebot.entity.Scoreboard;
 import com.wandocorp.nytscorebot.entity.User;
-import com.wandocorp.nytscorebot.model.CrosswordResult;
-import com.wandocorp.nytscorebot.model.MiniCrosswordResult;
 import com.wandocorp.nytscorebot.model.GameType;
 import com.wandocorp.nytscorebot.model.MainCrosswordResult;
+import com.wandocorp.nytscorebot.model.MiniCrosswordResult;
 import com.wandocorp.nytscorebot.model.WordleResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

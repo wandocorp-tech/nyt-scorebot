@@ -7,7 +7,6 @@ import com.wandocorp.nytscorebot.model.MiniCrosswordResult;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

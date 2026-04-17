@@ -2,12 +2,12 @@ package com.wandocorp.nytscorebot.listener;
 
 import com.wandocorp.nytscorebot.config.DiscordChannelProperties;
 import com.wandocorp.nytscorebot.config.DiscordChannelProperties.ChannelConfig;
+import com.wandocorp.nytscorebot.discord.ResultsChannelService;
+import com.wandocorp.nytscorebot.discord.StatusChannelService;
 import com.wandocorp.nytscorebot.model.WordleResult;
 import com.wandocorp.nytscorebot.parser.GameResultParser;
-import com.wandocorp.nytscorebot.discord.ResultsChannelService;
 import com.wandocorp.nytscorebot.service.SaveOutcome;
 import com.wandocorp.nytscorebot.service.ScoreboardService;
-import com.wandocorp.nytscorebot.discord.StatusChannelService;
 import discord4j.common.util.Snowflake;
 import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.object.entity.Message;
@@ -23,8 +23,15 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class MessageListenerTest {
 
