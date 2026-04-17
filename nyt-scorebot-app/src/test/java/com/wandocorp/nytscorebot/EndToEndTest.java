@@ -156,10 +156,14 @@ class EndToEndTest {
         Scoreboard williamBoard = scoreboardRepository.findByUserAndDate(william, today).orElseThrow();
         MainCrosswordResult mainResult = williamBoard.getMainCrosswordResult();
         mainResult.setDuo(true);
+        Thread.sleep(1000);
         mainResult.setLookups(2);
+        Thread.sleep(1000);
         mainResult.setCheckUsed(true);
+        Thread.sleep(1000);
         scoreboardRepository.save(williamBoard);
         statusChannelService.refresh("William set crossword flags");
+        Thread.sleep(1000);
 
         williamBoard = scoreboardRepository.findByUserAndDate(william, today).orElseThrow();
         assertThat(williamBoard.getMainCrosswordResult().getDuo()).isTrue();
@@ -197,6 +201,7 @@ class EndToEndTest {
         scoreboardRepository.save(conorBoard);
         statusChannelService.refresh("Conor marked finished");
         resultsChannelService.refresh();
+        Thread.sleep(1000);
 
         williamBoard = scoreboardRepository.findByUserAndDate(william, today).orElseThrow();
         conorBoard = scoreboardRepository.findByUserAndDate(conor, today).orElseThrow();
