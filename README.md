@@ -379,23 +379,37 @@ The project uses GitHub Actions for automated build, test, and deployment.
 |---|---|---|---|
 | **Build** | `build.yml` | `workflow_call`, `workflow_dispatch` | Compile, run unit tests, enforce JaCoCo coverage, upload JAR artifact |
 | **Test (E2E)** | `test.yml` | `workflow_call`, `workflow_dispatch` | Run `EndToEndTest` against live Discord |
+| **Release** | `release.yml` | `workflow_call`, `workflow_dispatch` (with version input) | Generate AI release notes from commit history via GitHub Models, create a GitHub Release with the JAR attached |
 | **Deploy** | `deploy.yml` | `workflow_call`, `workflow_dispatch` | Copy JAR to Raspberry Pi via SCP, restart systemd service |
-| **Pipeline** | `pipeline.yml` | Push to `main`, `workflow_dispatch` | Orchestrate build → test → deploy in sequence |
-| **Release** | `release.yml` | `workflow_dispatch` (with version input) | Build JAR and create a GitHub Release with it attached |
+| **Announce** | `announce.yml` | `workflow_call` | Post a release-notes message to the dedicated Discord channel via webhook |
+| **Pipeline** | `pipeline.yml` | Push to `main`, `workflow_dispatch` | Orchestrate `build → test → release → deploy → announce` in sequence |
 
-Each of build, test, and deploy can be run independently from the GitHub Actions UI, or as part of the pipeline.
+Each workflow can be run independently from the GitHub Actions UI, or as part of the pipeline. The `announce` job is best-effort — if Discord is unreachable, the pipeline is still marked successful because the deploy and GitHub Release have already completed.
 
 ### Required Repository Secrets
 
 | Secret | Purpose |
 |---|---|
 | `DISCORD_TOKEN` | Discord bot token (used by E2E test and the application) |
+| `DISCORD_RELEASE_WEBHOOK_URL` | Discord webhook URL for the dedicated release-notes channel (used by the `announce` job; see "Discord release-notes channel" below) |
 | `PI_SSH_KEY` | SSH private key for authenticating to the Raspberry Pi |
 | `PI_HOST` | Hostname or IP address of the Pi |
 | `PI_USER` | SSH username on the Pi |
 | `PI_SSH_PORT` | SSH port (defaults to 22 if not set) |
 | `PI_DEPLOY_PATH` | Remote directory where the JAR is placed (e.g., `/opt/scorebot/`) |
 | `PI_SERVICE_NAME` | systemd service name to restart (e.g., `scorebot`) |
+
+The `release` job also needs the workflow-default `GITHUB_TOKEN` with `models: read` permission to call GitHub Models for AI-generated release notes — this is granted in the workflow file itself, no secret to configure.
+
+### Discord release-notes channel
+
+Each successful deploy posts a formatted announcement (header, AI bullet list, link to the GitHub Release) to a dedicated Discord channel via a webhook. To set this up:
+
+1. In Discord, create a channel for release announcements (e.g., `#nyt-scorebot-releases`).
+2. **Server Settings → Integrations → Webhooks → New Webhook**, assign it to that channel, name it (e.g., "nyt-scorebot releases"), and copy the URL.
+3. Add the URL as the repo secret `DISCORD_RELEASE_WEBHOOK_URL`.
+
+To **rotate** the webhook (e.g., if the URL leaks): in Discord, open the webhook in Server Settings → Integrations, click the existing webhook, and either delete + recreate it or use "Copy Webhook URL" after editing. Update the `DISCORD_RELEASE_WEBHOOK_URL` repo secret with the new URL. The bot token is never used by the announce job, so a webhook leak has a much smaller blast radius than a bot-token leak.
 
 ### Raspberry Pi Prerequisites
 
