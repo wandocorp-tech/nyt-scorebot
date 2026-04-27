@@ -140,16 +140,16 @@ Once both players have finished for the day (either by submitting all games or u
     ⬛🟨🟩🟨⬛
     🟩🟩🟩🟩⬛
 -----------------------------------
- 🏆 Conor wins! (-2)
+ 🏆 Conor wins! (2)
 -----------------------------------
 ```
 
 **Column ordering:** The player with more emoji grid rows goes left. Ties follow configured player order.
 
 **Winner determination:**
-- Wordle: fewer guesses; X (failed) loses to any completion.
-- Connections: fewer mistakes; X loses to any completion.
-- Strands: fewer hints used; tiebreaker removed — hints-only.
+- Wordle, Connections, Strands: scoreboards display each player's current streak rather than a per-day winner; no win/loss is calculated.
+- Mini & Midi crosswords: faster total time wins. Equal times trigger a special **☢️ Nuke!** message instead of the standard tie.
+- Main crossword: if both players used a check or any lookups, the result is a tie. If exactly one player used assistance, the unaided player wins regardless of time. Otherwise the faster time wins, with equal times triggering **☢️ Nuke!**. Time differentials are formatted as `MM:SS`. When the winner used the duo flag, their name is suffixed with " et al." in the win message.
 
 **Extensibility:** Adding a new game scoreboard requires only implementing `GameComparisonScoreboard` — no changes to `ScoreboardRenderer` or `ResultsChannelService`.
 

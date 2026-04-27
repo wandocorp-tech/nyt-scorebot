@@ -207,9 +207,11 @@ public class ScoreboardRenderer {
     private String buildResultMessage(ComparisonOutcome outcome) {
         if (outcome instanceof ComparisonOutcome.Tie) {
             return BotText.SCOREBOARD_TIE;
+        } else if (outcome instanceof ComparisonOutcome.Nuke) {
+            return BotText.SCOREBOARD_NUKE;
         } else if (outcome instanceof ComparisonOutcome.Win w) {
-            return w.differential() != null
-                    ? String.format(BotText.SCOREBOARD_WIN_WITH_DIFF, w.winnerName(), w.differential())
+            return w.differentialLabel() != null
+                    ? String.format(BotText.SCOREBOARD_WIN_WITH_DIFF, w.winnerName(), w.differentialLabel())
                     : String.format(BotText.SCOREBOARD_WIN_NO_DIFF, w.winnerName());
         } else if (outcome instanceof ComparisonOutcome.WaitingFor wf) {
             return String.format(BotText.SCOREBOARD_WAITING, wf.missingPlayerName());

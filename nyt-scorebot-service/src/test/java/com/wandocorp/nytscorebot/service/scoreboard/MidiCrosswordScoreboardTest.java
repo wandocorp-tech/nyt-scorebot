@@ -59,7 +59,7 @@ class MidiCrosswordScoreboardTest {
         assertThat(outcome).isInstanceOf(ComparisonOutcome.Win.class);
         ComparisonOutcome.Win win = (ComparisonOutcome.Win) outcome;
         assertThat(win.winnerName()).isEqualTo("Alice");
-        assertThat(win.differential()).isEqualTo(90);
+        assertThat(win.differentialLabel()).isEqualTo("1:30");
     }
 
     @Test
@@ -70,15 +70,15 @@ class MidiCrosswordScoreboardTest {
         assertThat(outcome).isInstanceOf(ComparisonOutcome.Win.class);
         ComparisonOutcome.Win win = (ComparisonOutcome.Win) outcome;
         assertThat(win.winnerName()).isEqualTo("Bob");
-        assertThat(win.differential()).isEqualTo(120);
+        assertThat(win.differentialLabel()).isEqualTo("2:00");
     }
 
     @Test
-    void sameTimeTies() {
+    void sameTimeIsNuke() {
         Scoreboard s1 = sbWith(result("3:00", 180));
         Scoreboard s2 = sbWith(result("3:00", 180));
         ComparisonOutcome outcome = scoreboard.determineOutcome(s1, "Alice", s2, "Bob");
-        assertThat(outcome).isInstanceOf(ComparisonOutcome.Tie.class);
+        assertThat(outcome).isInstanceOf(ComparisonOutcome.Nuke.class);
     }
 
     @Test

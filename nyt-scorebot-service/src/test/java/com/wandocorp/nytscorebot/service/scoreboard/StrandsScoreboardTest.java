@@ -28,29 +28,23 @@ class StrandsScoreboardTest {
     }
 
     @Test
-    void williamTwoHintsVsConorZero_conorWins() {
+    void williamTwoHintsVsConorZero_returnsDummyTie() {
         Scoreboard william = sbWith(result(2));
         Scoreboard conor = sbWith(result(0));
 
         ComparisonOutcome outcome = scoreboard.determineOutcome(william, "William", conor, "Conor");
 
-        assertThat(outcome).isInstanceOf(ComparisonOutcome.Win.class);
-        ComparisonOutcome.Win win = (ComparisonOutcome.Win) outcome;
-        assertThat(win.winnerName()).isEqualTo("Conor");
-        assertThat(win.differential()).isEqualTo(2);
+        assertThat(outcome).isInstanceOf(ComparisonOutcome.Tie.class);
     }
 
     @Test
-    void conorZeroHintsVsWilliamTwoHints_conorWins() {
+    void conorZeroHintsVsWilliamTwoHints_returnsDummyTie() {
         Scoreboard conor = sbWith(result(0));
         Scoreboard william = sbWith(result(2));
 
         ComparisonOutcome outcome = scoreboard.determineOutcome(conor, "Conor", william, "William");
 
-        assertThat(outcome).isInstanceOf(ComparisonOutcome.Win.class);
-        ComparisonOutcome.Win win = (ComparisonOutcome.Win) outcome;
-        assertThat(win.winnerName()).isEqualTo("Conor");
-        assertThat(win.differential()).isEqualTo(2);
+        assertThat(outcome).isInstanceOf(ComparisonOutcome.Tie.class);
     }
 
     @Test

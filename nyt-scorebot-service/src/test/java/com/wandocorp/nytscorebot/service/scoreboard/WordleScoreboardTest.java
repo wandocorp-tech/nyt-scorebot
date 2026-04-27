@@ -32,16 +32,13 @@ class WordleScoreboardTest {
     }
 
     @Test
-    void williamSixVsConorFour_conorWins() {
+    void williamSixVsConorFour_returnsDummyTie() {
         Scoreboard william = sbWith(result(WORDLE_6, 6, true));
         Scoreboard conor = sbWith(result(WORDLE_4, 4, true));
 
         ComparisonOutcome outcome = scoreboard.determineOutcome(william, "William", conor, "Conor");
 
-        assertThat(outcome).isInstanceOf(ComparisonOutcome.Win.class);
-        ComparisonOutcome.Win win = (ComparisonOutcome.Win) outcome;
-        assertThat(win.winnerName()).isEqualTo("Conor");
-        assertThat(win.differential()).isEqualTo(2);
+        assertThat(outcome).isInstanceOf(ComparisonOutcome.Tie.class);
     }
 
     @Test
@@ -65,29 +62,23 @@ class WordleScoreboardTest {
     }
 
     @Test
-    void oneCompleteOneFailed_completedWinsNoDifferential() {
+    void oneCompleteOneFailed_returnsDummyTie() {
         Scoreboard completed = sbWith(result(WORDLE_4, 4, true));
         Scoreboard failed = sbWith(result(WORDLE_FAILED, 0, false));
 
         ComparisonOutcome outcome = scoreboard.determineOutcome(completed, "William", failed, "Conor");
 
-        assertThat(outcome).isInstanceOf(ComparisonOutcome.Win.class);
-        ComparisonOutcome.Win win = (ComparisonOutcome.Win) outcome;
-        assertThat(win.winnerName()).isEqualTo("William");
-        assertThat(win.differential()).isNull();
+        assertThat(outcome).isInstanceOf(ComparisonOutcome.Tie.class);
     }
 
     @Test
-    void failedVsCompleted_completedWinsNoDifferential() {
+    void failedVsCompleted_returnsDummyTie() {
         Scoreboard failed = sbWith(result(WORDLE_FAILED, 0, false));
         Scoreboard completed = sbWith(result(WORDLE_4, 4, true));
 
         ComparisonOutcome outcome = scoreboard.determineOutcome(failed, "William", completed, "Conor");
 
-        assertThat(outcome).isInstanceOf(ComparisonOutcome.Win.class);
-        ComparisonOutcome.Win win = (ComparisonOutcome.Win) outcome;
-        assertThat(win.winnerName()).isEqualTo("Conor");
-        assertThat(win.differential()).isNull();
+        assertThat(outcome).isInstanceOf(ComparisonOutcome.Tie.class);
     }
 
     @Test

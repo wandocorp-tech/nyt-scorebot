@@ -34,8 +34,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  * pass the userId filter and are processed normally.
  * <p>
  * Scenario: William submits 6 games (auto-finishes), sets Main crossword flags,
- * Conor submits 5 games (no Midi), marks finished → scoreboards render,
- * then Conor submits Midi late → Midi board refreshes.
+ * Conor submits 5 games (no Midi), sets Main check flag (both aided → draw),
+ * marks finished → scoreboards render (Mini = time win, Main = draw),
+ * then Conor submits Midi late at the same time as William → Midi board renders Nuke!.
  */
 @SpringBootTest
 @ActiveProfiles("e2e")
@@ -116,11 +117,11 @@ class EndToEndTest {
         String conorStrands = "Strands #" + strands +
                 "\n\"Test Theme\"\n🔵🟡🔵\n🔵🔵\n🔵🔵";
 
-        // Conor: Mini 1:23 (tie with William)
-        String conorMini = "I solved the " + dateStr + " New York Times Mini Crossword in 1:23!";
+        // Conor: Mini 1:42 (William wins time-based)
+        String conorMini = "I solved the " + dateStr + " New York Times Mini Crossword in 1:42!";
 
-        // Conor: Midi 4:10 (submitted late in Phase 5)
-        String conorMidi = "I solved the " + dateStr + " New York Times Midi Crossword in 4:10!";
+        // Conor: Midi 3:45 (Nuke! — equal times, both unaided; submitted late in Phase 5)
+        String conorMidi = "I solved the " + dateStr + " New York Times Midi Crossword in 3:45!";
 
         // Conor: Main 22:02
         String conorMain = "I solved the " + dayOfWeek + " " + dateStr +
@@ -190,9 +191,21 @@ class EndToEndTest {
         assertThat(conorBoardPhase3.getWordleResult().getAttempts()).isEqualTo(4);
         assertThat(conorBoardPhase3.getConnectionsResult().getMistakes()).isEqualTo(1);
         assertThat(conorBoardPhase3.getStrandsResult().getHintsUsed()).isEqualTo(0);
-        assertThat(conorBoardPhase3.getMiniCrosswordResult().getTimeString()).isEqualTo("1:23");
+        assertThat(conorBoardPhase3.getMiniCrosswordResult().getTimeString()).isEqualTo("1:42");
         assertThat(conorBoardPhase3.getMidiCrosswordResult()).as("Conor has not submitted Midi yet").isNull();
         assertThat(conorBoardPhase3.getMainCrosswordResult().getTimeString()).isEqualTo("22:02");
+
+        // ── Phase 3b: Conor sets Main crossword check flag ──────────────────
+        // Both players now have used assistance on Main → outcome is a draw.
+
+        MainCrosswordResult conorMainResult = conorBoardPhase3.getMainCrosswordResult();
+        conorMainResult.setCheckUsed(true);
+        scoreboardRepository.save(conorBoardPhase3);
+        statusChannelService.refresh("Conor set Main check flag");
+        Thread.sleep(1000);
+
+        Scoreboard conorAfterFlag = scoreboardRepository.findByUserAndDate(conor, today).orElseThrow();
+        assertThat(conorAfterFlag.getMainCrosswordResult().getCheckUsed()).isTrue();
 
         // ── Phase 4: Mark Conor finished → both finished → scoreboards ──────
 
@@ -215,7 +228,7 @@ class EndToEndTest {
         Thread.sleep(5000);
         Scoreboard conorBoardPhase5 = scoreboardRepository.findByUserAndDate(conor, today).orElseThrow();
         assertThat(conorBoardPhase5.getMidiCrosswordResult()).as("Conor now has Midi result").isNotNull();
-        assertThat(conorBoardPhase5.getMidiCrosswordResult().getTimeString()).isEqualTo("4:10");
+        assertThat(conorBoardPhase5.getMidiCrosswordResult().getTimeString()).isEqualTo("3:45");
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
