@@ -48,9 +48,9 @@ public class MidiCrosswordScoreboard implements GameComparisonScoreboard {
     public ComparisonOutcome determineOutcome(Scoreboard s1, String name1, Scoreboard s2, String name2) {
         int t1 = s1.getMidiCrosswordResult().getTotalSeconds();
         int t2 = s2.getMidiCrosswordResult().getTotalSeconds();
-        if (t1 == t2) return new ComparisonOutcome.Tie();
-        if (t1 < t2) return new ComparisonOutcome.Win(name1, t2 - t1);
-        return new ComparisonOutcome.Win(name2, t1 - t2);
+        if (t1 == t2) return new ComparisonOutcome.Nuke();
+        if (t1 < t2) return new ComparisonOutcome.Win(name1, MainCrosswordScoreboard.formatMmSs(t2 - t1));
+        return new ComparisonOutcome.Win(name2, MainCrosswordScoreboard.formatMmSs(t1 - t2));
     }
 
     @Override public int leadingSpaces() { return 0; }

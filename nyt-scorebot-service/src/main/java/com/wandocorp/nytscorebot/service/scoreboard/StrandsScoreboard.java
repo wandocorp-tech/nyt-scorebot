@@ -78,11 +78,7 @@ public class StrandsScoreboard implements GameComparisonScoreboard {
 
     @Override
     public ComparisonOutcome determineOutcome(Scoreboard s1, String name1, Scoreboard s2, String name2) {
-        int h1 = s1.getStrandsResult().getHintsUsed();
-        int h2 = s2.getStrandsResult().getHintsUsed();
-
-        if (h1 < h2) return new ComparisonOutcome.Win(name1, h2 - h1);
-        if (h2 < h1) return new ComparisonOutcome.Win(name2, h1 - h2);
+        // Outcome is never rendered when usesStreakDisplay() == true, so return a dummy Tie.
         return new ComparisonOutcome.Tie();
     }
 

@@ -254,4 +254,23 @@ class ScoreboardRendererTest {
         assertThat(output).contains("0  |  0");
         assertThat(output).doesNotContain("🔥");
     }
+
+    @Test
+    void crosswordScoreboardRendersNukeOnEqualUnaidedTimes() {
+        MiniCrosswordScoreboard miniGame = new MiniCrosswordScoreboard();
+        ScoreboardRenderer crosswordRenderer = new ScoreboardRenderer(List.of(miniGame));
+
+        Scoreboard sb1 = new Scoreboard(new User("c1", "test", "u1"), LocalDate.now());
+        sb1.addResult(new MiniCrosswordResult("raw", "a", null, "0:30", 30, LocalDate.now()));
+        Scoreboard sb2 = new Scoreboard(new User("c2", "test", "u2"), LocalDate.now());
+        sb2.addResult(new MiniCrosswordResult("raw", "a", null, "0:30", 30, LocalDate.now()));
+
+        Optional<String> rendered = crosswordRenderer.render(miniGame, sb1, "William", sb2, "Conor", Map.of());
+
+        assertThat(rendered).isPresent();
+        String output = rendered.get();
+        assertThat(output).contains("☢️ Nuke!");
+        assertThat(output).doesNotContain("🤝");
+        assertThat(output).doesNotContain("🏆");
+    }
 }

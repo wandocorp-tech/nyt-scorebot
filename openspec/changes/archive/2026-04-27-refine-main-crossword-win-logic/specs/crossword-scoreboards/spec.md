@@ -1,4 +1,4 @@
-## ADDED Requirements
+## MODIFIED Requirements
 
 ### Requirement: Mini crossword daily comparison scoreboard
 The system SHALL render a daily comparison scoreboard for the Mini crossword in the results channel. The scoreboard SHALL display each player's solve time (in MM:SS format) side-by-side, with an outcome row showing win/tie/unsubmitted status. The faster solve time (lower `totalSeconds`) SHALL win. The time differential SHALL be expressed in MM:SS format without a leading minus sign (e.g., `(0:48)`). When both players have identical `totalSeconds`, the outcome SHALL be a "Nuke!" (rendered with a distinct ☢️ marker) instead of the generic tie message.
@@ -92,17 +92,3 @@ The decision rules SHALL be:
 #### Scenario: Neither player submitted Main crossword
 - **WHEN** neither player has a `mainCrosswordResult` on today's scoreboard
 - **THEN** no Main crossword scoreboard is rendered
-
-### Requirement: Crossword scoreboard ordering
-The three crossword scoreboards SHALL appear in the results channel after the existing game scoreboards (Wordle, Connections, Strands) in the order: Mini, Midi, Main.
-
-#### Scenario: All game scoreboards rendered
-- **WHEN** both players have submitted results for all game types
-- **THEN** the results channel displays scoreboards in order: Wordle, Connections, Strands, Mini Crossword, Midi Crossword, Main Crossword
-
-### Requirement: Crossword scoreboard header uses date
-The crossword scoreboard headers SHALL display the crossword date rather than a puzzle number, since crosswords use dates instead of sequential puzzle numbers. The format SHALL be the crossword date (e.g., "Mini Crossword - 3/31/2026").
-
-#### Scenario: Crossword header displays date
-- **WHEN** a crossword scoreboard is rendered for a result with `crosswordDate` of 2026-03-31
-- **THEN** the header reads "[Type] Crossword - 3/31/2026" (e.g., "Mini Crossword - 3/31/2026")

@@ -58,22 +58,7 @@ public class ConnectionsScoreboard implements GameComparisonScoreboard {
 
     @Override
     public ComparisonOutcome determineOutcome(Scoreboard s1, String name1, Scoreboard s2, String name2) {
-        ConnectionsResult r1 = s1.getConnectionsResult();
-        ConnectionsResult r2 = s2.getConnectionsResult();
-
-        if (!r1.isCompleted() && !r2.isCompleted()) {
-            return new ComparisonOutcome.Tie();
-        }
-        if (!r1.isCompleted()) {
-            return new ComparisonOutcome.Win(name2, null);
-        }
-        if (!r2.isCompleted()) {
-            return new ComparisonOutcome.Win(name1, null);
-        }
-        boolean perfect1 = r1.getMistakes() == 0;
-        boolean perfect2 = r2.getMistakes() == 0;
-        if (perfect1 && !perfect2) return new ComparisonOutcome.Win(name1, null);
-        if (perfect2 && !perfect1) return new ComparisonOutcome.Win(name2, null);
+        // Outcome is never rendered when usesStreakDisplay() == true, so return a dummy Tie.
         return new ComparisonOutcome.Tie();
     }
 

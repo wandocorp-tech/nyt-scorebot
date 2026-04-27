@@ -24,6 +24,19 @@ class MainCrosswordScoreboardTest {
         return new MainCrosswordResult("raw", "author", null, time, seconds, DATE);
     }
 
+    private MainCrosswordResult resultAided(String time, int seconds, Boolean check, Integer lookups) {
+        MainCrosswordResult r = result(time, seconds);
+        r.setCheckUsed(check);
+        r.setLookups(lookups);
+        return r;
+    }
+
+    private MainCrosswordResult resultDuo(String time, int seconds) {
+        MainCrosswordResult r = result(time, seconds);
+        r.setDuo(true);
+        return r;
+    }
+
     @Test
     void hasResultReturnsTrueWhenPresent() {
         assertThat(scoreboard.hasResult(sbWith(result("15:00", 900)))).isTrue();
@@ -53,33 +66,97 @@ class MainCrosswordScoreboardTest {
     // ── Outcome determination ─────────────────────────────────────────────────
 
     @Test
-    void fasterTimeWins() {
+    void neitherAidedFasterTimeWins() {
         Scoreboard fast = sbWith(result("10:00", 600));
         Scoreboard slow = sbWith(result("15:00", 900));
         ComparisonOutcome outcome = scoreboard.determineOutcome(fast, "Alice", slow, "Bob");
         assertThat(outcome).isInstanceOf(ComparisonOutcome.Win.class);
         ComparisonOutcome.Win win = (ComparisonOutcome.Win) outcome;
         assertThat(win.winnerName()).isEqualTo("Alice");
-        assertThat(win.differential()).isEqualTo(300);
+        assertThat(win.differentialLabel()).isEqualTo("5:00");
     }
 
     @Test
-    void slowerTimeLoses() {
+    void neitherAidedSlowerTimeLoses() {
         Scoreboard slow = sbWith(result("20:00", 1200));
         Scoreboard fast = sbWith(result("12:00", 720));
         ComparisonOutcome outcome = scoreboard.determineOutcome(slow, "Alice", fast, "Bob");
         assertThat(outcome).isInstanceOf(ComparisonOutcome.Win.class);
         ComparisonOutcome.Win win = (ComparisonOutcome.Win) outcome;
         assertThat(win.winnerName()).isEqualTo("Bob");
-        assertThat(win.differential()).isEqualTo(480);
+        assertThat(win.differentialLabel()).isEqualTo("8:00");
     }
 
     @Test
-    void sameTimeTies() {
+    void neitherAidedSameTimeIsNuke() {
         Scoreboard s1 = sbWith(result("15:00", 900));
         Scoreboard s2 = sbWith(result("15:00", 900));
         ComparisonOutcome outcome = scoreboard.determineOutcome(s1, "Alice", s2, "Bob");
+        assertThat(outcome).isInstanceOf(ComparisonOutcome.Nuke.class);
+    }
+
+    @Test
+    void oneUsedCheckOtherUnaidedUnaidedWins() {
+        Scoreboard aided = sbWith(resultAided("8:00", 480, true, null));
+        Scoreboard clean = sbWith(result("20:00", 1200));
+        ComparisonOutcome outcome = scoreboard.determineOutcome(aided, "Alice", clean, "Bob");
+        assertThat(outcome).isInstanceOf(ComparisonOutcome.Win.class);
+        ComparisonOutcome.Win win = (ComparisonOutcome.Win) outcome;
+        assertThat(win.winnerName()).isEqualTo("Bob");
+        assertThat(win.differentialLabel()).isNull();
+    }
+
+    @Test
+    void oneUsedLookupsOtherUnaidedUnaidedWins() {
+        Scoreboard aided = sbWith(resultAided("8:00", 480, null, 3));
+        Scoreboard clean = sbWith(result("20:00", 1200));
+        ComparisonOutcome outcome = scoreboard.determineOutcome(clean, "Alice", aided, "Bob");
+        assertThat(outcome).isInstanceOf(ComparisonOutcome.Win.class);
+        ComparisonOutcome.Win win = (ComparisonOutcome.Win) outcome;
+        assertThat(win.winnerName()).isEqualTo("Alice");
+        assertThat(win.differentialLabel()).isNull();
+    }
+
+    @Test
+    void bothAidedIsTie() {
+        Scoreboard a = sbWith(resultAided("8:00", 480, true, null));
+        Scoreboard b = sbWith(resultAided("9:00", 540, null, 2));
+        ComparisonOutcome outcome = scoreboard.determineOutcome(a, "Alice", b, "Bob");
         assertThat(outcome).isInstanceOf(ComparisonOutcome.Tie.class);
+    }
+
+    @Test
+    void zeroLookupsAndNullCheckIsNotAided() {
+        Scoreboard a = sbWith(resultAided("10:00", 600, null, 0));
+        Scoreboard b = sbWith(resultAided("12:00", 720, false, 0));
+        ComparisonOutcome outcome = scoreboard.determineOutcome(a, "Alice", b, "Bob");
+        assertThat(outcome).isInstanceOf(ComparisonOutcome.Win.class);
+        ComparisonOutcome.Win win = (ComparisonOutcome.Win) outcome;
+        assertThat(win.winnerName()).isEqualTo("Alice");
+        assertThat(win.differentialLabel()).isEqualTo("2:00");
+    }
+
+    @Test
+    void duoWinnerGetsEtAlSuffixOnTimeWin() {
+        Scoreboard duo = sbWith(resultDuo("10:00", 600));
+        Scoreboard solo = sbWith(result("15:00", 900));
+        ComparisonOutcome outcome = scoreboard.determineOutcome(duo, "Alice", solo, "Bob");
+        assertThat(outcome).isInstanceOf(ComparisonOutcome.Win.class);
+        ComparisonOutcome.Win win = (ComparisonOutcome.Win) outcome;
+        assertThat(win.winnerName()).isEqualTo("Alice et al.");
+        assertThat(win.differentialLabel()).isEqualTo("5:00");
+    }
+
+    @Test
+    void duoWinnerGetsEtAlSuffixOnDisqualificationWin() {
+        Scoreboard aided = sbWith(resultAided("8:00", 480, true, null));
+        MainCrosswordResult duo = resultDuo("20:00", 1200);
+        Scoreboard cleanDuo = sbWith(duo);
+        ComparisonOutcome outcome = scoreboard.determineOutcome(aided, "Alice", cleanDuo, "Bob");
+        assertThat(outcome).isInstanceOf(ComparisonOutcome.Win.class);
+        ComparisonOutcome.Win win = (ComparisonOutcome.Win) outcome;
+        assertThat(win.winnerName()).isEqualTo("Bob et al.");
+        assertThat(win.differentialLabel()).isNull();
     }
 
     // ── Flags row rendering ───────────────────────────────────────────────────

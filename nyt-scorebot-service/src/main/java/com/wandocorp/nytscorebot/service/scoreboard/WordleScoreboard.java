@@ -58,23 +58,8 @@ public class WordleScoreboard implements GameComparisonScoreboard {
 
     @Override
     public ComparisonOutcome determineOutcome(Scoreboard s1, String name1, Scoreboard s2, String name2) {
-        WordleResult r1 = s1.getWordleResult();
-        WordleResult r2 = s2.getWordleResult();
-
-        if (!r1.isCompleted() && !r2.isCompleted()) {
-            return new ComparisonOutcome.Tie();
-        }
-        if (!r1.isCompleted()) {
-            return new ComparisonOutcome.Win(name2, null);
-        }
-        if (!r2.isCompleted()) {
-            return new ComparisonOutcome.Win(name1, null);
-        }
-        int a1 = r1.getAttempts();
-        int a2 = r2.getAttempts();
-        if (a1 == a2) return new ComparisonOutcome.Tie();
-        if (a1 < a2) return new ComparisonOutcome.Win(name1, a2 - a1);
-        return new ComparisonOutcome.Win(name2, a1 - a2);
+        // Outcome is never rendered when usesStreakDisplay() == true, so return a dummy Tie.
+        return new ComparisonOutcome.Tie();
     }
 
     @Override
