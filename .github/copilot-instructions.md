@@ -109,3 +109,22 @@ The Discord bot also requires **Message Content Intent** enabled in the Discord 
 - **`EndToEndTest`** is a full end-to-end test that requires a live Discord connection and is excluded from normal `mvn test` runs via the `-Dtest='!...EndToEndTest'` flag.
 - Parser tests follow a 3-sample-per-parser pattern: a passing case, an edge case, and a failure case.
 - Use AssertJ assertions (`assertThat(...)`), not JUnit `assertEquals`.
+
+## Commit Message Conventions
+
+All commits SHOULD use a conventional-commit prefix so that AI-generated release notes can categorise and filter changes. Format: `<type>: <subject>` (e.g., `feat: add /streak slash command for tracking game streaks`).
+
+Allowed prefixes:
+
+| Prefix | Meaning |
+|---|---|
+| `feat` | User-visible new feature |
+| `fix` | User-visible bug fix |
+| `refactor` | Internal restructure with no behaviour change |
+| `chore` | Housekeeping (dependency bumps, formatting, etc.) |
+| `ci` | Pipeline / GitHub Actions changes |
+| `test` | Test-only changes |
+| `docs` | Documentation only |
+| `build` | Build, packaging, or Maven changes |
+
+The CI release-notes generator filters out `chore`, `ci`, `test`, and `build` commits unless they have user-visible impact, so prefixing accurately keeps the Discord release announcements concise. The convention is guidance only — non-conventional commits are not blocked.

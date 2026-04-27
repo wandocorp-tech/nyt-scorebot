@@ -1,0 +1,90 @@
+name: Announce
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+      release_url:
+        required: true
+        type: string
+    secrets:
+      DISCORD_RELEASE_WEBHOOK_URL:
+        required: true
+
+jobs:
+  announce:
+    runs-on: ubuntu-latest
+    # Pipeline must not fail if Discord is unreachable; the deploy and release
+    # have already succeeded by this point.
+    continue-on-error: true
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Fetch the AI-generated release body from the GitHub Release that the
+      # release workflow just created. Using the gh CLI avoids re-running the
+      # model call and guarantees the Discord post matches the canonical notes.
+      - name: Fetch release body
+        id: fetch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          gh release view "$VERSION" --json body --jq .body > release-body.md
+          echo "--- Release body ---"
+          cat release-body.md
+          echo "--------------------"
+
+      # Build the Discord message: header + AI bullet list + footer link.
+      # Truncate the bullet section if the assembled message would exceed the
+      # 2000-character Discord limit so the post never gets rejected.
+      - name: Build Discord payload
+        id: build
+        env:
+          VERSION: ${{ inputs.version }}
+          RELEASE_URL: ${{ inputs.release_url }}
+        run: |
+          set -euo pipefail
+          HEADER="🚀 nyt-scorebot ${VERSION} deployed!"
+          FOOTER="📋 Full release notes → ${RELEASE_URL}"
+          BODY=$(cat release-body.md)
+
+          # Two blank lines of separator overhead between sections (4 chars).
+          OVERHEAD=$(( ${#HEADER} + ${#FOOTER} + 4 ))
+          MAX_BODY=$(( 2000 - OVERHEAD ))
+
+          if [ ${#BODY} -gt $MAX_BODY ]; then
+            # Reserve one char for the ellipsis.
+            BODY="${BODY:0:$((MAX_BODY - 1))}…"
+          fi
+
+          MESSAGE=$(printf '%s\n\n%s\n\n%s' "$HEADER" "$BODY" "$FOOTER")
+          jq -n --arg content "$MESSAGE" '{content: $content}' > payload.json
+
+          echo "--- Discord payload ---"
+          cat payload.json
+          echo "-----------------------"
+
+      - name: Post to Discord webhook
+        env:
+          WEBHOOK_URL: ${{ secrets.DISCORD_RELEASE_WEBHOOK_URL }}
+        run: |
+          set -uo pipefail
+          HTTP_CODE=$(curl -sS -o response.txt -w "%{http_code}" \
+            -X POST "$WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            --data-binary @payload.json) || HTTP_CODE="000"
+
+          echo "Discord webhook responded with HTTP $HTTP_CODE"
+          cat response.txt || true
+
+          if [ "$HTTP_CODE" != "204" ] && [ "$HTTP_CODE" != "200" ]; then
+            echo "::warning::Discord announcement failed (HTTP $HTTP_CODE) — pipeline continues."
+          fi

@@ -21,9 +21,20 @@ jobs:
     secrets:
       DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
 
+  release:
+    name: Release
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+      models: read
+    uses: ./.github/workflows/release.yml
+    with:
+      version: v${{ github.run_number }}
+
   deploy:
     name: Deploy
-    needs: test
+    needs: release
     if: github.ref == 'refs/heads/main'
     uses: ./.github/workflows/deploy.yml
     secrets:
@@ -36,12 +47,13 @@ jobs:
       TAILSCALE_OAUTH_CLIENT_ID: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
       TAILSCALE_OAUTH_CLIENT_SECRET: ${{ secrets.TAILSCALE_OAUTH_CLIENT_SECRET }}
 
-  release:
-    name: Release
+  announce:
+    name: Announce
     needs: deploy
     if: github.ref == 'refs/heads/main'
-    permissions:
-      contents: write
-    uses: ./.github/workflows/release.yml
+    uses: ./.github/workflows/announce.yml
     with:
       version: v${{ github.run_number }}
+      release_url: ${{ github.server_url }}/${{ github.repository }}/releases/tag/v${{ github.run_number }}
+    secrets:
+      DISCORD_RELEASE_WEBHOOK_URL: ${{ secrets.DISCORD_RELEASE_WEBHOOK_URL }}

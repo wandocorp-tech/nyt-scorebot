@@ -1,8 +1,5 @@
-# release-creation Specification
+## MODIFIED Requirements
 
-## Purpose
-TBD - created by archiving change add-cicd-pipeline. Update Purpose after archive.
-## Requirements
 ### Requirement: Release workflow creates a GitHub Release
 The release workflow SHALL create a GitHub Release with a version tag derived from the pipeline run number and attach the built JAR as a release asset. The release body SHALL be populated from AI-generated release notes (see `ai-release-notes` capability) rather than GitHub's auto-generated notes.
 
@@ -36,3 +33,12 @@ The release workflow SHALL produce or reuse the built JAR before creating the re
 - **WHEN** the release workflow is invoked from the pipeline
 - **THEN** it SHALL download the JAR artifact produced by the build job rather than rebuilding
 
+## REMOVED Requirements
+
+### Requirement: Release triggered only via workflow_dispatch
+**Reason**: Release is now part of the pipeline (build → test → release → deploy → announce) so that AI-generated release notes and the GitHub Release URL are available before the announcement step. Manual `workflow_dispatch` is still supported for ad-hoc releases (covered by the modified "Release workflow is part of the pipeline" requirement).
+**Migration**: No action needed — the existing `workflow_dispatch` trigger remains available; pushes to `main` now also produce releases automatically.
+
+### Requirement: Release is independent of the pipeline
+**Reason**: Reversed by this change. The release stage now runs inside the pipeline so that the GitHub Release exists before the Discord announcement links to it.
+**Migration**: No action needed — `pipeline.yml` already invokes `release.yml` (drift between previous spec and implementation is now reconciled).

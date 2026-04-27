@@ -1,8 +1,5 @@
-# pipeline-orchestration Specification
+## MODIFIED Requirements
 
-## Purpose
-TBD - created by archiving change add-cicd-pipeline. Update Purpose after archive.
-## Requirements
 ### Requirement: Pipeline orchestrates build, test, release, deploy, and announce in sequence
 The pipeline workflow SHALL call the build, test, release, deploy, and announce workflows in sequence: `build → test → release → deploy → announce`. Each subsequent job SHALL only run if the previous job succeeded, except `announce`, which SHALL run after `deploy` succeeds but SHALL NOT cause the pipeline to fail if it itself fails.
 
@@ -50,4 +47,3 @@ The pipeline workflow SHALL ensure the JAR artifact built in the build job is av
 #### Scenario: Artifact reuse across pipeline jobs
 - **WHEN** the build job completes successfully in the pipeline
 - **THEN** the test, release, and deploy jobs SHALL use the same JAR artifact produced by the build job
-
