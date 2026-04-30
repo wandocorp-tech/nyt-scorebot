@@ -76,7 +76,7 @@ public final class BotText {
     // %s placeholders: %1$s = player name, %2$s = game label
     public static final String STATUS_CONTEXT_GAME_SUBMITTED    = "%s submitted %s";
     public static final String STATUS_CONTEXT_PLAYER_FINISHED   = "%s is done for today";
-    public static final String STATUS_CONTEXT_FLAG_UPDATED      = "%s updated %s";
+    public static final String STATUS_CONTEXT_FLAG_UPDATED      = "%s set a flag";
 
     // ── Scoreboard result / comparison messages ───────────────────────────────
     public static final String SCOREBOARD_TIE            = "🤝 Tie!";
