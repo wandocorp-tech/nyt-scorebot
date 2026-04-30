@@ -274,18 +274,36 @@ class EndToEndTest {
         logEntry("⚡ Command", playerName, command);
     }
 
+    /**
+     * Writes a scoreboard as a standalone markdown code block in {@code $GITHUB_STEP_SUMMARY}.
+     * Fenced code blocks cannot render inside table cells, so scoreboards are written as separate
+     * sections. A flag is set so the next {@link #logEntry} call re-emits the table header,
+     * keeping subsequent Submit/Command rows in a properly-formed table.
+     */
     private void logScoreboard(String gameType, String content) {
-        String stripped = content
-                .replace(BotText.STATUS_CODE_BLOCK_OPEN, "")
-                .replace(BotText.STATUS_CODE_BLOCK_CLOSE, "");
-        logEntry("📊 Scoreboard", gameType, stripped);
+        String summaryPath = System.getenv("GITHUB_STEP_SUMMARY");
+        if (summaryPath == null || summaryPath.isBlank()) {
+            log.info("[📊 Scoreboard] [{}]\n{}", gameType, content);
+            return;
+        }
+        try {
+            Path file = Path.of(summaryPath);
+            String section = "\n**" + gameType + "**\n\n" + content + "\n";
+            Files.writeString(file, section, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+            needsTableHeader = true;
+        } catch (IOException e) {
+            log.warn("Failed to write to GITHUB_STEP_SUMMARY: {}", e.getMessage());
+            log.info("[📊 Scoreboard] [{}]\n{}", gameType, content);
+        }
     }
 
     /**
      * Logs a single event row to {@code $GITHUB_STEP_SUMMARY} when running in GitHub Actions
      * (markdown table format); falls back to SLF4J INFO logging when the env var is absent.
-     * The table header is written once, when the summary file is empty.
+     * The table header is written at the start and after any scoreboard sections that break the table.
      */
+    private boolean needsTableHeader = true;
+
     private void logEntry(String type, String actor, String content) {
         String summaryPath = System.getenv("GITHUB_STEP_SUMMARY");
         if (summaryPath == null || summaryPath.isBlank()) {
@@ -294,10 +312,10 @@ class EndToEndTest {
         }
         try {
             Path file = Path.of(summaryPath);
-            boolean needsHeader = !Files.exists(file) || Files.size(file) == 0;
             StringBuilder sb = new StringBuilder();
-            if (needsHeader) {
+            if (needsTableHeader) {
                 sb.append("| Type | Actor | Content |\n| --- | --- | --- |\n");
+                needsTableHeader = false;
             }
             sb.append("| ").append(escapeForTable(type))
               .append(" | ").append(escapeForTable(actor))
