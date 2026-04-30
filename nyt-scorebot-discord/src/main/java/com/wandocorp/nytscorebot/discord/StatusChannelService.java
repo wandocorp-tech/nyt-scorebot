@@ -25,7 +25,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public class StatusChannelService {
 
     /** How long the ephemeral notification message lives before being deleted. */
-    static final Duration NOTIFICATION_TTL = Duration.ofSeconds(10);
+    static final Duration NOTIFICATION_TTL = Duration.ofSeconds(2);
     /** Max attempts for the ephemeral-delete retry on transient Discord errors (rate limits, etc.). */
     private static final int DELETE_RETRY_ATTEMPTS = 3;
     private static final Duration DELETE_RETRY_BACKOFF = Duration.ofSeconds(2);
