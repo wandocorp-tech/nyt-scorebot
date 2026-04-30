@@ -2,9 +2,6 @@ name: Build
 
 on:
   workflow_call:
-    secrets:
-      SONAR_TOKEN:
-        required: false
   workflow_dispatch:
 
 jobs:
@@ -26,17 +23,6 @@ jobs:
 
       - name: Build and run unit tests
         run: mvn verify -Dtest='!com.wandocorp.nytscorebot.EndToEndTest' --batch-mode --no-transfer-progress
-
-      - name: SonarCloud scan
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: |
-          mvn sonar:sonar \
-            -Dsonar.organization=wandocorp-tech \
-            -Dsonar.projectKey=wandocorp-tech_nyt-scorebot \
-            -Dsonar.host.url=https://sonarcloud.io \
-            --batch-mode --no-transfer-progress
-        if: env.SONAR_TOKEN != ''
 
       - name: Upload JAR artifact
         uses: actions/upload-artifact@v4
