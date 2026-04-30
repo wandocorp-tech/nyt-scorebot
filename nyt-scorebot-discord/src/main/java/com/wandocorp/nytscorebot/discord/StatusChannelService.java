@@ -9,6 +9,7 @@ import discord4j.core.GatewayDiscordClient;
 import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.channel.MessageChannel;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
@@ -32,6 +33,7 @@ public class StatusChannelService {
     private final Scheduler scheduler;
     private final AtomicReference<Snowflake> lastMessageId = new AtomicReference<>();
 
+    @Autowired
     public StatusChannelService(GatewayDiscordClient client,
                                 DiscordChannelProperties channelProperties,
                                 ScoreboardService scoreboardService,
