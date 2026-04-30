@@ -8,6 +8,7 @@ import com.wandocorp.nytscorebot.model.MainCrosswordResult;
 import com.wandocorp.nytscorebot.repository.ScoreboardRepository;
 import com.wandocorp.nytscorebot.repository.UserRepository;
 import com.wandocorp.nytscorebot.service.PuzzleCalendar;
+import com.wandocorp.nytscorebot.service.scoreboard.ScoreboardRenderer;
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.object.entity.channel.GuildMessageChannel;
@@ -66,6 +67,7 @@ class EndToEndTest {
     @Autowired private PuzzleCalendar puzzleCalendar;
     @Autowired private StatusChannelService statusChannelService;
     @Autowired private ResultsChannelService resultsChannelService;
+    @Autowired private ScoreboardRenderer scoreboardRenderer;
 
     // ── Test ─────────────────────────────────────────────────────────────────
 
@@ -166,10 +168,13 @@ class EndToEndTest {
         Scoreboard williamBoard = scoreboardRepository.findByUserAndDate(william, today).orElseThrow();
         MainCrosswordResult mainResult = williamBoard.getMainCrosswordResult();
         mainResult.setDuo(true);
+        logSlashCommand("William", "/duo");
         Thread.sleep(1000);
         mainResult.setLookups(2);
+        logSlashCommand("William", "/lookups 2");
         Thread.sleep(1000);
         mainResult.setCheckUsed(true);
+        logSlashCommand("William", "/check");
         Thread.sleep(1000);
         scoreboardRepository.save(williamBoard);
         statusChannelService.refresh("William set crossword flags");
@@ -209,6 +214,7 @@ class EndToEndTest {
 
         MainCrosswordResult conorMainResult = conorBoardPhase3.getMainCrosswordResult();
         conorMainResult.setCheckUsed(true);
+        logSlashCommand("Conor", "/check");
         scoreboardRepository.save(conorBoardPhase3);
         statusChannelService.refresh("Conor set Main check flag");
         Thread.sleep(1000);
@@ -221,6 +227,7 @@ class EndToEndTest {
         Scoreboard conorBoard = scoreboardRepository.findByUserAndDate(conor, today).orElseThrow();
         conorBoard.setFinished(true);
         scoreboardRepository.save(conorBoard);
+        logSlashCommand("Conor", "/finished");
         statusChannelService.refresh("Conor marked finished");
         resultsChannelService.refresh();
         Thread.sleep(1000);
@@ -230,6 +237,9 @@ class EndToEndTest {
         assertThat(williamBoard.isFinished()).isTrue();
         assertThat(conorBoard.isFinished()).isTrue();
 
+        scoreboardRenderer.renderAll(williamBoard, "William", conorBoard, "Conor", null)
+                .forEach(this::logScoreboard);
+
         // ── Phase 5: Conor submits Midi late → boards refresh ───────────────
 
         postTo(conorChannel, conorMidi);
@@ -238,6 +248,10 @@ class EndToEndTest {
         Scoreboard conorBoardPhase5 = scoreboardRepository.findByUserAndDate(conor, today).orElseThrow();
         assertThat(conorBoardPhase5.getMidiCrosswordResult()).as("Conor now has Midi result").isNotNull();
         assertThat(conorBoardPhase5.getMidiCrosswordResult().getTimeString()).isEqualTo("3:45");
+
+        williamBoard = scoreboardRepository.findByUserAndDate(william, today).orElseThrow();
+        scoreboardRenderer.renderAll(williamBoard, "William", conorBoardPhase5, "Conor", null)
+                .forEach(this::logScoreboard);
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
@@ -252,16 +266,30 @@ class EndToEndTest {
                 .block();
     }
 
+    private void logMessage(String channelName, String content) {
+        logEntry("📤 Submit", channelName, content);
+    }
+
+    private void logSlashCommand(String playerName, String command) {
+        logEntry("⚡ Command", playerName, command);
+    }
+
+    private void logScoreboard(String gameType, String content) {
+        String stripped = content
+                .replace(BotText.STATUS_CODE_BLOCK_OPEN, "")
+                .replace(BotText.STATUS_CODE_BLOCK_CLOSE, "");
+        logEntry("📊 Scoreboard", gameType, stripped);
+    }
+
     /**
-     * Logs a sent message as a row in a markdown table appended to
-     * {@code $GITHUB_STEP_SUMMARY} when running in GitHub Actions; falls back
-     * to SLF4J INFO logging when the env var is absent (local execution).
+     * Logs a single event row to {@code $GITHUB_STEP_SUMMARY} when running in GitHub Actions
+     * (markdown table format); falls back to SLF4J INFO logging when the env var is absent.
      * The table header is written once, when the summary file is empty.
      */
-    private void logMessage(String channelName, String content) {
+    private void logEntry(String type, String actor, String content) {
         String summaryPath = System.getenv("GITHUB_STEP_SUMMARY");
         if (summaryPath == null || summaryPath.isBlank()) {
-            log.info("[{}] >>> {}", channelName, content);
+            log.info("[{}] [{}] >>> {}", type, actor, content);
             return;
         }
         try {
@@ -269,16 +297,17 @@ class EndToEndTest {
             boolean needsHeader = !Files.exists(file) || Files.size(file) == 0;
             StringBuilder sb = new StringBuilder();
             if (needsHeader) {
-                sb.append("| Channel | Message |\n| --- | --- |\n");
+                sb.append("| Type | Actor | Content |\n| --- | --- | --- |\n");
             }
-            sb.append("| ").append(escapeForTable(channelName))
+            sb.append("| ").append(escapeForTable(type))
+              .append(" | ").append(escapeForTable(actor))
               .append(" | ").append(escapeForTable(content))
               .append(" |\n");
             Files.writeString(file, sb.toString(),
                     StandardOpenOption.CREATE, StandardOpenOption.APPEND);
         } catch (IOException e) {
             log.warn("Failed to write to GITHUB_STEP_SUMMARY: {}", e.getMessage());
-            log.info("[{}] >>> {}", channelName, content);
+            log.info("[{}] [{}] >>> {}", type, actor, content);
         }
     }
 
