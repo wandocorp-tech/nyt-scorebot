@@ -10,15 +10,22 @@ import com.wandocorp.nytscorebot.repository.UserRepository;
 import com.wandocorp.nytscorebot.service.PuzzleCalendar;
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
+import discord4j.core.object.entity.channel.GuildMessageChannel;
 import discord4j.core.object.entity.channel.MessageChannel;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import reactor.core.publisher.Mono;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
@@ -41,6 +48,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest
 @ActiveProfiles("e2e")
 class EndToEndTest {
+
+    private static final Logger log = LoggerFactory.getLogger(EndToEndTest.class);
 
     // ── Channel IDs (injected from application-e2e.properties) ───────────────
 
@@ -235,9 +244,49 @@ class EndToEndTest {
 
     private void postTo(Snowflake channelId, String content) {
         client.getChannelById(channelId)
-                .cast(MessageChannel.class)
-                .flatMap(channel -> channel.createMessage(content))
+                .cast(GuildMessageChannel.class)
+                .flatMap(channel -> {
+                    logMessage(channel.getName(), content);
+                    return channel.createMessage(content);
+                })
                 .block();
+    }
+
+    /**
+     * Logs a sent message as a row in a markdown table appended to
+     * {@code $GITHUB_STEP_SUMMARY} when running in GitHub Actions; falls back
+     * to SLF4J INFO logging when the env var is absent (local execution).
+     * The table header is written once, when the summary file is empty.
+     */
+    private void logMessage(String channelName, String content) {
+        String summaryPath = System.getenv("GITHUB_STEP_SUMMARY");
+        if (summaryPath == null || summaryPath.isBlank()) {
+            log.info("[{}] >>> {}", channelName, content);
+            return;
+        }
+        try {
+            Path file = Path.of(summaryPath);
+            boolean needsHeader = !Files.exists(file) || Files.size(file) == 0;
+            StringBuilder sb = new StringBuilder();
+            if (needsHeader) {
+                sb.append("| Channel | Message |\n| --- | --- |\n");
+            }
+            sb.append("| ").append(escapeForTable(channelName))
+              .append(" | ").append(escapeForTable(content))
+              .append(" |\n");
+            Files.writeString(file, sb.toString(),
+                    StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+        } catch (IOException e) {
+            log.warn("Failed to write to GITHUB_STEP_SUMMARY: {}", e.getMessage());
+            log.info("[{}] >>> {}", channelName, content);
+        }
+    }
+
+    private String escapeForTable(String s) {
+        return s.replace("\\", "\\\\")
+                .replace("|", "\\|")
+                .replace("\r\n", "<br>")
+                .replace("\n", "<br>");
     }
 
     private void clearChannel(Snowflake channelId) {
