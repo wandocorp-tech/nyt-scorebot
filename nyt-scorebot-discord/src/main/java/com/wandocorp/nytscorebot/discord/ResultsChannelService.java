@@ -12,13 +12,9 @@ import com.wandocorp.nytscorebot.service.WinStreakService;
 import com.wandocorp.nytscorebot.service.WinStreakSummaryBuilder;
 import com.wandocorp.nytscorebot.service.scoreboard.ScoreboardRenderer;
 import discord4j.common.util.Snowflake;
-import discord4j.core.GatewayDiscordClient;
-import discord4j.core.object.entity.Message;
-import discord4j.core.object.entity.channel.MessageChannel;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Mono;
 
 import java.time.LocalDate;
 import java.util.HashMap;
@@ -33,7 +29,6 @@ import java.util.stream.Collectors;
 @Service
 public class ResultsChannelService {
 
-    private final GatewayDiscordClient client;
     private final DiscordChannelProperties channelProperties;
     private final ScoreboardService scoreboardService;
     private final ScoreboardRenderer scoreboardRenderer;
@@ -41,6 +36,7 @@ public class ResultsChannelService {
     private final WinStreakService winStreakService;
     private final CrosswordWinStreakService crosswordWinStreakService;
     private final PuzzleCalendar puzzleCalendar;
+    private final MessageSlotWriter slotWriter;
     private final Map<String, Snowflake> postedMessageIds = new ConcurrentHashMap<>();
     private final AtomicReference<LocalDate> lastRefreshDate = new AtomicReference<>();
 
@@ -75,14 +71,7 @@ public class ResultsChannelService {
         Map<String, String> rendered = scoreboardRenderer.renderAll(ctx.sb1, ctx.name1, ctx.sb2, ctx.name2, ctx.streaks);
 
         for (Map.Entry<String, String> entry : rendered.entrySet()) {
-            String gameType = entry.getKey();
-            String content = entry.getValue();
-            Snowflake existingId = postedMessageIds.get(gameType);
-            if (existingId != null) {
-                deleteAndRepost(ctx.channelSnowflake, existingId, gameType, content);
-            } else {
-                postMessage(ctx.channelSnowflake, gameType, content);
-            }
+            writeSlot(ctx.channelSnowflake, entry.getKey(), entry.getValue());
         }
 
         postOrEditWinStreakSummary(ctx);
@@ -102,14 +91,7 @@ public class ResultsChannelService {
         }
 
         scoreboardRenderer.renderByGameType(gameType, ctx.sb1, ctx.name1, ctx.sb2, ctx.name2, ctx.streaks)
-                .ifPresent(content -> {
-                    Snowflake existingId = postedMessageIds.get(gameType);
-                    if (existingId != null) {
-                        deleteAndRepost(ctx.channelSnowflake, existingId, gameType, content);
-                    } else {
-                        postMessage(ctx.channelSnowflake, gameType, content);
-                    }
-                });
+                .ifPresent(content -> writeSlot(ctx.channelSnowflake, gameType, content));
 
         if (crossword != null) {
             postOrEditWinStreakSummary(ctx);
@@ -153,30 +135,12 @@ public class ResultsChannelService {
                                    Scoreboard sb2, String name2,
                                    Map<String, Map<GameType, Integer>> streaks) {}
 
-    private void deleteAndRepost(Snowflake channelSnowflake, Snowflake messageId,
-                                  String gameType, String content) {
-        client.getMessageById(channelSnowflake, messageId)
-                .flatMap(Message::delete)
-                .onErrorResume(e -> Mono.empty())
-                .then(postMessageMono(channelSnowflake, gameType, content))
+    private void writeSlot(Snowflake channelSnowflake, String slot, String content) {
+        Snowflake existingId = postedMessageIds.get(slot);
+        slotWriter.editOrPost(channelSnowflake, existingId, content)
                 .subscribe(
-                        v -> {},
-                        error -> log.error("Error reposting results for {}", gameType, error));
-    }
-
-    private void postMessage(Snowflake channelSnowflake, String gameType, String content) {
-        postMessageMono(channelSnowflake, gameType, content)
-                .subscribe(
-                        v -> {},
-                        error -> log.error("Error posting results for {}", gameType, error));
-    }
-
-    private Mono<Void> postMessageMono(Snowflake channelSnowflake, String gameType, String content) {
-        return client.getChannelById(channelSnowflake)
-                .cast(MessageChannel.class)
-                .flatMap(ch -> ch.createMessage(content))
-                .doOnNext(msg -> postedMessageIds.put(gameType, msg.getId()))
-                .then();
+                        id -> postedMessageIds.put(slot, id),
+                        error -> log.error("Error writing results for {}", slot, error));
     }
 
     private Map<String, Map<GameType, Integer>> buildStreakMap(Scoreboard sb1, String name1,
@@ -196,20 +160,6 @@ public class ResultsChannelService {
         winStreaks.put(u2, winStreakService.getStreaks(u2));
 
         String content = WinStreakSummaryBuilder.build(u1, ctx.name1, u2, ctx.name2, winStreaks);
-
-        Snowflake existingId = postedMessageIds.get(WIN_STREAK_SUMMARY_SLOT);
-        if (existingId != null) {
-            editSummaryMessage(ctx.channelSnowflake, existingId, content);
-        } else {
-            postMessage(ctx.channelSnowflake, WIN_STREAK_SUMMARY_SLOT, content);
-        }
-    }
-
-    private void editSummaryMessage(Snowflake channelSnowflake, Snowflake messageId, String content) {
-        client.getMessageById(channelSnowflake, messageId)
-                .flatMap(msg -> msg.edit(spec -> spec.setContent(content)))
-                .subscribe(
-                        v -> {},
-                        error -> log.error("Error editing win streak summary message", error));
+        writeSlot(ctx.channelSnowflake, WIN_STREAK_SUMMARY_SLOT, content);
     }
 }
