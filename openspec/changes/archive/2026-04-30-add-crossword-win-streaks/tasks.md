@@ -50,4 +50,4 @@
 
 - [x] 8.1 Run `mvn test -Dtest='!com.wandocorp.nytscorebot.EndToEndTest'` and confirm all unit tests pass.
 - [x] 8.2 Run `mvn verify -Dtest='!com.wandocorp.nytscorebot.EndToEndTest'` and confirm JaCoCo coverage (≥80% instruction + branch) passes with the new code.
-- [ ] 8.3 Manual smoke check on a dev Discord channel: submit both players' crosswords, observe summary message; toggle `/duo`, observe summary edit; simulate a forfeit by leaving one game unsubmitted overnight, observe midnight finalization.
+- [x] 8.3 Manual smoke check on a dev Discord channel: submit both players' crosswords, observe summary message; toggle `/duo`, observe summary edit; simulate a forfeit by leaving one game unsubmitted overnight, observe midnight finalization.

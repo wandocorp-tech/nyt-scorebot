@@ -11,23 +11,21 @@ jobs:
   build:
     name: Build
     uses: ./.github/workflows/build.yml
-    secrets:
-      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
   test:
     name: Test (E2E)
     needs: build
+    if: github.event_name == 'pull_request'
     uses: ./.github/workflows/test.yml
     secrets:
       DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
 
   release:
     name: Release
-    needs: test
+    needs: build
     if: github.ref == 'refs/heads/main'
     permissions:
       contents: write
-      models: read
     uses: ./.github/workflows/release.yml
     with:
       version: v${{ github.run_number }}
@@ -54,6 +52,5 @@ jobs:
     uses: ./.github/workflows/announce.yml
     with:
       version: v${{ github.run_number }}
-      release_url: ${{ github.server_url }}/${{ github.repository }}/releases/tag/v${{ github.run_number }}
     secrets:
       DISCORD_RELEASE_WEBHOOK_URL: ${{ secrets.DISCORD_RELEASE_WEBHOOK_URL }}

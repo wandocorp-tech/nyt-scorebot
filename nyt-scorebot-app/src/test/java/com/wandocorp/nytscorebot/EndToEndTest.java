@@ -8,17 +8,25 @@ import com.wandocorp.nytscorebot.model.MainCrosswordResult;
 import com.wandocorp.nytscorebot.repository.ScoreboardRepository;
 import com.wandocorp.nytscorebot.repository.UserRepository;
 import com.wandocorp.nytscorebot.service.PuzzleCalendar;
+import com.wandocorp.nytscorebot.service.scoreboard.ScoreboardRenderer;
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
+import discord4j.core.object.entity.channel.GuildMessageChannel;
 import discord4j.core.object.entity.channel.MessageChannel;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import reactor.core.publisher.Mono;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
@@ -42,6 +50,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ActiveProfiles("e2e")
 class EndToEndTest {
 
+    private static final Logger log = LoggerFactory.getLogger(EndToEndTest.class);
+
     // ── Channel IDs (injected from application-e2e.properties) ───────────────
 
     @Value("${discord.channels[0].id}")   private String williamChannelId;
@@ -57,6 +67,7 @@ class EndToEndTest {
     @Autowired private PuzzleCalendar puzzleCalendar;
     @Autowired private StatusChannelService statusChannelService;
     @Autowired private ResultsChannelService resultsChannelService;
+    @Autowired private ScoreboardRenderer scoreboardRenderer;
 
     // ── Test ─────────────────────────────────────────────────────────────────
 
@@ -157,10 +168,13 @@ class EndToEndTest {
         Scoreboard williamBoard = scoreboardRepository.findByUserAndDate(william, today).orElseThrow();
         MainCrosswordResult mainResult = williamBoard.getMainCrosswordResult();
         mainResult.setDuo(true);
+        logSlashCommand("William", "/duo");
         Thread.sleep(1000);
         mainResult.setLookups(2);
+        logSlashCommand("William", "/lookups 2");
         Thread.sleep(1000);
         mainResult.setCheckUsed(true);
+        logSlashCommand("William", "/check");
         Thread.sleep(1000);
         scoreboardRepository.save(williamBoard);
         statusChannelService.refresh("William set crossword flags");
@@ -200,6 +214,7 @@ class EndToEndTest {
 
         MainCrosswordResult conorMainResult = conorBoardPhase3.getMainCrosswordResult();
         conorMainResult.setCheckUsed(true);
+        logSlashCommand("Conor", "/check");
         scoreboardRepository.save(conorBoardPhase3);
         statusChannelService.refresh("Conor set Main check flag");
         Thread.sleep(1000);
@@ -212,6 +227,7 @@ class EndToEndTest {
         Scoreboard conorBoard = scoreboardRepository.findByUserAndDate(conor, today).orElseThrow();
         conorBoard.setFinished(true);
         scoreboardRepository.save(conorBoard);
+        logSlashCommand("Conor", "/finished");
         statusChannelService.refresh("Conor marked finished");
         resultsChannelService.refresh();
         Thread.sleep(1000);
@@ -221,6 +237,9 @@ class EndToEndTest {
         assertThat(williamBoard.isFinished()).isTrue();
         assertThat(conorBoard.isFinished()).isTrue();
 
+        scoreboardRenderer.renderAll(williamBoard, "William", conorBoard, "Conor", null)
+                .forEach(this::logScoreboard);
+
         // ── Phase 5: Conor submits Midi late → boards refresh ───────────────
 
         postTo(conorChannel, conorMidi);
@@ -229,15 +248,92 @@ class EndToEndTest {
         Scoreboard conorBoardPhase5 = scoreboardRepository.findByUserAndDate(conor, today).orElseThrow();
         assertThat(conorBoardPhase5.getMidiCrosswordResult()).as("Conor now has Midi result").isNotNull();
         assertThat(conorBoardPhase5.getMidiCrosswordResult().getTimeString()).isEqualTo("3:45");
+
+        williamBoard = scoreboardRepository.findByUserAndDate(william, today).orElseThrow();
+        scoreboardRenderer.renderAll(williamBoard, "William", conorBoardPhase5, "Conor", null)
+                .forEach(this::logScoreboard);
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     private void postTo(Snowflake channelId, String content) {
         client.getChannelById(channelId)
-                .cast(MessageChannel.class)
-                .flatMap(channel -> channel.createMessage(content))
+                .cast(GuildMessageChannel.class)
+                .flatMap(channel -> {
+                    logMessage(channel.getName(), content);
+                    return channel.createMessage(content);
+                })
                 .block();
+    }
+
+    private void logMessage(String channelName, String content) {
+        logEntry("📤 Submit", channelName, content);
+    }
+
+    private void logSlashCommand(String playerName, String command) {
+        logEntry("⚡ Command", playerName, command);
+    }
+
+    /**
+     * Writes a scoreboard as a standalone markdown code block in {@code $GITHUB_STEP_SUMMARY}.
+     * Fenced code blocks cannot render inside table cells, so scoreboards are written as separate
+     * sections. A flag is set so the next {@link #logEntry} call re-emits the table header,
+     * keeping subsequent Submit/Command rows in a properly-formed table.
+     */
+    private void logScoreboard(String gameType, String content) {
+        String summaryPath = System.getenv("GITHUB_STEP_SUMMARY");
+        if (summaryPath == null || summaryPath.isBlank()) {
+            log.info("[📊 Scoreboard] [{}]\n{}", gameType, content);
+            return;
+        }
+        try {
+            Path file = Path.of(summaryPath);
+            String section = "\n**" + gameType + "**\n\n" + content + "\n";
+            Files.writeString(file, section, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+            needsTableHeader = true;
+        } catch (IOException e) {
+            log.warn("Failed to write to GITHUB_STEP_SUMMARY: {}", e.getMessage());
+            log.info("[📊 Scoreboard] [{}]\n{}", gameType, content);
+        }
+    }
+
+    /**
+     * Logs a single event row to {@code $GITHUB_STEP_SUMMARY} when running in GitHub Actions
+     * (markdown table format); falls back to SLF4J INFO logging when the env var is absent.
+     * The table header is written at the start and after any scoreboard sections that break the table.
+     */
+    private boolean needsTableHeader = true;
+
+    private void logEntry(String type, String actor, String content) {
+        String summaryPath = System.getenv("GITHUB_STEP_SUMMARY");
+        if (summaryPath == null || summaryPath.isBlank()) {
+            log.info("[{}] [{}] >>> {}", type, actor, content);
+            return;
+        }
+        try {
+            Path file = Path.of(summaryPath);
+            StringBuilder sb = new StringBuilder();
+            if (needsTableHeader) {
+                sb.append("| Type | Actor | Content |\n| --- | --- | --- |\n");
+                needsTableHeader = false;
+            }
+            sb.append("| ").append(escapeForTable(type))
+              .append(" | ").append(escapeForTable(actor))
+              .append(" | ").append(escapeForTable(content))
+              .append(" |\n");
+            Files.writeString(file, sb.toString(),
+                    StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+        } catch (IOException e) {
+            log.warn("Failed to write to GITHUB_STEP_SUMMARY: {}", e.getMessage());
+            log.info("[{}] [{}] >>> {}", type, actor, content);
+        }
+    }
+
+    private String escapeForTable(String s) {
+        return s.replace("\\", "\\\\")
+                .replace("|", "\\|")
+                .replace("\r\n", "<br>")
+                .replace("\n", "<br>");
     }
 
     private void clearChannel(Snowflake channelId) {

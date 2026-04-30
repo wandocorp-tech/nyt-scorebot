@@ -42,7 +42,7 @@
 
 - [x] 6.1 Run `mvn test -Dtest='!com.wandocorp.nytscorebot.EndToEndTest'` and confirm all unit tests pass.
 - [x] 6.2 Run `mvn verify -Dtest='!com.wandocorp.nytscorebot.EndToEndTest'` and confirm JaCoCo coverage (≥80% instruction + branch) still holds.
-- [ ] 6.3 Manual smoke check on a dev Discord channel:
+- [x] 6.3 Manual smoke check on a dev Discord channel:
   - Trigger a `/flag` after both players have finished and confirm the affected scoreboard message edits in place (no new notification, position unchanged).
   - Submit a result and confirm the status board edits in place AND a short-lived "X submitted Y" message appears for ~10s and disappears.
   - Manually delete the win-streak summary message and trigger another refresh to confirm the fallback re-post works.

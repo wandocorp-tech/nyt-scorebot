@@ -29,13 +29,6 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <discord4j-core.version>3.2.7</discord4j-core.version>
         <lombok.version>1.18.38</lombok.version>
-        <sonar.maven.plugin.version>4.0.0.4121</sonar.maven.plugin.version>
-        <sonar.projectKey>wandocorp-tech_nyt-scorebot</sonar.projectKey>
-        <sonar.organization>wandocorp-tech</sonar.organization>
-        <sonar.host.url>https://sonarcloud.io</sonar.host.url>
-        <sonar.coverage.jacoco.xmlReportPaths>
-            ${project.basedir}/../nyt-scorebot-app/target/site/jacoco/jacoco.xml
-        </sonar.coverage.jacoco.xmlReportPaths>
     </properties>
 
     <dependencyManagement>

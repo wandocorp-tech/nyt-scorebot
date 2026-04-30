@@ -19,7 +19,6 @@ jobs:
 
     permissions:
       contents: write
-      models: read
 
     steps:
       - name: Checkout
@@ -68,59 +67,11 @@ jobs:
           cat commits.txt
           echo "----------------------------"
 
-      # Call GitHub Models to summarise commits into release notes.
-      # Authenticated with the workflow's GITHUB_TOKEN (requires `models: read`).
-      - name: Generate release notes via GitHub Models
-        id: ai_notes
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ inputs.version }}
-        run: |
-          set -euo pipefail
-          SYSTEM_PROMPT='You are a release-notes assistant for the nyt-scorebot Discord bot. Summarise the commits provided by the user into concise, user-facing release notes for a Discord audience. Rules: (1) Output a markdown bullet list only — no preamble, no headings, no closing remarks. (2) Group related changes when sensible. (3) Skip commits prefixed with chore:, ci:, test:, or build: unless they have user-visible impact. (4) Rephrase commit subjects to be readable, not just copied. (5) Never invent features that are not in the commits. (6) Keep total output under 1500 characters. (7) Use plain language a player would understand.'
-          USER_PROMPT="Summarise these commits as release notes for $VERSION:\n\n$(cat commits.txt)"
-
-          PAYLOAD=$(jq -n \
-            --arg sys "$SYSTEM_PROMPT" \
-            --arg usr "$USER_PROMPT" \
-            '{
-              model: "openai/gpt-4o-mini",
-              messages: [
-                {role: "system", content: $sys},
-                {role: "user",   content: $usr}
-              ],
-              temperature: 0.3,
-              max_tokens: 600
-            }')
-
-          HTTP_CODE=$(curl -sS -o response.json -w "%{http_code}" \
-            -X POST "https://models.github.ai/inference/chat/completions" \
-            -H "Authorization: Bearer $GITHUB_TOKEN" \
-            -H "Content-Type: application/json" \
-            -H "Accept: application/json" \
-            -d "$PAYLOAD")
-
-          if [ "$HTTP_CODE" != "200" ]; then
-            echo "GitHub Models call failed with HTTP $HTTP_CODE"
-            cat response.json
-            exit 1
-          fi
-
-          jq -r '.choices[0].message.content' response.json > release-notes.md
-          if [ ! -s release-notes.md ]; then
-            echo "Model returned empty content"
-            cat response.json
-            exit 1
-          fi
-          echo "--- Generated release notes ---"
-          cat release-notes.md
-          echo "-------------------------------"
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.version }}
           name: ${{ inputs.version }}
           generate_release_notes: false
-          body_path: release-notes.md
+          body_path: commits.txt
           files: release-staging/nyt-scorebot-app-*.jar
