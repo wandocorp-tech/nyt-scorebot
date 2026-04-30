@@ -4,9 +4,11 @@ import com.wandocorp.nytscorebot.config.DiscordChannelProperties;
 import com.wandocorp.nytscorebot.config.DiscordChannelProperties.ChannelConfig;
 import com.wandocorp.nytscorebot.entity.Scoreboard;
 import com.wandocorp.nytscorebot.entity.User;
+import com.wandocorp.nytscorebot.service.CrosswordWinStreakService;
 import com.wandocorp.nytscorebot.service.PuzzleCalendar;
 import com.wandocorp.nytscorebot.service.ScoreboardService;
 import com.wandocorp.nytscorebot.service.StreakService;
+import com.wandocorp.nytscorebot.service.WinStreakService;
 import com.wandocorp.nytscorebot.service.scoreboard.ScoreboardRenderer;
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
@@ -25,6 +27,7 @@ import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -50,6 +53,9 @@ class ResultsChannelServiceTest {
         scoreboardService = mock(ScoreboardService.class);
         scoreboardRenderer = mock(ScoreboardRenderer.class);
         StreakService streakService = mock(StreakService.class);
+        WinStreakService winStreakService = mock(WinStreakService.class);
+        when(winStreakService.getStreaks(any())).thenReturn(Map.of());
+        CrosswordWinStreakService crosswordWinStreakService = mock(CrosswordWinStreakService.class);
         PuzzleCalendar puzzleCalendar = mock(PuzzleCalendar.class);
         when(puzzleCalendar.today()).thenReturn(LocalDate.now());
 
@@ -68,7 +74,7 @@ class ResultsChannelServiceTest {
         channelProperties.setChannels(List.of(c1, c2));
         channelProperties.setResultsChannelId(RESULTS_CHANNEL_ID);
 
-        service = new ResultsChannelService(client, channelProperties, scoreboardService, scoreboardRenderer, streakService, puzzleCalendar);
+        service = new ResultsChannelService(client, channelProperties, scoreboardService, scoreboardRenderer, streakService, winStreakService, crosswordWinStreakService, puzzleCalendar);
     }
 
     @Test
@@ -104,7 +110,7 @@ class ResultsChannelServiceTest {
 
         service.refresh();
 
-        verify(client).getChannelById(Snowflake.of(RESULTS_CHANNEL_ID));
+        verify(client, atLeastOnce()).getChannelById(Snowflake.of(RESULTS_CHANNEL_ID));
         verify(channel).createMessage("```\nWordle stuff\n```");
     }
 
@@ -208,12 +214,13 @@ class ResultsChannelServiceTest {
 
     @Test
     void refreshGameNoOpWhenRendererReturnsEmpty() {
+        // Use a non-crossword game so the win streak summary path doesn't activate.
         when(scoreboardService.areBothPlayersFinishedToday()).thenReturn(true);
         setupScoreboards();
-        when(scoreboardRenderer.renderByGameType(eq("Main"), any(), anyString(), any(), anyString(), any()))
+        when(scoreboardRenderer.renderByGameType(eq("Wordle"), any(), anyString(), any(), anyString(), any()))
                 .thenReturn(java.util.Optional.empty());
 
-        service.refreshGame("Main");
+        service.refreshGame("Wordle");
 
         verifyNoInteractions(client);
     }

@@ -96,5 +96,12 @@ public final class BotText {
     public static final String FLAG_LOOKUPS = "🔍×%d";
     public static final String FLAG_CHECK   = "✓";
 
+    // ── Crossword win streak summary ──────────────────────────────────────────
+    public static final String WIN_STREAK_HEADER         = "🏆 Crossword Win Streaks";
+    public static final String WIN_STREAK_GAME_COL_LABEL = "Game";
+    public static final String WIN_STREAK_FIRE_EMOJI     = "🔥";
+    /** Threshold at or above which the fire emoji decorates the streak value. */
+    public static final int    WIN_STREAK_FIRE_THRESHOLD = 3;
+
     private BotText() {}
 }
