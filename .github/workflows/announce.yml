@@ -6,9 +6,6 @@ on:
       version:
         required: true
         type: string
-      release_url:
-        required: true
-        type: string
     secrets:
       DISCORD_RELEASE_WEBHOOK_URL:
         required: true
@@ -42,22 +39,20 @@ jobs:
           cat release-body.md
           echo "--------------------"
 
-      # Build the Discord message: header + AI bullet list + footer link.
+      # Build the Discord message: header + commit-log bullet list.
       # Truncate the bullet section if the assembled message would exceed the
       # 2000-character Discord limit so the post never gets rejected.
       - name: Build Discord payload
         id: build
         env:
           VERSION: ${{ inputs.version }}
-          RELEASE_URL: ${{ inputs.release_url }}
         run: |
           set -euo pipefail
           HEADER="🚀 nyt-scorebot ${VERSION} deployed!"
-          FOOTER="📋 Full release notes → ${RELEASE_URL}"
           BODY=$(cat release-body.md)
 
-          # Two blank lines of separator overhead between sections (4 chars).
-          OVERHEAD=$(( ${#HEADER} + ${#FOOTER} + 4 ))
+          # One blank line of separator overhead between header and body (2 chars).
+          OVERHEAD=$(( ${#HEADER} + 2 ))
           MAX_BODY=$(( 2000 - OVERHEAD ))
 
           if [ ${#BODY} -gt $MAX_BODY ]; then
@@ -65,7 +60,7 @@ jobs:
             BODY="${BODY:0:$((MAX_BODY - 1))}…"
           fi
 
-          MESSAGE=$(printf '%s\n\n%s\n\n%s' "$HEADER" "$BODY" "$FOOTER")
+          MESSAGE=$(printf '%s\n\n%s' "$HEADER" "$BODY")
           jq -n --arg content "$MESSAGE" '{content: $content}' > payload.json
 
           echo "--- Discord payload ---"
