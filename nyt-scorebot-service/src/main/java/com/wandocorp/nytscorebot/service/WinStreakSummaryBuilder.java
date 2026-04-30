@@ -51,8 +51,9 @@ public final class WinStreakSummaryBuilder {
         int col2 = Math.max(name2.length(), maxRendered(r2));
 
         StringBuilder sb = new StringBuilder();
-        sb.append(BotText.WIN_STREAK_HEADER).append("\n\n");
         sb.append(BotText.STATUS_CODE_BLOCK_OPEN);
+        sb.append(" ").append(BotText.WIN_STREAK_TITLE).append("\n");
+        sb.append(" \n");
         sb.append(rpad(BotText.WIN_STREAK_GAME_COL_LABEL, gameCol)).append(" |");
         sb.append(" ").append(rpad(name1, col1)).append(" |");
         sb.append(" ").append(rpad(name2, col2)).append("\n");

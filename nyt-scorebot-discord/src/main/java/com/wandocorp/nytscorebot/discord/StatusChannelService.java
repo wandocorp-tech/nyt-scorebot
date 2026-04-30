@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
+import reactor.util.retry.Retry;
 
 import java.time.Duration;
 import java.util.List;
@@ -25,6 +26,9 @@ public class StatusChannelService {
 
     /** How long the ephemeral notification message lives before being deleted. */
     static final Duration NOTIFICATION_TTL = Duration.ofSeconds(10);
+    /** Max attempts for the ephemeral-delete retry on transient Discord errors (rate limits, etc.). */
+    private static final int DELETE_RETRY_ATTEMPTS = 3;
+    private static final Duration DELETE_RETRY_BACKOFF = Duration.ofSeconds(2);
 
     private final GatewayDiscordClient client;
     private final DiscordChannelProperties channelProperties;
@@ -32,6 +36,12 @@ public class StatusChannelService {
     private final MessageSlotWriter slotWriter;
     private final Scheduler scheduler;
     private final AtomicReference<Snowflake> lastMessageId = new AtomicReference<>();
+    /**
+     * Serialises consecutive board writes so a second {@link #refresh(String)} arriving before
+     * the first has recorded its message id reuses (and edits) the same persistent board
+     * instead of posting a duplicate.
+     */
+    private final AtomicReference<Mono<Snowflake>> boardChain = new AtomicReference<>();
 
     @Autowired
     public StatusChannelService(GatewayDiscordClient client,
@@ -61,12 +71,7 @@ public class StatusChannelService {
         Snowflake channelSnowflake = Snowflake.of(statusChannelId);
         String table = buildStatusTable();
 
-        // Edit (or post on first refresh) the persistent status board, then fire the ephemeral notification.
-        slotWriter.editOrPost(channelSnowflake, lastMessageId.get(), table)
-                .subscribe(
-                        id -> lastMessageId.set(id),
-                        error -> log.error("Error refreshing status board", error));
-
+        writeBoard(channelSnowflake, table);
         sendEphemeralNotification(channelSnowflake, contextMessage);
     }
 
@@ -80,10 +85,22 @@ public class StatusChannelService {
 
         Snowflake channelSnowflake = Snowflake.of(statusChannelId);
         String emptyTable = renderTable(List.of());
-        slotWriter.editOrPost(channelSnowflake, existing, emptyTable)
-                .subscribe(
-                        id -> lastMessageId.set(id),
-                        error -> log.error("Error resetting status board for new day", error));
+        writeBoard(channelSnowflake, emptyTable);
+    }
+
+    private void writeBoard(Snowflake channelSnowflake, String content) {
+        Mono<Snowflake> chained = boardChain.updateAndGet(prev -> {
+            Mono<Snowflake> prevId = (prev == null)
+                    ? Mono.justOrEmpty(lastMessageId.get())
+                    : prev.onErrorResume(e -> Mono.empty());
+            return prevId
+                    .flatMap(id -> slotWriter.editOrPost(channelSnowflake, id, content))
+                    .switchIfEmpty(Mono.defer(() -> slotWriter.editOrPost(channelSnowflake, null, content)))
+                    .cache();
+        });
+        chained.subscribe(
+                lastMessageId::set,
+                error -> log.error("Error writing status board", error));
     }
 
     private void sendEphemeralNotification(Snowflake channelSnowflake, String contextMessage) {
@@ -99,10 +116,17 @@ public class StatusChannelService {
     }
 
     private Mono<Void> deleteMessage(Message msg) {
-        return msg.delete().onErrorResume(e -> {
-            log.warn("Failed to delete ephemeral notification {}", msg.getId(), e);
-            return Mono.empty();
-        });
+        return msg.delete()
+                .retryWhen(Retry.backoff(DELETE_RETRY_ATTEMPTS, DELETE_RETRY_BACKOFF)
+                        .scheduler(scheduler)
+                        .doBeforeRetry(rs -> log.debug(
+                                "Retrying delete of ephemeral notification {} (attempt #{}): {}",
+                                msg.getId().asString(), rs.totalRetries() + 1, rs.failure().toString())))
+                .onErrorResume(e -> {
+                    log.warn("Failed to delete ephemeral notification {} after {} retries",
+                            msg.getId().asString(), DELETE_RETRY_ATTEMPTS, e);
+                    return Mono.empty();
+                });
     }
 
     String buildStatusTable() {

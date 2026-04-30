@@ -15,6 +15,7 @@ import discord4j.common.util.Snowflake;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Mono;
 
 import java.time.LocalDate;
 import java.util.HashMap;
@@ -38,6 +39,13 @@ public class ResultsChannelService {
     private final PuzzleCalendar puzzleCalendar;
     private final MessageSlotWriter slotWriter;
     private final Map<String, Snowflake> postedMessageIds = new ConcurrentHashMap<>();
+    /**
+     * Per-slot in-flight write chain. Each {@link #writeSlot(Snowflake, String, String)} call
+     * appends to the existing chain so consecutive writes for the same slot are serialised
+     * — preventing a duplicate post when a second write arrives before the first has
+     * completed and recorded its message id.
+     */
+    private final Map<String, Mono<Snowflake>> slotChains = new ConcurrentHashMap<>();
     private final AtomicReference<LocalDate> lastRefreshDate = new AtomicReference<>();
 
     /** Pseudo-game-type slot used to track the win streak summary message ID. */
@@ -136,11 +144,18 @@ public class ResultsChannelService {
                                    Map<String, Map<GameType, Integer>> streaks) {}
 
     private void writeSlot(Snowflake channelSnowflake, String slot, String content) {
-        Snowflake existingId = postedMessageIds.get(slot);
-        slotWriter.editOrPost(channelSnowflake, existingId, content)
-                .subscribe(
-                        id -> postedMessageIds.put(slot, id),
-                        error -> log.error("Error writing results for {}", slot, error));
+        Mono<Snowflake> chained = slotChains.compute(slot, (k, prev) -> {
+            Mono<Snowflake> prevId = (prev == null)
+                    ? Mono.justOrEmpty(postedMessageIds.get(slot))
+                    : prev.onErrorResume(e -> Mono.empty());
+            return prevId
+                    .flatMap(id -> slotWriter.editOrPost(channelSnowflake, id, content))
+                    .switchIfEmpty(Mono.defer(() -> slotWriter.editOrPost(channelSnowflake, null, content)))
+                    .cache();
+        });
+        chained.subscribe(
+                id -> postedMessageIds.put(slot, id),
+                error -> log.error("Error writing results for {}", slot, error));
     }
 
     private Map<String, Map<GameType, Integer>> buildStreakMap(Scoreboard sb1, String name1,

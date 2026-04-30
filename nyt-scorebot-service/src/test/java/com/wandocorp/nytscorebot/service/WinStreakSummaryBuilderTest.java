@@ -15,13 +15,17 @@ class WinStreakSummaryBuilderTest {
     private final User bob = new User("c2", "Bob", "u2");
 
     @Test
-    void rendersHeaderAndCodeBlock() {
+    void rendersTitleInsideCodeBlock() {
         String out = WinStreakSummaryBuilder.build(alice, "Alice", bob, "Bob",
                 Map.of(alice, Map.of(), bob, Map.of()));
 
-        assertThat(out).startsWith(BotText.WIN_STREAK_HEADER);
-        assertThat(out).contains(BotText.STATUS_CODE_BLOCK_OPEN);
+        assertThat(out).startsWith(BotText.STATUS_CODE_BLOCK_OPEN);
+        assertThat(out).contains(BotText.WIN_STREAK_TITLE);
         assertThat(out).endsWith(BotText.STATUS_CODE_BLOCK_CLOSE);
+        // Title appears inside the code block (no leading header outside the fence).
+        int titleIdx = out.indexOf(BotText.WIN_STREAK_TITLE);
+        int openIdx = out.indexOf(BotText.STATUS_CODE_BLOCK_OPEN);
+        assertThat(titleIdx).isGreaterThan(openIdx);
     }
 
     @Test
