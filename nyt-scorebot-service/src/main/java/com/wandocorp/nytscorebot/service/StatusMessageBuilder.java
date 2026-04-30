@@ -34,7 +34,6 @@ public class StatusMessageBuilder {
 
     private final List<Scoreboard> scoreboards;
     private final List<String> playerNames;
-    private final String contextMessage;
 
     /**
      * Builds the formatted status table message.
@@ -48,7 +47,6 @@ public class StatusMessageBuilder {
                 .max().orElse(8);
 
         StringBuilder sb = new StringBuilder();
-        sb.append(contextMessage).append("\n\n\n");
         sb.append(BotText.STATUS_CODE_BLOCK_OPEN);
         sb.append(buildHeaderRow(playerColWidth));
         sb.append(buildSeparatorRow(playerColWidth));

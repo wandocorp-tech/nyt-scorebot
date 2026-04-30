@@ -4,14 +4,13 @@ import com.wandocorp.nytscorebot.config.DiscordChannelProperties;
 import com.wandocorp.nytscorebot.config.DiscordChannelProperties.ChannelConfig;
 import com.wandocorp.nytscorebot.entity.Scoreboard;
 import com.wandocorp.nytscorebot.entity.User;
+import com.wandocorp.nytscorebot.service.CrosswordWinStreakService;
 import com.wandocorp.nytscorebot.service.PuzzleCalendar;
 import com.wandocorp.nytscorebot.service.ScoreboardService;
 import com.wandocorp.nytscorebot.service.StreakService;
+import com.wandocorp.nytscorebot.service.WinStreakService;
 import com.wandocorp.nytscorebot.service.scoreboard.ScoreboardRenderer;
 import discord4j.common.util.Snowflake;
-import discord4j.core.GatewayDiscordClient;
-import discord4j.core.object.entity.Message;
-import discord4j.core.object.entity.channel.MessageChannel;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.junit.jupiter.MockitoSettings;
@@ -23,10 +22,14 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.eq;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -38,20 +41,31 @@ class ResultsChannelServiceTest {
     private static final String NAME1 = "William";
     private static final String NAME2 = "Conor";
 
-    private GatewayDiscordClient client;
     private ScoreboardService scoreboardService;
     private ScoreboardRenderer scoreboardRenderer;
     private DiscordChannelProperties channelProperties;
+    private MessageSlotWriter slotWriter;
     private ResultsChannelService service;
 
     @BeforeEach
     void setUp() {
-        client = mock(GatewayDiscordClient.class);
         scoreboardService = mock(ScoreboardService.class);
         scoreboardRenderer = mock(ScoreboardRenderer.class);
         StreakService streakService = mock(StreakService.class);
+        WinStreakService winStreakService = mock(WinStreakService.class);
+        when(winStreakService.getStreaks(any())).thenReturn(Map.of());
+        CrosswordWinStreakService crosswordWinStreakService = mock(CrosswordWinStreakService.class);
         PuzzleCalendar puzzleCalendar = mock(PuzzleCalendar.class);
         when(puzzleCalendar.today()).thenReturn(LocalDate.now());
+        slotWriter = mock(MessageSlotWriter.class);
+        // Default: editOrPost returns the existing id (or a placeholder when null) so subscribers update map.
+        when(slotWriter.editOrPost(any(Snowflake.class), any(), anyString()))
+                .thenAnswer(inv -> {
+                    Snowflake existing = inv.getArgument(1);
+                    return Mono.just(existing != null ? existing : Snowflake.of("9999"));
+                });
+        when(slotWriter.editOrPost(any(Snowflake.class), isNull(), anyString()))
+                .thenReturn(Mono.just(Snowflake.of("9999")));
 
         channelProperties = new DiscordChannelProperties();
 
@@ -68,7 +82,8 @@ class ResultsChannelServiceTest {
         channelProperties.setChannels(List.of(c1, c2));
         channelProperties.setResultsChannelId(RESULTS_CHANNEL_ID);
 
-        service = new ResultsChannelService(client, channelProperties, scoreboardService, scoreboardRenderer, streakService, puzzleCalendar);
+        service = new ResultsChannelService(channelProperties, scoreboardService, scoreboardRenderer,
+                streakService, winStreakService, crosswordWinStreakService, puzzleCalendar, slotWriter);
     }
 
     @Test
@@ -89,48 +104,58 @@ class ResultsChannelServiceTest {
     void refreshNoOpWhenNotBothPlayersFinished() {
         when(scoreboardService.areBothPlayersFinishedToday()).thenReturn(false);
         service.refresh();
-        verifyNoInteractions(client);
+        verifyNoInteractions(slotWriter);
         verifyNoInteractions(scoreboardRenderer);
     }
 
     @Test
-    void refreshCallsGetChannelByIdWhenBothDone() {
+    void refreshPostsFreshWhenNoExistingMessageId() {
         when(scoreboardService.areBothPlayersFinishedToday()).thenReturn(true);
         setupScoreboards();
         setupRendered();
 
-        MessageChannel channel = mock(MessageChannel.class);
-        when(client.getChannelById(any(Snowflake.class))).thenReturn(Mono.just(channel));
-
         service.refresh();
 
-        verify(client).getChannelById(Snowflake.of(RESULTS_CHANNEL_ID));
-        verify(channel).createMessage("```\nWordle stuff\n```");
+        verify(slotWriter, atLeastOnce()).editOrPost(eq(Snowflake.of(RESULTS_CHANNEL_ID)), isNull(),
+                eq("```\nWordle stuff\n```"));
+        // The returned id should have been stored under the slot.
+        assertThat(service.getPostedMessageId("Wordle")).isEqualTo(Snowflake.of("9999"));
     }
 
     @Test
-    void refreshCallsGetMessageByIdOnSecondCallWhenMessageIdKnown() {
+    void refreshEditsInPlaceWhenMessageIdKnown() {
         when(scoreboardService.areBothPlayersFinishedToday()).thenReturn(true);
         setupScoreboards();
         setupRendered();
 
-        // Pre-populate postedMessageIds to simulate a prior call having stored a message ID
         Snowflake previousMsgId = Snowflake.of("11111");
         service.setPostedMessageId("Wordle", previousMsgId);
 
-        Message existingMsg = mock(Message.class);
-        when(existingMsg.delete()).thenReturn(Mono.empty());
-        when(client.getMessageById(any(Snowflake.class), any(Snowflake.class)))
-                .thenReturn(Mono.just(existingMsg));
+        service.refresh();
 
-        MessageChannel channel = mock(MessageChannel.class);
-        when(client.getChannelById(any(Snowflake.class))).thenReturn(Mono.just(channel));
+        verify(slotWriter).editOrPost(eq(Snowflake.of(RESULTS_CHANNEL_ID)), eq(previousMsgId),
+                eq("```\nWordle stuff\n```"));
+        // Existing id retained because helper returned it.
+        assertThat(service.getPostedMessageId("Wordle")).isEqualTo(previousMsgId);
+    }
+
+    @Test
+    void refreshUpdatesMapWhenHelperReturnsNewIdAfterFallback() {
+        when(scoreboardService.areBothPlayersFinishedToday()).thenReturn(true);
+        setupScoreboards();
+        setupRendered();
+
+        Snowflake previousMsgId = Snowflake.of("11111");
+        Snowflake newMsgId = Snowflake.of("22222");
+        service.setPostedMessageId("Wordle", previousMsgId);
+
+        // Helper returns a different (new) id, simulating an edit failure → fresh post fallback.
+        when(slotWriter.editOrPost(any(Snowflake.class), eq(previousMsgId), anyString()))
+                .thenReturn(Mono.just(newMsgId));
 
         service.refresh();
 
-        verify(client).getMessageById(Snowflake.of(RESULTS_CHANNEL_ID), previousMsgId);
-        verify(existingMsg).delete();
-        verify(channel).createMessage("```\nWordle stuff\n```");
+        assertThat(service.getPostedMessageId("Wordle")).isEqualTo(newMsgId);
     }
 
     private void setupScoreboards() {
@@ -161,28 +186,26 @@ class ResultsChannelServiceTest {
     void refreshGameNoOpWhenNotBothPlayersFinished() {
         when(scoreboardService.areBothPlayersFinishedToday()).thenReturn(false);
         service.refreshGame("Main");
-        verifyNoInteractions(client);
+        verifyNoInteractions(slotWriter);
         verifyNoInteractions(scoreboardRenderer);
     }
 
     @Test
-    void refreshGamePostsNewMessageWhenNoExistingMessage() {
+    void refreshGamePostsFreshWhenNoExistingMessage() {
         when(scoreboardService.areBothPlayersFinishedToday()).thenReturn(true);
         setupScoreboards();
         when(scoreboardRenderer.renderByGameType(eq("Main"), any(), anyString(), any(), anyString(), any()))
                 .thenReturn(java.util.Optional.of("```\nMain crossword\n```"));
 
-        MessageChannel channel = mock(MessageChannel.class);
-        when(client.getChannelById(any(Snowflake.class))).thenReturn(Mono.just(channel));
-
         service.refreshGame("Main");
 
         verify(scoreboardRenderer).renderByGameType(eq("Main"), any(), eq(NAME1), any(), eq(NAME2), any());
-        verify(channel).createMessage("```\nMain crossword\n```");
+        verify(slotWriter).editOrPost(eq(Snowflake.of(RESULTS_CHANNEL_ID)), isNull(),
+                eq("```\nMain crossword\n```"));
     }
 
     @Test
-    void refreshGameDeletesAndRepostsWhenExistingMessageId() {
+    void refreshGameEditsInPlaceWhenExistingMessageId() {
         when(scoreboardService.areBothPlayersFinishedToday()).thenReturn(true);
         setupScoreboards();
         when(scoreboardRenderer.renderByGameType(eq("Main"), any(), anyString(), any(), anyString(), any()))
@@ -191,31 +214,23 @@ class ResultsChannelServiceTest {
         Snowflake previousMsgId = Snowflake.of("22222");
         service.setPostedMessageId("Main", previousMsgId);
 
-        Message existingMsg = mock(Message.class);
-        when(existingMsg.delete()).thenReturn(Mono.empty());
-        when(client.getMessageById(any(Snowflake.class), any(Snowflake.class)))
-                .thenReturn(Mono.just(existingMsg));
-
-        MessageChannel channel = mock(MessageChannel.class);
-        when(client.getChannelById(any(Snowflake.class))).thenReturn(Mono.just(channel));
-
         service.refreshGame("Main");
 
-        verify(client).getMessageById(Snowflake.of(RESULTS_CHANNEL_ID), previousMsgId);
-        verify(existingMsg).delete();
-        verify(channel).createMessage("```\nMain crossword\n```");
+        verify(slotWriter).editOrPost(eq(Snowflake.of(RESULTS_CHANNEL_ID)), eq(previousMsgId),
+                eq("```\nMain crossword\n```"));
     }
 
     @Test
     void refreshGameNoOpWhenRendererReturnsEmpty() {
+        // Use a non-crossword game so the win streak summary path doesn't activate.
         when(scoreboardService.areBothPlayersFinishedToday()).thenReturn(true);
         setupScoreboards();
-        when(scoreboardRenderer.renderByGameType(eq("Main"), any(), anyString(), any(), anyString(), any()))
+        when(scoreboardRenderer.renderByGameType(eq("Wordle"), any(), anyString(), any(), anyString(), any()))
                 .thenReturn(java.util.Optional.empty());
 
-        service.refreshGame("Main");
+        service.refreshGame("Wordle");
 
-        verifyNoInteractions(client);
+        verify(slotWriter, never()).editOrPost(any(), any(), anyString());
     }
 
     private void setupRendered() {
@@ -223,5 +238,4 @@ class ResultsChannelServiceTest {
         rendered.put("Wordle", "```\nWordle stuff\n```");
         when(scoreboardRenderer.renderAll(any(), anyString(), any(), anyString(), any())).thenReturn(rendered);
     }
-
 }

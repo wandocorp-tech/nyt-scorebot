@@ -33,7 +33,7 @@ final class FlagReplyHelper {
                 .map(DiscordChannelProperties.ChannelConfig::getName)
                 .findFirst()
                 .orElse(discordUserId);
-        String contextMessage = String.format(BotText.STATUS_CONTEXT_FLAG_UPDATED, playerName, BotText.GAME_LABEL_MAIN);
+        String contextMessage = String.format(BotText.STATUS_CONTEXT_FLAG_UPDATED, playerName);
         statusChannelService.refresh(contextMessage);
         resultsChannelService.refreshGame(BotText.GAME_LABEL_MAIN);
     }

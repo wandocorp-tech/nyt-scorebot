@@ -16,28 +16,19 @@ class StatusMessageBuilderTest {
 
     private static final String NAME_ALICE = "Alice";
     private static final String NAME_BOB = "Bob";
-    private static final String CONTEXT = "Alice submitted Wordle";
 
     // ── build() ────────────────────────────────────────────────────────────────
 
     @Test
-    void buildContainsContextMessage() {
-        StatusMessageBuilder builder = new StatusMessageBuilder(List.of(), List.of(NAME_ALICE, NAME_BOB), CONTEXT);
+    void buildStartsWithCodeBlockOpening() {
+        StatusMessageBuilder builder = new StatusMessageBuilder(List.of(), List.of(NAME_ALICE, NAME_BOB));
         String table = builder.build();
-        assertThat(table).startsWith(CONTEXT);
-    }
-
-    @Test
-    void buildHasTwoBlankLinesBetweenContextAndCodeBlock() {
-        StatusMessageBuilder builder = new StatusMessageBuilder(List.of(), List.of(NAME_ALICE, NAME_BOB), CONTEXT);
-        String table = builder.build();
-        // context line + \n\n\n + ``` → three newlines between context and code block
-        assertThat(table).contains(CONTEXT + "\n\n\n```");
+        assertThat(table).startsWith(BotText.STATUS_CODE_BLOCK_OPEN);
     }
 
     @Test
     void buildContainsPlayerNames() {
-        StatusMessageBuilder builder = new StatusMessageBuilder(List.of(), List.of(NAME_ALICE, NAME_BOB), CONTEXT);
+        StatusMessageBuilder builder = new StatusMessageBuilder(List.of(), List.of(NAME_ALICE, NAME_BOB));
         String table = builder.build();
         assertThat(table).contains(NAME_ALICE);
         assertThat(table).contains(NAME_BOB);
@@ -45,14 +36,14 @@ class StatusMessageBuilderTest {
 
     @Test
     void buildIsWrappedInCodeBlock() {
-        StatusMessageBuilder builder = new StatusMessageBuilder(List.of(), List.of(NAME_ALICE, NAME_BOB), CONTEXT);
+        StatusMessageBuilder builder = new StatusMessageBuilder(List.of(), List.of(NAME_ALICE, NAME_BOB));
         String table = builder.build();
         assertThat(table).contains("```");
     }
 
     @Test
     void buildContainsFullGameNames() {
-        StatusMessageBuilder builder = new StatusMessageBuilder(List.of(), List.of(NAME_ALICE, NAME_BOB), CONTEXT);
+        StatusMessageBuilder builder = new StatusMessageBuilder(List.of(), List.of(NAME_ALICE, NAME_BOB));
         String table = builder.build();
         assertThat(table).contains(BotText.GAME_LABEL_WORDLE);
         assertThat(table).contains(BotText.GAME_LABEL_CONNECTIONS);
@@ -64,7 +55,7 @@ class StatusMessageBuilderTest {
 
     @Test
     void buildHeaderContainsNoTrafficLightEmoji() {
-        StatusMessageBuilder builder = new StatusMessageBuilder(List.of(), List.of(NAME_ALICE, NAME_BOB), CONTEXT);
+        StatusMessageBuilder builder = new StatusMessageBuilder(List.of(), List.of(NAME_ALICE, NAME_BOB));
         String table = builder.build();
         String headerLine = table.lines()
                 .filter(l -> l.contains(NAME_ALICE) || l.contains(NAME_BOB))
@@ -75,7 +66,7 @@ class StatusMessageBuilderTest {
 
     @Test
     void buildGamesAreRows() {
-        StatusMessageBuilder builder = new StatusMessageBuilder(List.of(), List.of(NAME_ALICE, NAME_BOB), CONTEXT);
+        StatusMessageBuilder builder = new StatusMessageBuilder(List.of(), List.of(NAME_ALICE, NAME_BOB));
         String table = builder.build();
         // Filter to table rows only (contain " |") to avoid matching the context message
         assertThat(table.lines().filter(l -> l.contains(" |") && l.contains("Wordle")).count()).isEqualTo(1);
@@ -98,7 +89,7 @@ class StatusMessageBuilderTest {
         when(s.getMainCrosswordResult()).thenReturn(null);
         when(s.isFinished()).thenReturn(false);
 
-        StatusMessageBuilder builder = new StatusMessageBuilder(List.of(s), List.of(NAME_ALICE, NAME_BOB), CONTEXT);
+        StatusMessageBuilder builder = new StatusMessageBuilder(List.of(s), List.of(NAME_ALICE, NAME_BOB));
         String table = builder.build();
         assertThat(table).contains(BotText.SUBMITTED);
         assertThat(table).contains(BotText.PENDING);
@@ -106,14 +97,14 @@ class StatusMessageBuilderTest {
 
     @Test
     void buildShowsPendingEmojiForNoSubmission() {
-        StatusMessageBuilder builder = new StatusMessageBuilder(List.of(), List.of(NAME_ALICE, NAME_BOB), CONTEXT);
+        StatusMessageBuilder builder = new StatusMessageBuilder(List.of(), List.of(NAME_ALICE, NAME_BOB));
         String table = builder.build();
         assertThat(table).contains(BotText.PENDING);
     }
 
     @Test
     void buildContainsDoneFooterRow() {
-        StatusMessageBuilder builder = new StatusMessageBuilder(List.of(), List.of(NAME_ALICE, NAME_BOB), CONTEXT);
+        StatusMessageBuilder builder = new StatusMessageBuilder(List.of(), List.of(NAME_ALICE, NAME_BOB));
         String table = builder.build();
         assertThat(table).contains(BotText.STATUS_FOOTER_DONE_LABEL);
     }
@@ -133,7 +124,7 @@ class StatusMessageBuilderTest {
         when(s.getMidiCrosswordResult()).thenReturn(null);
         when(s.getMainCrosswordResult()).thenReturn(null);
 
-        StatusMessageBuilder builder = new StatusMessageBuilder(List.of(s), List.of(NAME_ALICE, NAME_BOB), CONTEXT);
+        StatusMessageBuilder builder = new StatusMessageBuilder(List.of(s), List.of(NAME_ALICE, NAME_BOB));
         String table = builder.build();
         String footerLine = table.lines()
                 .filter(l -> l.contains(BotText.STATUS_FOOTER_DONE_LABEL))
@@ -156,7 +147,7 @@ class StatusMessageBuilderTest {
         when(s.getMidiCrosswordResult()).thenReturn(null);
         when(s.getMainCrosswordResult()).thenReturn(null);
 
-        StatusMessageBuilder builder = new StatusMessageBuilder(List.of(s), List.of(NAME_ALICE, NAME_BOB), CONTEXT);
+        StatusMessageBuilder builder = new StatusMessageBuilder(List.of(s), List.of(NAME_ALICE, NAME_BOB));
         String table = builder.build();
         String footerLine = table.lines()
                 .filter(l -> l.contains(BotText.STATUS_FOOTER_DONE_LABEL))
