@@ -15,4 +15,10 @@ public interface ScoreboardRepository extends JpaRepository<Scoreboard, Long> {
 
     @Query("SELECT s FROM Scoreboard s JOIN FETCH s.user WHERE s.date = :date")
     List<Scoreboard> findAllByDateWithUser(@Param("date") LocalDate date);
+
+    @Query("SELECT s FROM Scoreboard s JOIN FETCH s.user WHERE s.date BETWEEN :from AND :to")
+    List<Scoreboard> findAllByDateBetweenWithUser(@Param("from") LocalDate from, @Param("to") LocalDate to);
+
+    @Query("SELECT MIN(s.date) FROM Scoreboard s")
+    Optional<LocalDate> findEarliestDate();
 }

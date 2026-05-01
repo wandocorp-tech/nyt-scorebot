@@ -14,6 +14,7 @@ public class DiscordChannelProperties {
     private List<ChannelConfig> channels = List.of();
     private String statusChannelId;
     private String resultsChannelId;
+    private String statsChannelId;
 
     @PostConstruct
     public void validate() {

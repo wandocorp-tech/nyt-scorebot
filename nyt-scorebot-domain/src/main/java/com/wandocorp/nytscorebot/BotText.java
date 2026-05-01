@@ -103,5 +103,77 @@ public final class BotText {
     /** Threshold at or above which the fire emoji decorates the streak value. */
     public static final int    WIN_STREAK_FIRE_THRESHOLD = 3;
 
+    // ── /stats slash command ──────────────────────────────────────────────────
+    public static final String CMD_STATS                        = "stats";
+    public static final String CMD_STATS_DESCRIPTION            = "View crossword stats for a period";
+    public static final String CMD_STATS_GAME_OPTION            = "game";
+    public static final String CMD_STATS_GAME_OPTION_DESC       = "Which crossword game(s) to include";
+    public static final String CMD_STATS_PERIOD_OPTION          = "period";
+    public static final String CMD_STATS_PERIOD_OPTION_DESC     = "Time period for the report";
+    public static final String CMD_STATS_FROM_OPTION            = "from";
+    public static final String CMD_STATS_FROM_OPTION_DESC       = "Start date (YYYY-MM-DD, required for custom period)";
+    public static final String CMD_STATS_TO_OPTION              = "to";
+    public static final String CMD_STATS_TO_OPTION_DESC         = "End date (YYYY-MM-DD, required for custom period)";
+
+    // Period choice values
+    public static final String STATS_PERIOD_WEEK     = "week";
+    public static final String STATS_PERIOD_MONTH    = "month";
+    public static final String STATS_PERIOD_YEAR     = "year";
+    public static final String STATS_PERIOD_ALL_TIME = "all-time";
+    public static final String STATS_PERIOD_CUSTOM   = "custom";
+
+    // Game choice values
+    public static final String STATS_GAME_MINI = "mini";
+    public static final String STATS_GAME_MIDI = "midi";
+    public static final String STATS_GAME_MAIN = "main";
+    public static final String STATS_GAME_ALL  = "all";
+
+    // Period labels used in the report header
+    public static final String STATS_PERIOD_LABEL_WEEKLY   = "Weekly";
+    public static final String STATS_PERIOD_LABEL_MONTHLY  = "Monthly";
+    public static final String STATS_PERIOD_LABEL_YEARLY   = "Yearly";
+    public static final String STATS_PERIOD_LABEL_ALL_TIME = "All-Time";
+    public static final String STATS_PERIOD_LABEL_CUSTOM   = "Custom";
+
+    // Report header / section headers
+    public static final String STATS_REPORT_HEADER         = "📊 %s Crossword Recap — %s";
+    public static final String STATS_GAME_SECTION_HEADER   = "── %s ──────────────────────────────────";
+    public static final String STATS_DOW_SECTION_HEADER    = "── %s Day-of-Week Avg ──────────────────";
+    public static final String STATS_EMPTY_PERIOD          = "No crossword results in this window.";
+
+    // Day-of-week labels
+    public static final String STATS_DOW_MON = "Mon";
+    public static final String STATS_DOW_TUE = "Tue";
+    public static final String STATS_DOW_WED = "Wed";
+    public static final String STATS_DOW_THU = "Thu";
+    public static final String STATS_DOW_FRI = "Fri";
+    public static final String STATS_DOW_SAT = "Sat";
+    public static final String STATS_DOW_SUN = "Sun";
+
+    // Rank medals
+    public static final String STATS_RANK_1 = "🥇";
+    public static final String STATS_RANK_2 = "🥈";
+    public static final String STATS_RANK_3 = "🥉";
+
+    // Confirmation prompt
+    public static final String STATS_CONFIRM_PROMPT    = "⏳ This period covers a wider window. Computation may take a few seconds — proceed? *(auto-cancels in 15 s)*";
+    public static final String STATS_CONFIRM_RUN       = "Run report";
+    public static final String STATS_CONFIRM_CANCEL    = "Cancel";
+    public static final String STATS_CONFIRM_CANCELLED = "Cancelled.";
+    public static final String STATS_CONFIRM_TIMEOUT   = "Cancelled (timed out).";
+    public static final String STATS_CONFIRM_EXPIRED   = "This prompt has expired. Please run `/stats` again.";
+    public static final String STATS_CONFIRM_COMPUTING = "Computing report…";
+    public static final String STATS_POSTED            = "✅ Report posted to <#%s>";
+
+    // Error messages for /stats
+    public static final String STATS_ERR_ANCHOR_UNSET         = "⚠️ Stats are not configured. Set `stats.anchor-date` to enable this feature.";
+    public static final String STATS_ERR_CHANNEL_UNSET        = "⚠️ Stats channel is not configured. Set `discord.statsChannelId` to enable this feature.";
+    public static final String STATS_ERR_CUSTOM_MISSING_DATES = "⚠️ `from` and `to` are both required for custom periods.";
+    public static final String STATS_ERR_DATES_ON_NON_CUSTOM  = "⚠️ `from` and `to` should only be used with `period:custom`.";
+    public static final String STATS_ERR_FROM_AFTER_TO        = "⚠️ `from` must be on or before `to`.";
+    public static final String STATS_ERR_TO_IN_FUTURE         = "⚠️ `to` must not be in the future (must be on or before yesterday).";
+    public static final String STATS_ERR_WINDOW_BEFORE_ANCHOR = "⚠️ The requested window is entirely before the configured anchor date (%s). No data is available for this period.";
+    public static final String STATS_ERR_INVALID_DATE         = "⚠️ Invalid date format. Please use YYYY-MM-DD.";
+
     private BotText() {}
 }

@@ -110,6 +110,11 @@
                         <exclude>com/wandocorp/nytscorebot/listener/SlashCommandRegistrar.class</exclude>
                         <exclude>**/entity/**$HibernateProxy*</exclude>
                         <exclude>**/entity/**$HibernateInstantiator*</exclude>
+                        <!-- Stats DTOs, records and simple exception -->
+                        <exclude>com/wandocorp/nytscorebot/service/stats/CrosswordStatsReport*.class</exclude>
+                        <exclude>com/wandocorp/nytscorebot/service/stats/GameTypeFilter.class</exclude>
+                        <exclude>com/wandocorp/nytscorebot/service/stats/StatsWindowBeforeAnchorException.class</exclude>
+                        <exclude>com/wandocorp/nytscorebot/config/StatsProperties.class</exclude>
                     </excludes>
                 </configuration>
                 <executions>
