@@ -71,6 +71,7 @@ public class ResultsChannelService {
         RefreshContext ctx = prepareContext();
         if (ctx == null) return;
 
+        rolloverIfNewDay();
         lastRefreshDate.set(puzzleCalendar.today());
 
         // Recompute crossword win streaks before rendering so the summary reflects today.
@@ -89,6 +90,8 @@ public class ResultsChannelService {
     public void refreshGame(String gameType) {
         RefreshContext ctx = prepareContext();
         if (ctx == null) return;
+
+        rolloverIfNewDay();
 
         // For crossword games, recompute the win streak before re-rendering so any
         // flag change (e.g. /duo) is reflected in both the scoreboard and the summary.
@@ -112,6 +115,22 @@ public class ResultsChannelService {
             return gt;
         }
         return null;
+    }
+
+    /**
+     * Clears the posted-message-id tracking when the day has rolled over since the last refresh,
+     * so the first refresh on a new day posts fresh scoreboards rather than editing yesterday's.
+     * The persistent status board (handled by {@link StatusChannelService}) is intentionally
+     * unaffected — it is always edited in place.
+     */
+    private void rolloverIfNewDay() {
+        LocalDate today = puzzleCalendar.today();
+        LocalDate prev = lastRefreshDate.get();
+        if (prev != null && !prev.equals(today)) {
+            log.info("Day rolled over from {} to {} — clearing tracked results message ids", prev, today);
+            postedMessageIds.clear();
+            slotChains.clear();
+        }
     }
 
     private RefreshContext prepareContext() {

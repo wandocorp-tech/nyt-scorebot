@@ -158,6 +158,48 @@ class ResultsChannelServiceTest {
         assertThat(service.getPostedMessageId("Wordle")).isEqualTo(newMsgId);
     }
 
+    @Test
+    void refreshClearsTrackedIdsWhenDayHasRolledOver() {
+        // Simulate yesterday's refresh having happened: a previous post id is tracked
+        // and lastRefreshDate is yesterday (achieved by stubbing puzzleCalendar.today() differently).
+        Snowflake yesterdayMsgId = Snowflake.of("11111");
+        service.setPostedMessageId("Wordle", yesterdayMsgId);
+
+        // First refresh: pretend today is yesterday so lastRefreshDate gets set to yesterday.
+        LocalDate yesterday = LocalDate.now().minusDays(1);
+        LocalDate today = LocalDate.now();
+        when(scoreboardService.areBothPlayersFinishedToday()).thenReturn(true);
+        setupScoreboards();
+        setupRendered();
+
+        // Reach into the puzzleCalendar mock used in setUp via the service's calendar.
+        // We rebuild the service with a controllable calendar.
+        PuzzleCalendar calendar = mock(PuzzleCalendar.class);
+        when(calendar.today()).thenReturn(yesterday);
+        StreakService streakService = mock(StreakService.class);
+        WinStreakService winStreakService = mock(WinStreakService.class);
+        when(winStreakService.getStreaks(any())).thenReturn(Map.of());
+        CrosswordWinStreakService crosswordWinStreakService = mock(CrosswordWinStreakService.class);
+        ResultsChannelService svc = new ResultsChannelService(channelProperties, scoreboardService,
+                scoreboardRenderer, streakService, winStreakService, crosswordWinStreakService,
+                calendar, slotWriter);
+        svc.setPostedMessageId("Wordle", yesterdayMsgId);
+
+        svc.refresh(); // sets lastRefreshDate to yesterday
+        org.mockito.Mockito.clearInvocations(slotWriter);
+
+        // Second refresh on the new day: tracked id should be cleared, so a fresh post (id=null) is made.
+        when(calendar.today()).thenReturn(today);
+        svc.refresh();
+
+        // The second editOrPost call for the "Wordle" slot should be invoked with a null prior id,
+        // proving the stale yesterday id was discarded rather than edited.
+        verify(slotWriter, atLeastOnce()).editOrPost(eq(Snowflake.of(RESULTS_CHANNEL_ID)), isNull(),
+                eq("```\nWordle stuff\n```"));
+        verify(slotWriter, never()).editOrPost(eq(Snowflake.of(RESULTS_CHANNEL_ID)), eq(yesterdayMsgId),
+                eq("```\nWordle stuff\n```"));
+    }
+
     private void setupScoreboards() {
         Scoreboard sb1 = new Scoreboard(new User("111", NAME1, "u1"), LocalDate.now());
         sb1.setFinished(true);
