@@ -89,7 +89,7 @@ public final class BotText {
     public static final String SCOREBOARD_WIN_WITH_DIFF  = "🏆 %s wins! (%s)";
     public static final String SCOREBOARD_WIN_NO_DIFF    = "🏆 %s wins!";
     public static final String SCOREBOARD_WAITING        = "⏳ %s hasn't submitted";
-    public static final String SCOREBOARD_WAITING_SINGLE = "⏳ Solo submission";
+    public static final String SCOREBOARD_WAITING_SINGLE = "💪 Solo";
     public static final String SCOREBOARD_STREAK         = "%d";
 
     // ── Crossword scoreboard labels ───────────────────────────────────────────

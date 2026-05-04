@@ -251,7 +251,7 @@ class ScoreboardRendererTest {
         String output = rendered.get();
         assertThat(output).contains("William");
         assertThat(output).contains("0:45");
-        assertThat(output).contains("Solo submission");
+        assertThat(output).contains("Solo");
     }
 
     @Test
