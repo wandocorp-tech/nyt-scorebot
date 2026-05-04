@@ -12,6 +12,7 @@ import com.wandocorp.nytscorebot.repository.ScoreboardRepository;
 import com.wandocorp.nytscorebot.repository.UserRepository;
 import com.wandocorp.nytscorebot.service.PuzzleCalendar;
 import com.wandocorp.nytscorebot.service.scoreboard.ScoreboardRenderer;
+import com.wandocorp.nytscorebot.service.stats.CrosswordStatsReport;
 import com.wandocorp.nytscorebot.service.stats.CrosswordStatsReportBuilder;
 import com.wandocorp.nytscorebot.service.stats.CrosswordStatsService;
 import com.wandocorp.nytscorebot.service.stats.GameTypeFilter;
@@ -273,10 +274,14 @@ class EndToEndTest {
         clearChannel(Snowflake.of(statsChannelId));
         LocalDate weekFrom  = today.minusDays(7);
         LocalDate weekTo    = today.minusDays(1);
-        String weekReport   = statsReportBuilder.render(
-                statsService.compute(GameTypeFilter.ALL, weekFrom, weekTo), "Weekly");
+        CrosswordStatsReport weekStatsReport = statsService.compute(GameTypeFilter.ALL, weekFrom, weekTo);
+        String weekReport   = statsReportBuilder.render(weekStatsReport, "Weekly");
         statsChannelService.post(weekReport).block();
         logEntry("📊 Stats", "/stats game:all period:week", weekReport);
+        for (String dow : statsReportBuilder.renderDowBreakdowns(weekStatsReport)) {
+            statsChannelService.post(dow).block();
+            logEntry("📊 Stats DOW", "/stats game:all period:week", dow);
+        }
 
         assertThat(weekReport).as("Week stats report is non-empty").isNotBlank();
         assertThat(weekReport).contains("Mini").contains("Midi").contains("Main");
@@ -285,10 +290,14 @@ class EndToEndTest {
         // ── Phase 6b: /stats game:all period:month ───────────────────────────
         LocalDate monthFrom = today.minusMonths(1).plusDays(1);
         LocalDate monthTo   = today.minusDays(1);
-        String monthReport  = statsReportBuilder.render(
-                statsService.compute(GameTypeFilter.ALL, monthFrom, monthTo), "Monthly");
+        CrosswordStatsReport monthStatsReport = statsService.compute(GameTypeFilter.ALL, monthFrom, monthTo);
+        String monthReport  = statsReportBuilder.render(monthStatsReport, "Monthly");
         statsChannelService.post(monthReport).block();
         logEntry("📊 Stats", "/stats game:all period:month", monthReport);
+        for (String dow : statsReportBuilder.renderDowBreakdowns(monthStatsReport)) {
+            statsChannelService.post(dow).block();
+            logEntry("📊 Stats DOW", "/stats game:all period:month", dow);
+        }
 
         assertThat(monthReport).as("Month stats report is non-empty").isNotBlank();
         assertThat(monthReport).contains("Mini").contains("Midi").contains("Main");
