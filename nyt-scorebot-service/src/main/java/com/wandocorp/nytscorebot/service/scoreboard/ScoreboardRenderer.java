@@ -108,7 +108,7 @@ public class ScoreboardRenderer {
         if (game.usesStreakDisplay()) {
             sb.append(buildSingleStreakRow(game, presentName, streaks)).append("\n");
         } else {
-            sb.append(" ").append(String.format(BotText.SCOREBOARD_WAITING, missingName)).append("\n");
+            sb.append(String.format("%" + PLAYER_COL_WIDTH + "s", BotText.SCOREBOARD_WAITING_SINGLE)).append("\n");
         }
 
         sb.append(SINGLE_SEP).append("\n");
