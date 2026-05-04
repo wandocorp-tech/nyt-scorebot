@@ -106,10 +106,7 @@ public class CrosswordStatsReportBuilder {
           .append(" Best\n");
 
         // Separator
-        sb.append("-".repeat(nameCol)).append(BotText.STATUS_COL_SEPARATOR)
-          .append("-".repeat(winCol)).append(BotText.STATUS_COL_SEPARATOR)
-          .append("-".repeat(avgCol)).append(BotText.STATUS_COL_SEPARATOR)
-          .append("-".repeat(bestCol)).append("\n");
+        sb.append("-".repeat(BotText.MAX_LINE_WIDTH)).append("\n");
 
         // Data rows
         for (CrosswordStatsReport.UserGameStats p : game.players()) {
@@ -150,9 +147,7 @@ public class CrosswordStatsReportBuilder {
           .append(" ").append(player2Name).append("\n");
 
         // Separator
-        sb.append("-".repeat(dayCol)).append(BotText.STATUS_COL_SEPARATOR)
-          .append("-".repeat(cell1Col)).append(BotText.STATUS_COL_SEPARATOR)
-          .append("-".repeat(cell2Col)).append("\n");
+        sb.append("-".repeat(BotText.MAX_LINE_WIDTH)).append("\n");
 
         // Rows
         for (CrosswordStatsReport.DowRow row : dow.rows()) {
