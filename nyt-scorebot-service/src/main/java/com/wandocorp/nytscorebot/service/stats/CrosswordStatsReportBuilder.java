@@ -68,7 +68,7 @@ public class CrosswordStatsReportBuilder {
             game.dowBlock().ifPresent(dow -> {
                 StringBuilder sb = new StringBuilder();
                 sb.append(BotText.STATUS_CODE_BLOCK_OPEN);
-                appendDowTable(sb, gameLabel(game.gameType()), dow,
+                appendDowTable(sb, dow,
                         report.player1Name(), report.player2Name());
                 sb.append(BotText.STATUS_CODE_BLOCK_CLOSE);
                 result.add(sb.toString());
@@ -123,10 +123,11 @@ public class CrosswordStatsReportBuilder {
 
     // ── Day-of-week table ─────────────────────────────────────────────────────
 
-    private static void appendDowTable(StringBuilder sb, String gameLabel,
+    private static void appendDowTable(StringBuilder sb,
                                         CrosswordStatsReport.DowBlock dow,
                                         String player1Name, String player2Name) {
-        sb.append(" ").append(gameLabel).append(" DOW\n");
+        sb.append(" Daily Breakdown\n");
+        sb.append(SEP).append("\n");
 
         int dayCol   = 3;
         int cell1Col = player1Name.length();
@@ -157,8 +158,6 @@ public class CrosswordStatsReportBuilder {
               .append(" ").append(rpad(cell1, cell1Col)).append(" |")
               .append(" ").append(cell2).append("\n");
         }
-
-        sb.append(SEP).append("\n");
     }
 
     private static String formatDowCell(CrosswordStatsReport.DowCell cell) {
