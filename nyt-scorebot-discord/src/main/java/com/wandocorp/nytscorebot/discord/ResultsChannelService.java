@@ -68,7 +68,7 @@ public class ResultsChannelService {
     }
 
     public void refresh() {
-        RefreshContext ctx = prepareContext();
+        RefreshContext ctx = prepareContext(puzzleCalendar.today(), false);
         if (ctx == null) return;
 
         lastRefreshDate.set(puzzleCalendar.today());
@@ -85,9 +85,29 @@ public class ResultsChannelService {
         postOrEditWinStreakSummary(ctx);
     }
 
+    /**
+     * Forces all boards to be posted for the given date, regardless of whether both players
+     * have finished. Used by the midnight job to publish end-of-day results.
+     */
+    public void forceRefreshForDate(LocalDate date) {
+        RefreshContext ctx = prepareContext(date, true);
+        if (ctx == null) return;
+
+        lastRefreshDate.set(date);
+
+        crosswordWinStreakService.updateAll(ctx.sb1, ctx.name1, ctx.sb2, ctx.name2, date);
+
+        Map<String, String> rendered = scoreboardRenderer.renderAll(ctx.sb1, ctx.name1, ctx.sb2, ctx.name2, ctx.streaks);
+        for (Map.Entry<String, String> entry : rendered.entrySet()) {
+            writeSlot(ctx.channelSnowflake, entry.getKey(), entry.getValue());
+        }
+
+        postOrEditWinStreakSummary(ctx);
+    }
+
     /** Refreshes only a single game type's board in the results channel. */
     public void refreshGame(String gameType) {
-        RefreshContext ctx = prepareContext();
+        RefreshContext ctx = prepareContext(puzzleCalendar.today(), false);
         if (ctx == null) return;
 
         // For crossword games, recompute the win streak before re-rendering so any
@@ -106,6 +126,11 @@ public class ResultsChannelService {
         }
     }
 
+    /** Returns true if results have been posted for the given date. */
+    public boolean hasPostedResultsForDate(LocalDate date) {
+        return date.equals(lastRefreshDate.get());
+    }
+
     private static GameType crosswordGameTypeFor(String gameLabel) {
         GameType gt = GameType.fromLabel(gameLabel);
         if (gt == GameType.MINI_CROSSWORD || gt == GameType.MIDI_CROSSWORD || gt == GameType.MAIN_CROSSWORD) {
@@ -114,12 +139,12 @@ public class ResultsChannelService {
         return null;
     }
 
-    private RefreshContext prepareContext() {
+    private RefreshContext prepareContext(LocalDate date, boolean force) {
         String resultsChannelId = channelProperties.getResultsChannelId();
         if (resultsChannelId == null || resultsChannelId.isBlank()) return null;
-        if (!scoreboardService.areBothPlayersFinishedToday()) return null;
+        if (!force && !scoreboardService.areBothPlayersFinishedToday()) return null;
 
-        List<Scoreboard> scoreboards = scoreboardService.getTodayScoreboards();
+        List<Scoreboard> scoreboards = scoreboardService.getScoreboardsForDate(date);
         List<DiscordChannelProperties.ChannelConfig> channels = channelProperties.getChannels();
         if (channels.size() < 2) return null;
 

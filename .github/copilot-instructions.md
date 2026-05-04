@@ -128,3 +128,7 @@ Allowed prefixes:
 | `build` | Build, packaging, or Maven changes |
 
 The CI release-notes generator filters out `chore`, `ci`, `test`, and `build` commits unless they have user-visible impact, so prefixing accurately keeps the Discord release announcements concise. The convention is guidance only — non-conventional commits are not blocked.
+
+**Multi-part work commits:** When a feature or change consists of multiple logically independent parts (e.g., three separate features, a refactoring + tests, service changes + UI changes), commit each part separately rather than combining them into a single commit. This makes the git history more granular, easier to review, and simpler to bisect or cherry-pick if needed. Each part should be independently compilable and testable.
+
+**Commit message guidelines:** Do not mention AI, Copilot, or reference these instructions in any commit message. Commit messages should describe the *what* and *why* from the user/codebase perspective only.
