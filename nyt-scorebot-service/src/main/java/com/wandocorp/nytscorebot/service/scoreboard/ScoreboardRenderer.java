@@ -16,6 +16,7 @@ import java.util.Optional;
 public class ScoreboardRenderer {
 
     private static final String SEP = "-".repeat(BotText.MAX_LINE_WIDTH);
+    private static final String SINGLE_SEP = "-".repeat(BotText.SINGLE_PLAYER_LINE_WIDTH);
     /** Column width for player name; names longer than this will misalign the layout. */
     private static final int PLAYER_COL_WIDTH = 15;
 
@@ -88,9 +89,9 @@ public class ScoreboardRenderer {
         sb.append(BotText.STATUS_CODE_BLOCK_OPEN);
         sb.append(" ").append(header).append("\n");
         sb.append(" \n");
-        sb.append(SEP).append("\n");
+        sb.append(SINGLE_SEP).append("\n");
         sb.append(nameRow).append("\n");
-        sb.append(SEP).append("\n");
+        sb.append(SINGLE_SEP).append("\n");
         for (String row : game.emojiGridRows(presentSb)) {
             sb.append(leading).append(row).append("\n");
         }
@@ -98,19 +99,19 @@ public class ScoreboardRenderer {
             sb.append(String.format("%" + PLAYER_COL_WIDTH + "s", game.scoreLabel(presentSb))).append("\n");
             String flags = game.flagsRow(presentSb);
             if (!flags.isEmpty()) {
-                sb.append(SEP).append("\n");
+                sb.append(SINGLE_SEP).append("\n");
                 sb.append(String.format("%" + PLAYER_COL_WIDTH + "s", flags)).append("\n");
             }
         }
-        sb.append(SEP).append("\n");
+        sb.append(SINGLE_SEP).append("\n");
 
         if (game.usesStreakDisplay()) {
             sb.append(buildSingleStreakRow(game, presentName, streaks)).append("\n");
         } else {
-            sb.append(" ").append(String.format(BotText.SCOREBOARD_WAITING, missingName)).append("\n");
+            sb.append(" ").append(BotText.SCOREBOARD_WAITING_SINGLE).append("\n");
         }
 
-        sb.append(SEP).append("\n");
+        sb.append(SINGLE_SEP).append("\n");
         sb.append(BotText.STATUS_CODE_BLOCK_CLOSE);
         return sb.toString();
     }

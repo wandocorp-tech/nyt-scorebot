@@ -28,6 +28,10 @@ public class ScoreboardService {
         return scoreboardRepository.findAllByDateWithUser(puzzleCalendar.today());
     }
 
+    public List<Scoreboard> getScoreboardsForDate(LocalDate date) {
+        return scoreboardRepository.findAllByDateWithUser(date);
+    }
+
     public boolean areBothPlayersFinishedToday() {
         List<Scoreboard> scoreboards = getTodayScoreboards();
         return scoreboards.size() >= 2 && scoreboards.stream().allMatch(Scoreboard::isFinished);
@@ -61,6 +65,12 @@ public class ScoreboardService {
         LocalDate resultDate = resolveDate(result);
         User user = findOrCreateUser(channelId, personName, discordUserId);
         Scoreboard scoreboard = findOrCreateScoreboard(user, resultDate);
+
+        if (scoreboard.isFinished()) {
+            log.info("Rejected {} result for {} on {}: scoreboard already finished",
+                    result.getClass().getSimpleName(), personName, resultDate);
+            return SaveOutcome.ALREADY_FINISHED;
+        }
 
         if (isAlreadySubmitted(scoreboard, result)) {
             log.info("Duplicate {} result for {} on {}", result.getClass().getSimpleName(), personName, resultDate);

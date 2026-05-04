@@ -82,6 +82,19 @@ class ScoreboardRendererTest {
     }
 
     @Test
+    void singlePlayerRender_separatorIsHalfWidth() {
+        Scoreboard william = sbWith(wordle(WORDLE_4, 4, true));
+
+        Optional<String> rendered = renderer.render(wordleGame, william, "William", null, "Conor", STREAKS);
+
+        assertThat(rendered).isPresent();
+        String halfWidthSep = "-".repeat(com.wandocorp.nytscorebot.BotText.SINGLE_PLAYER_LINE_WIDTH);
+        String fullWidthSep = "-".repeat(com.wandocorp.nytscorebot.BotText.MAX_LINE_WIDTH);
+        assertThat(rendered.get()).contains(halfWidthSep);
+        assertThat(rendered.get()).doesNotContain(fullWidthSep);
+    }
+
+    @Test
     void noResults_returnsEmpty() {
         Optional<String> rendered = renderer.render(wordleGame, null, "William", null, "Conor", STREAKS);
 
@@ -238,7 +251,7 @@ class ScoreboardRendererTest {
         String output = rendered.get();
         assertThat(output).contains("William");
         assertThat(output).contains("0:45");
-        assertThat(output).contains("Conor hasn't submitted");
+        assertThat(output).contains("Solo");
     }
 
     @Test

@@ -289,6 +289,18 @@ class ScoreboardServiceTest {
         assertThat(scoreboard.isFinished()).isTrue();
     }
 
+    // ── Finished lock ────────────────────────────────────────────────────────
+
+    @Test
+    void submissionIsRejectedWhenScoreboardIsAlreadyFinished() {
+        scoreboard.setFinished(true);
+        int expected = calendar.expectedWordle();
+        WordleResult result = new WordleResult("raw", PERSON, null, expected, 3, true, false);
+
+        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result)).isEqualTo(SaveOutcome.ALREADY_FINISHED);
+        verify(scoreboardRepo, never()).save(any(Scoreboard.class));
+    }
+
     // ── saveResult stores MAIN crossword as MainCrosswordResult ─────────────
 
     @Test

@@ -2,13 +2,20 @@ package com.wandocorp.nytscorebot;
 
 import com.wandocorp.nytscorebot.discord.ResultsChannelService;
 import com.wandocorp.nytscorebot.discord.StatusChannelService;
+import com.wandocorp.nytscorebot.discord.StatsChannelService;
 import com.wandocorp.nytscorebot.entity.Scoreboard;
 import com.wandocorp.nytscorebot.entity.User;
 import com.wandocorp.nytscorebot.model.MainCrosswordResult;
+import com.wandocorp.nytscorebot.model.MidiCrosswordResult;
+import com.wandocorp.nytscorebot.model.MiniCrosswordResult;
 import com.wandocorp.nytscorebot.repository.ScoreboardRepository;
 import com.wandocorp.nytscorebot.repository.UserRepository;
 import com.wandocorp.nytscorebot.service.PuzzleCalendar;
 import com.wandocorp.nytscorebot.service.scoreboard.ScoreboardRenderer;
+import com.wandocorp.nytscorebot.service.stats.CrosswordStatsReport;
+import com.wandocorp.nytscorebot.service.stats.CrosswordStatsReportBuilder;
+import com.wandocorp.nytscorebot.service.stats.CrosswordStatsService;
+import com.wandocorp.nytscorebot.service.stats.GameTypeFilter;
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.object.entity.channel.GuildMessageChannel;
@@ -58,6 +65,7 @@ class EndToEndTest {
     @Value("${discord.channels[1].id}")   private String conorChannelId;
     @Value("${discord.statusChannelId}")   private String statusChannelId;
     @Value("${discord.resultsChannelId}")  private String resultsChannelId;
+    @Value("${discord.statsChannelId}")    private String statsChannelId;
 
     // ── Autowired components ─────────────────────────────────────────────────
 
@@ -68,6 +76,9 @@ class EndToEndTest {
     @Autowired private StatusChannelService statusChannelService;
     @Autowired private ResultsChannelService resultsChannelService;
     @Autowired private ScoreboardRenderer scoreboardRenderer;
+    @Autowired private CrosswordStatsService statsService;
+    @Autowired private CrosswordStatsReportBuilder statsReportBuilder;
+    @Autowired private StatsChannelService statsChannelService;
 
     // ── Test ─────────────────────────────────────────────────────────────────
 
@@ -240,21 +251,114 @@ class EndToEndTest {
         scoreboardRenderer.renderAll(williamBoard, "William", conorBoard, "Conor", null)
                 .forEach(this::logScoreboard);
 
-        // ── Phase 5: Conor submits Midi late → boards refresh ───────────────
+        // ── Phase 5: Conor submits Midi late → blocked by finished lock ─────────
 
         postTo(conorChannel, conorMidi);
 
         Thread.sleep(5000);
         Scoreboard conorBoardPhase5 = scoreboardRepository.findByUserAndDate(conor, today).orElseThrow();
-        assertThat(conorBoardPhase5.getMidiCrosswordResult()).as("Conor now has Midi result").isNotNull();
-        assertThat(conorBoardPhase5.getMidiCrosswordResult().getTimeString()).isEqualTo("3:45");
+        assertThat(conorBoardPhase5.getMidiCrosswordResult()).as("Midi result rejected: scoreboard is finished").isNull();
 
         williamBoard = scoreboardRepository.findByUserAndDate(william, today).orElseThrow();
         scoreboardRenderer.renderAll(williamBoard, "William", conorBoardPhase5, "Conor", null)
                 .forEach(this::logScoreboard);
+
+        // ── Phase 6: Insert historical data and invoke /stats for week + month ─
+
+        // Seed 30 days of Mini, Midi, and Main results for both players
+        // (excludes today so they fall entirely in the "yesterday and earlier" window)
+        seedHistoricalCrosswordData(william, conor, today);
+        Thread.sleep(1000);
+
+        // ── Phase 6a: /stats game:all period:week ────────────────────────────
+        clearChannel(Snowflake.of(statsChannelId));
+        LocalDate weekFrom  = today.minusDays(7);
+        LocalDate weekTo    = today.minusDays(1);
+        CrosswordStatsReport weekStatsReport = statsService.compute(GameTypeFilter.ALL, weekFrom, weekTo);
+        String weekReport   = statsReportBuilder.render(weekStatsReport, "Weekly");
+        statsChannelService.post(weekReport).block();
+        logEntry("📊 Stats", "/stats game:all period:week", weekReport);
+        for (String dow : statsReportBuilder.renderDowBreakdowns(weekStatsReport)) {
+            statsChannelService.post(dow).block();
+            logEntry("📊 Stats DOW", "/stats game:all period:week", dow);
+        }
+
+        assertThat(weekReport).as("Week stats report is non-empty").isNotBlank();
+        assertThat(weekReport).contains("Mini").contains("Midi").contains("Main");
+        Thread.sleep(2000);
+
+        // ── Phase 6b: /stats game:all period:month ───────────────────────────
+        LocalDate monthFrom = today.minusMonths(1).plusDays(1);
+        LocalDate monthTo   = today.minusDays(1);
+        CrosswordStatsReport monthStatsReport = statsService.compute(GameTypeFilter.ALL, monthFrom, monthTo);
+        String monthReport  = statsReportBuilder.render(monthStatsReport, "Monthly");
+        statsChannelService.post(monthReport).block();
+        logEntry("📊 Stats", "/stats game:all period:month", monthReport);
+        for (String dow : statsReportBuilder.renderDowBreakdowns(monthStatsReport)) {
+            statsChannelService.post(dow).block();
+            logEntry("📊 Stats DOW", "/stats game:all period:month", dow);
+        }
+
+        assertThat(monthReport).as("Month stats report is non-empty").isNotBlank();
+        assertThat(monthReport).contains("Mini").contains("Midi").contains("Main");
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
+
+    /**
+     * Seeds 30 days of Mini, Midi, and Main crossword results for both players,
+     * ending on {@code today.minusDays(1)} so all rows fall within the "week" and
+     * "month" stats windows. William consistently beats Conor on Mini; times vary
+     * daily to produce non-trivial averages and day-of-week data.
+     */
+    private void seedHistoricalCrosswordData(User william, User conor, LocalDate today) {
+        for (int i = 1; i <= 30; i++) {
+            LocalDate date = today.minusDays(i);
+
+            // Vary times slightly day-by-day for realistic averages
+            int williamMiniSecs = 60 + (i % 5) * 10;       // 60–100 s
+            int conorMiniSecs   = 80 + (i % 7) * 10;       // 80–140 s
+            int williamMidiSecs = 200 + (i % 6) * 15;      // 200–275 s
+            int conorMidiSecs   = 220 + (i % 6) * 15;      // 220–295 s
+            int williamMainSecs = 900 + (i % 8) * 60;      // 15–22 min
+            int conorMainSecs   = 1000 + (i % 9) * 60;     // ~17–24 min
+
+            // William
+            Scoreboard wb = new Scoreboard(william, date);
+            wb.addResult(miniResult(williamMiniSecs, date));
+            wb.addResult(midiResult(williamMidiSecs, date));
+            wb.addResult(mainResult(williamMainSecs, date));
+            wb.setFinished(true);
+            scoreboardRepository.save(wb);
+
+            // Conor
+            Scoreboard cb = new Scoreboard(conor, date);
+            cb.addResult(miniResult(conorMiniSecs, date));
+            cb.addResult(midiResult(conorMidiSecs, date));
+            cb.addResult(mainResult(conorMainSecs, date));
+            cb.setFinished(true);
+            scoreboardRepository.save(cb);
+        }
+    }
+
+    private static MiniCrosswordResult miniResult(int totalSeconds, LocalDate date) {
+        return new MiniCrosswordResult("", "", "", formatTime(totalSeconds), totalSeconds, date);
+    }
+
+    private static MidiCrosswordResult midiResult(int totalSeconds, LocalDate date) {
+        return new MidiCrosswordResult("", "", "", formatTime(totalSeconds), totalSeconds, date);
+    }
+
+    private static MainCrosswordResult mainResult(int totalSeconds, LocalDate date) {
+        return new MainCrosswordResult("", "", "", formatTime(totalSeconds), totalSeconds, date);
+    }
+
+    private static String formatTime(int totalSeconds) {
+        int m = totalSeconds / 60;
+        int s = totalSeconds % 60;
+        return String.format("%d:%02d", m, s);
+    }
+
 
     private void postTo(Snowflake channelId, String content) {
         client.getChannelById(channelId)

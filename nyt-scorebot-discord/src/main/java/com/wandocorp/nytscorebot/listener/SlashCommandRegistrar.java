@@ -40,7 +40,8 @@ public class SlashCommandRegistrar {
                 buildDuoCommand(),
                 buildLookupsCommand(),
                 buildCheckCommand(),
-                buildStreakCommand()
+                buildStreakCommand(),
+                buildStatsCommand()
         };
     }
 
@@ -100,6 +101,55 @@ public class SlashCommandRegistrar {
                         .type(ApplicationCommandOption.Type.INTEGER.getValue())
                         .required(true)
                         .minValue(0D)
+                        .build())
+                .build();
+    }
+
+    private static ApplicationCommandRequest buildStatsCommand() {
+        return ApplicationCommandRequest.builder()
+                .name(BotText.CMD_STATS)
+                .description(BotText.CMD_STATS_DESCRIPTION)
+                .addOption(ApplicationCommandOptionData.builder()
+                        .name(BotText.CMD_STATS_GAME_OPTION)
+                        .description(BotText.CMD_STATS_GAME_OPTION_DESC)
+                        .type(ApplicationCommandOption.Type.STRING.getValue())
+                        .required(true)
+                        .addChoice(ApplicationCommandOptionChoiceData.builder()
+                                .name(BotText.GAME_LABEL_MINI).value(BotText.STATS_GAME_MINI).build())
+                        .addChoice(ApplicationCommandOptionChoiceData.builder()
+                                .name(BotText.GAME_LABEL_MIDI).value(BotText.STATS_GAME_MIDI).build())
+                        .addChoice(ApplicationCommandOptionChoiceData.builder()
+                                .name(BotText.GAME_LABEL_MAIN).value(BotText.STATS_GAME_MAIN).build())
+                        .addChoice(ApplicationCommandOptionChoiceData.builder()
+                                .name("All").value(BotText.STATS_GAME_ALL).build())
+                        .build())
+                .addOption(ApplicationCommandOptionData.builder()
+                        .name(BotText.CMD_STATS_PERIOD_OPTION)
+                        .description(BotText.CMD_STATS_PERIOD_OPTION_DESC)
+                        .type(ApplicationCommandOption.Type.STRING.getValue())
+                        .required(true)
+                        .addChoice(ApplicationCommandOptionChoiceData.builder()
+                                .name("Week").value(BotText.STATS_PERIOD_WEEK).build())
+                        .addChoice(ApplicationCommandOptionChoiceData.builder()
+                                .name("Month").value(BotText.STATS_PERIOD_MONTH).build())
+                        .addChoice(ApplicationCommandOptionChoiceData.builder()
+                                .name("Year").value(BotText.STATS_PERIOD_YEAR).build())
+                        .addChoice(ApplicationCommandOptionChoiceData.builder()
+                                .name("All-Time").value(BotText.STATS_PERIOD_ALL_TIME).build())
+                        .addChoice(ApplicationCommandOptionChoiceData.builder()
+                                .name("Custom").value(BotText.STATS_PERIOD_CUSTOM).build())
+                        .build())
+                .addOption(ApplicationCommandOptionData.builder()
+                        .name(BotText.CMD_STATS_FROM_OPTION)
+                        .description(BotText.CMD_STATS_FROM_OPTION_DESC)
+                        .type(ApplicationCommandOption.Type.STRING.getValue())
+                        .required(false)
+                        .build())
+                .addOption(ApplicationCommandOptionData.builder()
+                        .name(BotText.CMD_STATS_TO_OPTION)
+                        .description(BotText.CMD_STATS_TO_OPTION_DESC)
+                        .type(ApplicationCommandOption.Type.STRING.getValue())
+                        .required(false)
                         .build())
                 .build();
     }

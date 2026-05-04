@@ -121,6 +121,7 @@ public class MessageListener {
             case SAVED -> Mono.empty();
             case WRONG_PUZZLE_NUMBER -> channelMono.flatMap(ch -> ch.createMessage(BotText.MSG_WRONG_PUZZLE_NUMBER)).then();
             case ALREADY_SUBMITTED   -> channelMono.flatMap(ch -> ch.createMessage(BotText.MSG_ALREADY_SUBMITTED)).then();
+            case ALREADY_FINISHED    -> channelMono.flatMap(ch -> ch.createMessage(BotText.MSG_FINISHED_LOCKED)).then();
         };
     }
 

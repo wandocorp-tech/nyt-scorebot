@@ -205,7 +205,7 @@ class ResultsChannelServiceTest {
         sb1.setFinished(true);
         Scoreboard sb2 = new Scoreboard(new User("222", NAME2, "u2"), LocalDate.now());
         sb2.setFinished(true);
-        when(scoreboardService.getTodayScoreboards()).thenReturn(List.of(sb1, sb2));
+        when(scoreboardService.getScoreboardsForDate(any())).thenReturn(List.of(sb1, sb2));
     }
 
     // ── refreshGame ──────────────────────────────────────────────────────────
@@ -273,6 +273,52 @@ class ResultsChannelServiceTest {
         service.refreshGame("Wordle");
 
         verify(slotWriter, never()).editOrPost(any(), any(), anyString());
+    }
+
+    // ── forceRefreshForDate ───────────────────────────────────────────────────
+
+    @Test
+    void forceRefreshForDatePostsEvenWhenNotBothPlayersFinished() {
+        when(scoreboardService.areBothPlayersFinishedToday()).thenReturn(false);
+        setupScoreboards();
+        setupRendered();
+        LocalDate yesterday = LocalDate.now().minusDays(1);
+
+        service.forceRefreshForDate(yesterday);
+
+        verify(slotWriter, atLeastOnce()).editOrPost(eq(Snowflake.of(RESULTS_CHANNEL_ID)), isNull(),
+                eq("```\nWordle stuff\n```"));
+    }
+
+    @Test
+    void forceRefreshForDateSetsLastRefreshDate() {
+        setupScoreboards();
+        setupRendered();
+        LocalDate yesterday = LocalDate.now().minusDays(1);
+
+        service.forceRefreshForDate(yesterday);
+
+        assertThat(service.hasPostedResultsForDate(yesterday)).isTrue();
+        assertThat(service.hasPostedResultsForDate(LocalDate.now())).isFalse();
+    }
+
+    // ── hasPostedResultsForDate ───────────────────────────────────────────────
+
+    @Test
+    void hasPostedResultsForDateReturnsFalseInitially() {
+        assertThat(service.hasPostedResultsForDate(LocalDate.now())).isFalse();
+        assertThat(service.hasPostedResultsForDate(LocalDate.now().minusDays(1))).isFalse();
+    }
+
+    @Test
+    void hasPostedResultsReturnsTrueAfterRefresh() {
+        when(scoreboardService.areBothPlayersFinishedToday()).thenReturn(true);
+        setupScoreboards();
+        setupRendered();
+
+        service.refresh();
+
+        assertThat(service.hasPostedResultsForDate(LocalDate.now())).isTrue();
     }
 
     private void setupRendered() {
