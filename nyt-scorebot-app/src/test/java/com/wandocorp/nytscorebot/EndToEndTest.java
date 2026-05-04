@@ -250,14 +250,13 @@ class EndToEndTest {
         scoreboardRenderer.renderAll(williamBoard, "William", conorBoard, "Conor", null)
                 .forEach(this::logScoreboard);
 
-        // ── Phase 5: Conor submits Midi late → boards refresh ───────────────
+        // ── Phase 5: Conor submits Midi late → blocked by finished lock ─────────
 
         postTo(conorChannel, conorMidi);
 
         Thread.sleep(5000);
         Scoreboard conorBoardPhase5 = scoreboardRepository.findByUserAndDate(conor, today).orElseThrow();
-        assertThat(conorBoardPhase5.getMidiCrosswordResult()).as("Conor now has Midi result").isNotNull();
-        assertThat(conorBoardPhase5.getMidiCrosswordResult().getTimeString()).isEqualTo("3:45");
+        assertThat(conorBoardPhase5.getMidiCrosswordResult()).as("Midi result rejected: scoreboard is finished").isNull();
 
         williamBoard = scoreboardRepository.findByUserAndDate(william, today).orElseThrow();
         scoreboardRenderer.renderAll(williamBoard, "William", conorBoardPhase5, "Conor", null)
