@@ -100,7 +100,7 @@ public class CrosswordStatsReportBuilder {
         }
 
         // Header
-        sb.append(rpad("Player", nameCol)).append(" |")
+        sb.append(" ").append(rpad("Player", nameCol)).append(" |")
           .append(" ").append(rpad("Win", winCol)).append(" |")
           .append(" ").append(rpad("Avg", avgCol)).append(" |")
           .append(" Best\n");
@@ -114,7 +114,7 @@ public class CrosswordStatsReportBuilder {
                     ? formatTime((int) Math.round(p.avgSeconds().getAsDouble())) : "-";
             String best = p.bestSeconds().isPresent()
                     ? formatTime(p.bestSeconds().getAsInt()) : "-";
-            sb.append(rpad(p.playerName(), nameCol)).append(" |")
+            sb.append(" ").append(rpad(p.playerName(), nameCol)).append(" |")
               .append(" ").append(rpad(String.valueOf(p.wins()), winCol)).append(" |")
               .append(" ").append(rpad(avg, avgCol)).append(" |")
               .append(" ").append(best).append("\n");
@@ -142,7 +142,7 @@ public class CrosswordStatsReportBuilder {
         }
 
         // Header
-        sb.append(rpad("Day", dayCol)).append(" |")
+        sb.append(" ").append(rpad("Day", dayCol)).append(" |")
           .append(" ").append(rpad(player1Name, cell1Col)).append(" |")
           .append(" ").append(player2Name).append("\n");
 
@@ -153,7 +153,7 @@ public class CrosswordStatsReportBuilder {
         for (CrosswordStatsReport.DowRow row : dow.rows()) {
             String cell1 = row.player1Cell().map(CrosswordStatsReportBuilder::formatDowCell).orElse("-");
             String cell2 = row.player2Cell().map(CrosswordStatsReportBuilder::formatDowCell).orElse("-");
-            sb.append(rpad(dowLabel(row.dayOfWeek()), dayCol)).append(" |")
+            sb.append(" ").append(rpad(dowLabel(row.dayOfWeek()), dayCol)).append(" |")
               .append(" ").append(rpad(cell1, cell1Col)).append(" |")
               .append(" ").append(cell2).append("\n");
         }
