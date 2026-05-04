@@ -5,6 +5,9 @@ public final class BotText {
     /** Max width of a scoreboard line — fits two player columns in Discord monospace font. */
     public static final int MAX_LINE_WIDTH = 33;
 
+    /** Width of a single-player scoreboard separator — half the full board width. */
+    public static final int SINGLE_PLAYER_LINE_WIDTH = (MAX_LINE_WIDTH + 1) / 2;
+
     // ── Emojis ───────────────────────────────────────────────────────────────
     public static final String SUBMITTED = "✅";
     public static final String PENDING   = "⏳";
@@ -45,6 +48,8 @@ public final class BotText {
             WARNING + " That doesn't look like today's puzzle number. Result was not saved.";
     public static final String MSG_ALREADY_SUBMITTED =
             INFO + " You've already submitted this game type today. Result was not saved.";
+    public static final String MSG_FINISHED_LOCKED =
+            INFO + " Your scorecard is marked as finished. No more submissions until tomorrow.";
     public static final String MSG_MARKED_FINISHED =
             SUBMITTED + " Your scoreboard for today has been marked as finished!";
     public static final String MSG_ALREADY_FINISHED =

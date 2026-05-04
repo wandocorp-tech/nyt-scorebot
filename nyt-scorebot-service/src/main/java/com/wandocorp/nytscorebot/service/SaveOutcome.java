@@ -12,5 +12,8 @@ public enum SaveOutcome {
     WRONG_PUZZLE_NUMBER,
 
     /** A result for this game type has already been submitted today. */
-    ALREADY_SUBMITTED
+    ALREADY_SUBMITTED,
+
+    /** The player's scoreboard is already marked as finished; no further submissions are accepted today. */
+    ALREADY_FINISHED
 }

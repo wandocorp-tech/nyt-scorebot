@@ -126,6 +126,11 @@ class MessageListenerTest {
         assertReplyMessage(SaveOutcome.ALREADY_SUBMITTED, "already submitted");
     }
 
+    @Test
+    void alreadyFinishedSendsLockedMessage() {
+        assertReplyMessage(SaveOutcome.ALREADY_FINISHED, "finished");
+    }
+
     // ── processMessage ────────────────────────────────────────────────────────
 
     @Test
