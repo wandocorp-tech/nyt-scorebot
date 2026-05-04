@@ -52,6 +52,7 @@ class WeeklyCrosswordStatsJobTest {
         when(fakeReport.games()).thenReturn(List.of());
         when(statsService.compute(any(), any(), any())).thenReturn(fakeReport);
         when(reportBuilder.render(any(), any())).thenReturn("report content");
+        when(reportBuilder.renderDowBreakdowns(any())).thenReturn(List.of());
         when(statsChannelService.post(any())).thenReturn(Mono.empty());
 
         job = new WeeklyCrosswordStatsJob(statsService, reportBuilder, statsChannelService,

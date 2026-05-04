@@ -19,6 +19,7 @@ import reactor.core.Disposable;
 import reactor.core.publisher.Mono;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -109,10 +110,15 @@ public class StatsConfirmationButtonListener {
             String label          = periodLabel(period);
 
             var report  = statsService.compute(filter, from, to);
-            String content = reportBuilder.render(report, label);
+            String mainContent = reportBuilder.render(report, label);
+            List<String> dowBreakdowns = reportBuilder.renderDowBreakdowns(report);
             String statsChannelId = channelProperties.getStatsChannelId();
 
-            return statsChannelService.post(content)
+            Mono<Void> postAll = statsChannelService.post(mainContent);
+            for (String dow : dowBreakdowns) {
+                postAll = postAll.then(statsChannelService.post(dow));
+            }
+            return postAll
                     .then(event.editReply(String.format(BotText.STATS_POSTED, statsChannelId)))
                     .then();
         } catch (Exception e) {

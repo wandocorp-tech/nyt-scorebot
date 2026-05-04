@@ -7,11 +7,15 @@ import org.springframework.stereotype.Component;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 /**
- * Renders a {@link CrosswordStatsReport} as a Discord-compatible code-block string.
+ * Renders a {@link CrosswordStatsReport} as Discord-compatible code-block string(s).
+ *
+ * <p>The main report (header + per-game summary tables) is returned by
+ * {@link #render(CrosswordStatsReport, String)}. Day-of-week breakdowns are returned
+ * separately by {@link #renderDowBreakdowns}, one code block per game that has DOW data.
  *
  * <p>Time values are formatted as {@code m:ss} for sub-hour and {@code h:mm:ss} for ≥ 1 hour.
  * Average times are rounded to the nearest second.
@@ -19,33 +23,28 @@ import java.util.Optional;
 @Component
 public class CrosswordStatsReportBuilder {
 
+    private static final String SEP = "-".repeat(BotText.MAX_LINE_WIDTH);
     private static final DateTimeFormatter DAY_MONTH = DateTimeFormatter.ofPattern("MMM d");
     private static final DateTimeFormatter DAY_MONTH_YEAR = DateTimeFormatter.ofPattern("MMM d, yyyy");
 
     /**
-     * Render the report as a single Discord message (code-block wrapped).
+     * Renders the main stats report: header + per-game summary tables.
+     *
+     * <p>Day-of-week breakdowns are available separately via {@link #renderDowBreakdowns}.
      */
-    public String render(CrosswordStatsReport report) {
+    public String render(CrosswordStatsReport report, String periodLabel) {
         StringBuilder sb = new StringBuilder();
         sb.append(BotText.STATUS_CODE_BLOCK_OPEN);
-
-        String header = String.format(BotText.STATS_REPORT_HEADER,
-                periodLabel(report.filter()), dateRange(report.from(), report.to()));
-        sb.append(header).append("\n");
+        sb.append(" ").append(periodLabel).append(" Stats\n");
+        sb.append(" ").append(dateRange(report.from(), report.to())).append("\n");
+        sb.append("\n");
+        sb.append(SEP).append("\n");
 
         if (report.games().isEmpty()) {
-            sb.append("\n").append(BotText.STATS_EMPTY_PERIOD).append("\n");
+            sb.append(" ").append(BotText.STATS_EMPTY_PERIOD).append("\n");
         } else {
             for (CrosswordStatsReport.GameStats game : report.games()) {
-                sb.append("\n");
-                sb.append(String.format(BotText.STATS_GAME_SECTION_HEADER, gameLabel(game.gameType()))).append("\n");
-                renderPlayers(sb, game.players());
-
-                game.dowBlock().ifPresent(dow -> {
-                    sb.append("\n");
-                    sb.append(String.format(BotText.STATS_DOW_SECTION_HEADER, gameLabel(game.gameType()))).append("\n");
-                    renderDow(sb, dow, report.player1Name(), report.player2Name());
-                });
+                appendGameSummary(sb, game);
             }
         }
 
@@ -53,46 +52,122 @@ public class CrosswordStatsReportBuilder {
         return sb.toString();
     }
 
-    // ── Player rows ───────────────────────────────────────────────────────────
+    /** Fallback overload — uses the custom period label. */
+    public String render(CrosswordStatsReport report) {
+        return render(report, BotText.STATS_PERIOD_LABEL_CUSTOM);
+    }
 
-    private static void renderPlayers(StringBuilder sb,
-                                      List<CrosswordStatsReport.UserGameStats> players) {
-        for (int i = 0; i < players.size(); i++) {
-            CrosswordStatsReport.UserGameStats p = players.get(i);
-            String rank = rankEmoji(i + 1);
+    /**
+     * Returns a list of DOW breakdown messages, one code block per game that has DOW data.
+     * Returns an empty list if no games have DOW data.
+     */
+    public List<String> renderDowBreakdowns(CrosswordStatsReport report) {
+        List<String> result = new ArrayList<>();
+        for (CrosswordStatsReport.GameStats game : report.games()) {
+            game.dowBlock().ifPresent(dow -> {
+                StringBuilder sb = new StringBuilder();
+                sb.append(BotText.STATUS_CODE_BLOCK_OPEN);
+                appendDowTable(sb, gameLabel(game.gameType()), dow,
+                        report.player1Name(), report.player2Name());
+                sb.append(BotText.STATUS_CODE_BLOCK_CLOSE);
+                result.add(sb.toString());
+            });
+        }
+        return result;
+    }
+
+    // ── Per-game summary table ────────────────────────────────────────────────
+
+    private static void appendGameSummary(StringBuilder sb, CrosswordStatsReport.GameStats game) {
+        sb.append(" ").append(gameLabel(game.gameType())).append("\n");
+
+        int nameCol = "Player".length();
+        int winCol  = "Win".length();
+        int avgCol  = "Avg".length();
+        int pbCol   = "PB".length();
+
+        for (CrosswordStatsReport.UserGameStats p : game.players()) {
+            nameCol = Math.max(nameCol, p.playerName().length());
+            winCol  = Math.max(winCol,  String.valueOf(p.wins()).length());
+            if (p.avgSeconds().isPresent()) {
+                avgCol = Math.max(avgCol, formatTime((int) Math.round(p.avgSeconds().getAsDouble())).length());
+            }
+            if (p.bestSeconds().isPresent()) {
+                pbCol = Math.max(pbCol, formatTime(p.bestSeconds().getAsInt()).length());
+            }
+        }
+
+        // Header
+        sb.append(rpad("Player", nameCol)).append(" |")
+          .append(" ").append(rpad("Win", winCol)).append(" |")
+          .append(" ").append(rpad("Avg", avgCol)).append(" |")
+          .append(" PB\n");
+
+        // Separator
+        sb.append("-".repeat(nameCol)).append(BotText.STATUS_COL_SEPARATOR)
+          .append("-".repeat(winCol)).append(BotText.STATUS_COL_SEPARATOR)
+          .append("-".repeat(avgCol)).append(BotText.STATUS_COL_SEPARATOR)
+          .append("-".repeat(pbCol)).append("\n");
+
+        // Data rows
+        for (CrosswordStatsReport.UserGameStats p : game.players()) {
             String avg = p.avgSeconds().isPresent()
-                    ? formatTime((int) Math.round(p.avgSeconds().getAsDouble()))
-                    : "—";
-            String best = p.bestSeconds().isPresent()
-                    ? formatTime(p.bestSeconds().getAsInt()) + bestDateSuffix(p.bestDate())
-                    : "—";
-            sb.append(String.format("  %s %-12s %2dW  avg %s  best %s%n",
-                    rank, p.playerName(), p.wins(), avg, best));
+                    ? formatTime((int) Math.round(p.avgSeconds().getAsDouble())) : "-";
+            String pb  = p.bestSeconds().isPresent()
+                    ? formatTime(p.bestSeconds().getAsInt()) : "-";
+            sb.append(rpad(p.playerName(), nameCol)).append(" |")
+              .append(" ").append(rpad(String.valueOf(p.wins()), winCol)).append(" |")
+              .append(" ").append(rpad(avg, avgCol)).append(" |")
+              .append(" ").append(pb).append("\n");
         }
+
+        sb.append(SEP).append("\n");
     }
 
-    private static String bestDateSuffix(Optional<LocalDate> bestDate) {
-        return bestDate.map(d -> " (" + d.format(DAY_MONTH) + ")").orElse("");
-    }
+    // ── Day-of-week table ─────────────────────────────────────────────────────
 
-    // ── Day-of-week rows ──────────────────────────────────────────────────────
+    private static void appendDowTable(StringBuilder sb, String gameLabel,
+                                        CrosswordStatsReport.DowBlock dow,
+                                        String player1Name, String player2Name) {
+        sb.append(" ").append(gameLabel).append(" DOW\n");
 
-    private static void renderDow(StringBuilder sb, CrosswordStatsReport.DowBlock dow,
-                                   String name1, String name2) {
+        int dayCol   = 3;
+        int cell1Col = player1Name.length();
+        int cell2Col = player2Name.length();
+
         for (CrosswordStatsReport.DowRow row : dow.rows()) {
-            String label = dowLabel(row.dayOfWeek());
-            String cell1 = formatDowCell(row.player1Cell(), name1);
-            String cell2 = formatDowCell(row.player2Cell(), name2);
-            sb.append(String.format("  %s   %s   %s%n", label, cell1, cell2));
+            if (row.player1Cell().isPresent()) {
+                cell1Col = Math.max(cell1Col, formatDowCell(row.player1Cell().get()).length());
+            }
+            if (row.player2Cell().isPresent()) {
+                cell2Col = Math.max(cell2Col, formatDowCell(row.player2Cell().get()).length());
+            }
         }
+
+        // Header
+        sb.append(rpad("Day", dayCol)).append(" |")
+          .append(" ").append(rpad(player1Name, cell1Col)).append(" |")
+          .append(" ").append(player2Name).append("\n");
+
+        // Separator
+        sb.append("-".repeat(dayCol)).append(BotText.STATUS_COL_SEPARATOR)
+          .append("-".repeat(cell1Col)).append(BotText.STATUS_COL_SEPARATOR)
+          .append("-".repeat(cell2Col)).append("\n");
+
+        // Rows
+        for (CrosswordStatsReport.DowRow row : dow.rows()) {
+            String cell1 = row.player1Cell().map(CrosswordStatsReportBuilder::formatDowCell).orElse("-");
+            String cell2 = row.player2Cell().map(CrosswordStatsReportBuilder::formatDowCell).orElse("-");
+            sb.append(rpad(dowLabel(row.dayOfWeek()), dayCol)).append(" |")
+              .append(" ").append(rpad(cell1, cell1Col)).append(" |")
+              .append(" ").append(cell2).append("\n");
+        }
+
+        sb.append(SEP).append("\n");
     }
 
-    private static String formatDowCell(Optional<CrosswordStatsReport.DowCell> cellOpt,
-                                         String playerName) {
-        return cellOpt
-                .map(c -> String.format("%s %s (%d)",
-                        playerName, formatTime((int) Math.round(c.avgSeconds())), c.count()))
-                .orElse(playerName + " —");
+    private static String formatDowCell(CrosswordStatsReport.DowCell cell) {
+        return formatTime((int) Math.round(cell.avgSeconds())) + " (" + cell.count() + ")";
     }
 
     // ── Formatting helpers ────────────────────────────────────────────────────
@@ -115,62 +190,16 @@ public class CrosswordStatsReportBuilder {
         }
         if (from.getYear() == to.getYear()) {
             if (from.getMonth() == to.getMonth()) {
-                // Same month: "Apr 24–30, 2026"
-                return from.format(DAY_MONTH) + "\u2013"
-                        + to.format(DateTimeFormatter.ofPattern("d, yyyy"));
+                return from.format(DAY_MONTH) + "-" + to.format(DateTimeFormatter.ofPattern("d, yyyy"));
             }
-            // Same year, different months: "Apr 24 – May 7, 2026"
-            return from.format(DAY_MONTH) + " \u2013 " + to.format(DAY_MONTH_YEAR);
+            return from.format(DAY_MONTH) + " - " + to.format(DAY_MONTH_YEAR);
         }
-        // Different years
-        return from.format(DAY_MONTH_YEAR) + " \u2013 " + to.format(DAY_MONTH_YEAR);
+        return from.format(DAY_MONTH_YEAR) + " - " + to.format(DAY_MONTH_YEAR);
     }
 
-    private static String periodLabel(GameTypeFilter filter) {
-        return switch (filter) {
-            // The scheduled jobs always use ALL; label is set by the caller at the report level.
-            // For slash-command, the period label is part of the report header constant;
-            // we derive a sensible default from the filter here.
-            default -> BotText.STATS_PERIOD_LABEL_CUSTOM;
-        };
-    }
-
-    // Overload used by callers that know the period label explicitly (e.g. scheduled jobs).
-    public String render(CrosswordStatsReport report, String periodLabel) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(BotText.STATUS_CODE_BLOCK_OPEN);
-
-        String header = String.format(BotText.STATS_REPORT_HEADER,
-                periodLabel, dateRange(report.from(), report.to()));
-        sb.append(header).append("\n");
-
-        if (report.games().isEmpty()) {
-            sb.append("\n").append(BotText.STATS_EMPTY_PERIOD).append("\n");
-        } else {
-            for (CrosswordStatsReport.GameStats game : report.games()) {
-                sb.append("\n");
-                sb.append(String.format(BotText.STATS_GAME_SECTION_HEADER, gameLabel(game.gameType()))).append("\n");
-                renderPlayers(sb, game.players());
-
-                game.dowBlock().ifPresent(dow -> {
-                    sb.append("\n");
-                    sb.append(String.format(BotText.STATS_DOW_SECTION_HEADER, gameLabel(game.gameType()))).append("\n");
-                    renderDow(sb, dow, report.player1Name(), report.player2Name());
-                });
-            }
-        }
-
-        sb.append(BotText.STATUS_CODE_BLOCK_CLOSE);
-        return sb.toString();
-    }
-
-    private static String rankEmoji(int rank) {
-        return switch (rank) {
-            case 1 -> BotText.STATS_RANK_1;
-            case 2 -> BotText.STATS_RANK_2;
-            case 3 -> BotText.STATS_RANK_3;
-            default -> String.valueOf(rank) + ".";
-        };
+    private static String rpad(String s, int target) {
+        int spaces = target - s.length();
+        return spaces > 0 ? s + " ".repeat(spaces) : s;
     }
 
     private static String gameLabel(GameType gameType) {
@@ -184,13 +213,13 @@ public class CrosswordStatsReportBuilder {
 
     private static String dowLabel(DayOfWeek dow) {
         return switch (dow) {
-            case MONDAY -> BotText.STATS_DOW_MON;
-            case TUESDAY -> BotText.STATS_DOW_TUE;
+            case MONDAY    -> BotText.STATS_DOW_MON;
+            case TUESDAY   -> BotText.STATS_DOW_TUE;
             case WEDNESDAY -> BotText.STATS_DOW_WED;
-            case THURSDAY -> BotText.STATS_DOW_THU;
-            case FRIDAY -> BotText.STATS_DOW_FRI;
-            case SATURDAY -> BotText.STATS_DOW_SAT;
-            case SUNDAY -> BotText.STATS_DOW_SUN;
+            case THURSDAY  -> BotText.STATS_DOW_THU;
+            case FRIDAY    -> BotText.STATS_DOW_FRI;
+            case SATURDAY  -> BotText.STATS_DOW_SAT;
+            case SUNDAY    -> BotText.STATS_DOW_SUN;
         };
     }
 }

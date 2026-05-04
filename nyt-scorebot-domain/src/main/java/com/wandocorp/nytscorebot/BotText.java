@@ -141,10 +141,7 @@ public final class BotText {
     public static final String STATS_PERIOD_LABEL_ALL_TIME = "All-Time";
     public static final String STATS_PERIOD_LABEL_CUSTOM   = "Custom";
 
-    // Report header / section headers
-    public static final String STATS_REPORT_HEADER         = "📊 %s Crossword Recap — %s";
-    public static final String STATS_GAME_SECTION_HEADER   = "── %s ──────────────────────────────────";
-    public static final String STATS_DOW_SECTION_HEADER    = "── %s Day-of-Week Avg ──────────────────";
+    // Report empty-period message
     public static final String STATS_EMPTY_PERIOD          = "No crossword results in this window.";
 
     // Day-of-week labels

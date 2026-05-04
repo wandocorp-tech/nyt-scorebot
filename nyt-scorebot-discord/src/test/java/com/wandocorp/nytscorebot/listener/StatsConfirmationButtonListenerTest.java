@@ -199,6 +199,7 @@ class StatsConfirmationButtonListenerTest {
         var fakeReport = mock(com.wandocorp.nytscorebot.service.stats.CrosswordStatsReport.class);
         org.mockito.Mockito.when(stats.compute(any(), any(), any())).thenReturn(fakeReport);
         org.mockito.Mockito.when(builder.render(any(), any())).thenReturn("rendered");
+        org.mockito.Mockito.when(builder.renderDowBreakdowns(any())).thenReturn(java.util.List.of());
         org.mockito.Mockito.when(channel.post(any())).thenReturn(reactor.core.publisher.Mono.empty());
 
         StatsConfirmationButtonListener listener = new StatsConfirmationButtonListener(
@@ -253,6 +254,7 @@ class StatsConfirmationButtonListenerTest {
         org.mockito.Mockito.when(stats.compute(any(), any(), any()))
                 .thenReturn(mock(com.wandocorp.nytscorebot.service.stats.CrosswordStatsReport.class));
         org.mockito.Mockito.when(builder.render(any(), any())).thenReturn("r");
+        org.mockito.Mockito.when(builder.renderDowBreakdowns(any())).thenReturn(java.util.List.of());
         org.mockito.Mockito.when(channel.post(any())).thenReturn(reactor.core.publisher.Mono.empty());
 
         StatsConfirmationButtonListener listener = new StatsConfirmationButtonListener(

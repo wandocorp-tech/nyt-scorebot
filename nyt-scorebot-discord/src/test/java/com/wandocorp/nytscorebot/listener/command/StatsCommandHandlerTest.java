@@ -74,6 +74,7 @@ class StatsCommandHandlerTest {
         when(fakeReport.games()).thenReturn(List.of());
         when(statsService.compute(any(), any(), any())).thenReturn(fakeReport);
         when(reportBuilder.render(any(), any())).thenReturn("rendered report");
+        when(reportBuilder.renderDowBreakdowns(any())).thenReturn(List.of());
         when(statsChannelService.post(any())).thenReturn(Mono.empty());
 
         // VirtualTime scheduler so Mono.delay(15s) never fires in tests

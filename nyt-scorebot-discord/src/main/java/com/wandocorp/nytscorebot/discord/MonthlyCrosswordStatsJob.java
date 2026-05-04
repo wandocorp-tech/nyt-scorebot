@@ -55,8 +55,10 @@ public class MonthlyCrosswordStatsJob {
             LocalDate to = prevMonth.atEndOfMonth();
 
             var report = statsService.compute(GameTypeFilter.ALL, from, to);
-            String content = reportBuilder.render(report, BotText.STATS_PERIOD_LABEL_MONTHLY);
-            statsChannelService.post(content).block();
+            statsChannelService.post(reportBuilder.render(report, BotText.STATS_PERIOD_LABEL_MONTHLY)).block();
+            for (String dow : reportBuilder.renderDowBreakdowns(report)) {
+                statsChannelService.post(dow).block();
+            }
         } catch (Exception e) {
             log.error("Monthly crossword stats job failed", e);
         }

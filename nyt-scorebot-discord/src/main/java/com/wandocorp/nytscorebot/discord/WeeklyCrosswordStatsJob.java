@@ -53,8 +53,10 @@ public class WeeklyCrosswordStatsJob {
             LocalDate to = today.minusDays(1);
 
             var report = statsService.compute(GameTypeFilter.ALL, from, to);
-            String content = reportBuilder.render(report, BotText.STATS_PERIOD_LABEL_WEEKLY);
-            statsChannelService.post(content).block();
+            statsChannelService.post(reportBuilder.render(report, BotText.STATS_PERIOD_LABEL_WEEKLY)).block();
+            for (String dow : reportBuilder.renderDowBreakdowns(report)) {
+                statsChannelService.post(dow).block();
+            }
         } catch (Exception e) {
             log.error("Weekly crossword stats job failed", e);
         }

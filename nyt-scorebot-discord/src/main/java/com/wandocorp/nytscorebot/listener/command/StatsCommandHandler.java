@@ -29,6 +29,7 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -162,14 +163,17 @@ public class StatsCommandHandler implements SlashCommandHandler {
 
         // ── Small window: defer, compute, post ────────────────────────────────
         return event.deferReply().withEphemeral(true)
-                .then(Mono.fromCallable(() -> {
-                    var report = statsService.compute(filter, from, to);
-                    return reportBuilder.render(report, label);
-                }))
-                .flatMap(content -> statsChannelService.post(content)
-                        .thenReturn(content))
-                .flatMap(ignored -> event.editReply(
-                        String.format(BotText.STATS_POSTED, statsChannelId)).then())
+                .then(Mono.fromCallable(() -> statsService.compute(filter, from, to)))
+                .flatMap(report -> {
+                    String mainContent = reportBuilder.render(report, label);
+                    List<String> dowBreakdowns = reportBuilder.renderDowBreakdowns(report);
+                    Mono<Void> postAll = statsChannelService.post(mainContent);
+                    for (String dow : dowBreakdowns) {
+                        postAll = postAll.then(statsChannelService.post(dow));
+                    }
+                    return postAll;
+                })
+                .then(event.editReply(String.format(BotText.STATS_POSTED, statsChannelId)).then())
                 .onErrorResume(StatsWindowBeforeAnchorException.class, ex ->
                         event.editReply(String.format(
                                 BotText.STATS_ERR_WINDOW_BEFORE_ANCHOR, ex.getAnchor())).then())
