@@ -38,13 +38,14 @@ public class CrosswordStatsReportBuilder {
         sb.append(" ").append(periodLabel).append(" Stats\n");
         sb.append(" ").append(dateRange(report.from(), report.to())).append("\n");
         sb.append("\n");
-        sb.append(SEP).append("\n");
-
         if (report.games().isEmpty()) {
+            sb.append(SEP).append("\n");
             sb.append(" ").append(BotText.STATS_EMPTY_PERIOD).append("\n");
         } else {
-            for (CrosswordStatsReport.GameStats game : report.games()) {
-                appendGameSummary(sb, game);
+            List<CrosswordStatsReport.GameStats> games = report.games();
+            for (int i = 0; i < games.size(); i++) {
+                if (i > 0) sb.append("\n");
+                appendGameSummary(sb, games.get(i));
             }
         }
 
@@ -80,11 +81,12 @@ public class CrosswordStatsReportBuilder {
 
     private static void appendGameSummary(StringBuilder sb, CrosswordStatsReport.GameStats game) {
         sb.append(" ").append(gameLabel(game.gameType())).append("\n");
+        sb.append(SEP).append("\n");
 
         int nameCol = "Player".length();
         int winCol  = "Win".length();
         int avgCol  = "Avg".length();
-        int pbCol   = "PB".length();
+        int bestCol = "Best".length();
 
         for (CrosswordStatsReport.UserGameStats p : game.players()) {
             nameCol = Math.max(nameCol, p.playerName().length());
@@ -93,7 +95,7 @@ public class CrosswordStatsReportBuilder {
                 avgCol = Math.max(avgCol, formatTime((int) Math.round(p.avgSeconds().getAsDouble())).length());
             }
             if (p.bestSeconds().isPresent()) {
-                pbCol = Math.max(pbCol, formatTime(p.bestSeconds().getAsInt()).length());
+                bestCol = Math.max(bestCol, formatTime(p.bestSeconds().getAsInt()).length());
             }
         }
 
@@ -101,27 +103,25 @@ public class CrosswordStatsReportBuilder {
         sb.append(rpad("Player", nameCol)).append(" |")
           .append(" ").append(rpad("Win", winCol)).append(" |")
           .append(" ").append(rpad("Avg", avgCol)).append(" |")
-          .append(" PB\n");
+          .append(" Best\n");
 
         // Separator
         sb.append("-".repeat(nameCol)).append(BotText.STATUS_COL_SEPARATOR)
           .append("-".repeat(winCol)).append(BotText.STATUS_COL_SEPARATOR)
           .append("-".repeat(avgCol)).append(BotText.STATUS_COL_SEPARATOR)
-          .append("-".repeat(pbCol)).append("\n");
+          .append("-".repeat(bestCol)).append("\n");
 
         // Data rows
         for (CrosswordStatsReport.UserGameStats p : game.players()) {
-            String avg = p.avgSeconds().isPresent()
+            String avg  = p.avgSeconds().isPresent()
                     ? formatTime((int) Math.round(p.avgSeconds().getAsDouble())) : "-";
-            String pb  = p.bestSeconds().isPresent()
+            String best = p.bestSeconds().isPresent()
                     ? formatTime(p.bestSeconds().getAsInt()) : "-";
             sb.append(rpad(p.playerName(), nameCol)).append(" |")
               .append(" ").append(rpad(String.valueOf(p.wins()), winCol)).append(" |")
               .append(" ").append(rpad(avg, avgCol)).append(" |")
-              .append(" ").append(pb).append("\n");
+              .append(" ").append(best).append("\n");
         }
-
-        sb.append(SEP).append("\n");
     }
 
     // ── Day-of-week table ─────────────────────────────────────────────────────
