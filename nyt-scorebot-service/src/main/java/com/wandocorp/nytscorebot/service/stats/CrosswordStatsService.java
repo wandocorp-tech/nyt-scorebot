@@ -104,6 +104,7 @@ public class CrosswordStatsService {
             long[] totalSec1 = {0}, totalSec2 = {0};
             int[] bestSec1 = {Integer.MAX_VALUE}, bestSec2 = {Integer.MAX_VALUE};
             LocalDate[] bestDate1 = {null}, bestDate2 = {null};
+            int[] excluded1 = {0}, excluded2 = {0};
 
             // DoW accumulators for Main (keyed by DayOfWeek)
             Map<DayOfWeek, long[]> dowTotal1 = new EnumMap<>(DayOfWeek.class);
@@ -121,32 +122,40 @@ public class CrosswordStatsService {
                 // Time stats
                 if (has1) {
                     CrosswordResult r1 = getResult(gameType, sb1);
-                    int sec1 = r1.getTotalSeconds();
-                    played1[0]++;
-                    totalSec1[0] += sec1;
-                    if (sec1 < bestSec1[0]) {
-                        bestSec1[0] = sec1;
-                        bestDate1[0] = date;
-                    }
-                    if (includeDow && gameType == GameType.MAIN_CROSSWORD) {
-                        DayOfWeek dow = date.getDayOfWeek();
-                        dowTotal1.computeIfAbsent(dow, k -> new long[]{0})[0] += sec1;
-                        dowCount1.computeIfAbsent(dow, k -> new int[]{0})[0]++;
+                    if (gameType == GameType.MAIN_CROSSWORD && ((MainCrosswordResult) r1).isAssisted()) {
+                        excluded1[0]++;
+                    } else {
+                        int sec1 = r1.getTotalSeconds();
+                        played1[0]++;
+                        totalSec1[0] += sec1;
+                        if (sec1 < bestSec1[0]) {
+                            bestSec1[0] = sec1;
+                            bestDate1[0] = date;
+                        }
+                        if (includeDow && gameType == GameType.MAIN_CROSSWORD) {
+                            DayOfWeek dow = date.getDayOfWeek();
+                            dowTotal1.computeIfAbsent(dow, k -> new long[]{0})[0] += sec1;
+                            dowCount1.computeIfAbsent(dow, k -> new int[]{0})[0]++;
+                        }
                     }
                 }
                 if (has2) {
                     CrosswordResult r2 = getResult(gameType, sb2);
-                    int sec2 = r2.getTotalSeconds();
-                    played2[0]++;
-                    totalSec2[0] += sec2;
-                    if (sec2 < bestSec2[0]) {
-                        bestSec2[0] = sec2;
-                        bestDate2[0] = date;
-                    }
-                    if (includeDow && gameType == GameType.MAIN_CROSSWORD) {
-                        DayOfWeek dow = date.getDayOfWeek();
-                        dowTotal2.computeIfAbsent(dow, k -> new long[]{0})[0] += sec2;
-                        dowCount2.computeIfAbsent(dow, k -> new int[]{0})[0]++;
+                    if (gameType == GameType.MAIN_CROSSWORD && ((MainCrosswordResult) r2).isAssisted()) {
+                        excluded2[0]++;
+                    } else {
+                        int sec2 = r2.getTotalSeconds();
+                        played2[0]++;
+                        totalSec2[0] += sec2;
+                        if (sec2 < bestSec2[0]) {
+                            bestSec2[0] = sec2;
+                            bestDate2[0] = date;
+                        }
+                        if (includeDow && gameType == GameType.MAIN_CROSSWORD) {
+                            DayOfWeek dow = date.getDayOfWeek();
+                            dowTotal2.computeIfAbsent(dow, k -> new long[]{0})[0] += sec2;
+                            dowCount2.computeIfAbsent(dow, k -> new int[]{0})[0]++;
+                        }
                     }
                 }
 
@@ -172,9 +181,9 @@ public class CrosswordStatsService {
             }
 
             CrosswordStatsReport.UserGameStats stats1 = buildUserStats(
-                    name1, wins1[0], played1[0], totalSec1[0], bestSec1[0], bestDate1[0]);
+                    name1, wins1[0], played1[0], totalSec1[0], bestSec1[0], bestDate1[0], excluded1[0]);
             CrosswordStatsReport.UserGameStats stats2 = buildUserStats(
-                    name2, wins2[0], played2[0], totalSec2[0], bestSec2[0], bestDate2[0]);
+                    name2, wins2[0], played2[0], totalSec2[0], bestSec2[0], bestDate2[0], excluded2[0]);
 
             List<CrosswordStatsReport.UserGameStats> sorted = rankPlayers(stats1, stats2);
 
@@ -237,11 +246,12 @@ public class CrosswordStatsService {
     }
 
     private static CrosswordStatsReport.UserGameStats buildUserStats(
-            String name, int wins, int played, long totalSec, int bestSec, LocalDate bestDate) {
+            String name, int wins, int played, long totalSec, int bestSec, LocalDate bestDate,
+            int excludedAssistedCount) {
         OptionalDouble avg = played > 0 ? OptionalDouble.of((double) totalSec / played) : OptionalDouble.empty();
         OptionalInt best = bestSec < Integer.MAX_VALUE ? OptionalInt.of(bestSec) : OptionalInt.empty();
         return new CrosswordStatsReport.UserGameStats(
-                name, wins, played, avg, best, Optional.ofNullable(bestDate));
+                name, wins, played, avg, best, Optional.ofNullable(bestDate), excludedAssistedCount);
     }
 
     /** Sort by wins descending; break ties by best time ascending (lower is better). */

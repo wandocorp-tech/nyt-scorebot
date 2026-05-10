@@ -8,6 +8,7 @@ import com.wandocorp.nytscorebot.entity.User;
 import com.wandocorp.nytscorebot.model.MainCrosswordResult;
 import com.wandocorp.nytscorebot.model.MidiCrosswordResult;
 import com.wandocorp.nytscorebot.model.MiniCrosswordResult;
+import com.wandocorp.nytscorebot.repository.PersonalBestRepository;
 import com.wandocorp.nytscorebot.repository.ScoreboardRepository;
 import com.wandocorp.nytscorebot.repository.UserRepository;
 import com.wandocorp.nytscorebot.service.PuzzleCalendar;
@@ -72,6 +73,8 @@ class EndToEndTest {
     @Autowired private GatewayDiscordClient client;
     @Autowired private UserRepository userRepository;
     @Autowired private ScoreboardRepository scoreboardRepository;
+    @Autowired private PersonalBestRepository personalBestRepository;
+    @Autowired private PersonalBestBackfillRunner personalBestBackfillRunner;
     @Autowired private PuzzleCalendar puzzleCalendar;
     @Autowired private StatusChannelService statusChannelService;
     @Autowired private ResultsChannelService resultsChannelService;
@@ -94,6 +97,7 @@ class EndToEndTest {
         clearChannel(Snowflake.of(statusChannelId));
         clearChannel(Snowflake.of(resultsChannelId));
         scoreboardRepository.deleteAll();
+        personalBestRepository.deleteAll();
         userRepository.deleteAll();
 
         // ── Build message strings using today's puzzle numbers ───────────────
@@ -233,6 +237,14 @@ class EndToEndTest {
         Scoreboard conorAfterFlag = scoreboardRepository.findByUserAndDate(conor, today).orElseThrow();
         assertThat(conorAfterFlag.getMainCrosswordResult().getCheckUsed()).isTrue();
 
+        // ── Phase 3c: Seed 30 days of historical data + backfill PBs ─────────
+        // Both users now exist. Seed before the first scoreboard render so that the
+        // Δ avg / PB rows are populated when resultsChannelService.refresh() runs.
+
+        seedHistoricalCrosswordData(william, conor, today);
+        personalBestBackfillRunner.run(null);
+        Thread.sleep(1000);
+
         // ── Phase 4: Mark Conor finished → both finished → scoreboards ──────
 
         Scoreboard conorBoard = scoreboardRepository.findByUserAndDate(conor, today).orElseThrow();
@@ -263,12 +275,8 @@ class EndToEndTest {
         scoreboardRenderer.renderAll(williamBoard, "William", conorBoardPhase5, "Conor", null)
                 .forEach(this::logScoreboard);
 
-        // ── Phase 6: Insert historical data and invoke /stats for week + month ─
-
-        // Seed 30 days of Mini, Midi, and Main results for both players
-        // (excludes today so they fall entirely in the "yesterday and earlier" window)
-        seedHistoricalCrosswordData(william, conor, today);
-        Thread.sleep(1000);
+        // ── Phase 6: Invoke /stats for week + month ─────────────────────────
+        // Historical data and PBs were seeded in Phase 3c above.
 
         // ── Phase 6a: /stats game:all period:week ────────────────────────────
         clearChannel(Snowflake.of(statsChannelId));

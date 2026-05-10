@@ -57,4 +57,11 @@ public class MidiCrosswordScoreboard implements GameComparisonScoreboard {
     @Override public int baseGap() { return 0; }
     @Override public int maxEmojisPerRow() { return 0; }
     @Override public boolean usesScoreLabelRow() { return true; }
+    @Override public boolean isCrossword() { return true; }
+    @Override
+    public java.util.OptionalInt todaySeconds(Scoreboard scoreboard) {
+        if (!hasResult(scoreboard)) return java.util.OptionalInt.empty();
+        Integer s = scoreboard.getMidiCrosswordResult().getTotalSeconds();
+        return s == null ? java.util.OptionalInt.empty() : java.util.OptionalInt.of(s);
+    }
 }

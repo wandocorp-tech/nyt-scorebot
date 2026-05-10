@@ -34,6 +34,16 @@ public class MainCrosswordResult extends CrosswordResult {
         return GameType.MAIN_CROSSWORD;
     }
 
+    /**
+     * A result is "assisted" when any of duo, lookups, or check was used.
+     * Centralised here so all consumers (stats, personal-best, avg queries) agree.
+     */
+    public boolean isAssisted() {
+        return Boolean.TRUE.equals(duo)
+                || Boolean.TRUE.equals(checkUsed)
+                || (lookups != null && lookups > 0);
+    }
+
     @Override
     public String gameLabel() {
         return BotText.GAME_LABEL_MAIN;

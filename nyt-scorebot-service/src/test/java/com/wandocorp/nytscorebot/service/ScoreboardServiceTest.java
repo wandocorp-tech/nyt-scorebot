@@ -62,7 +62,9 @@ class ScoreboardServiceTest {
         when(scoreboardRepo.findByUserAndDate(user, TODAY)).thenReturn(Optional.of(scoreboard));
         when(scoreboardRepo.save(any(Scoreboard.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        service = new ScoreboardService(userRepo, scoreboardRepo, calendar, streakService);
+        service = new ScoreboardService(userRepo, scoreboardRepo, calendar, streakService,
+                Mockito.mock(PersonalBestService.class),
+                Mockito.mock(com.wandocorp.nytscorebot.repository.PersonalBestRepository.class));
     }
 
     // ── Puzzle number validation ─────────────────────────────────────────────
@@ -72,7 +74,7 @@ class ScoreboardServiceTest {
         int expected = calendar.expectedWordle();
         WordleResult result = new WordleResult("raw", PERSON, null, expected, 3, true, false);
 
-        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result)).isEqualTo(SaveOutcome.SAVED);
+        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result).outcome()).isEqualTo(SaveOutcome.SAVED);
         verify(scoreboardRepo).save(any(Scoreboard.class));
     }
 
@@ -80,7 +82,7 @@ class ScoreboardServiceTest {
     void wordleWithWrongPuzzleNumberIsRejected() {
         WordleResult result = new WordleResult("raw", PERSON, null, 1, 3, true, false);
 
-        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result)).isEqualTo(SaveOutcome.WRONG_PUZZLE_NUMBER);
+        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result).outcome()).isEqualTo(SaveOutcome.WRONG_PUZZLE_NUMBER);
         verify(scoreboardRepo, never()).save(any(Scoreboard.class));
     }
 
@@ -88,7 +90,7 @@ class ScoreboardServiceTest {
     void connectionsWithWrongPuzzleNumberIsRejected() {
         ConnectionsResult result = new ConnectionsResult("raw", PERSON, null, 1, 0, true, List.of());
 
-        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result)).isEqualTo(SaveOutcome.WRONG_PUZZLE_NUMBER);
+        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result).outcome()).isEqualTo(SaveOutcome.WRONG_PUZZLE_NUMBER);
         verify(scoreboardRepo, never()).save(any(Scoreboard.class));
     }
 
@@ -96,7 +98,7 @@ class ScoreboardServiceTest {
     void strandsWithWrongPuzzleNumberIsRejected() {
         StrandsResult result = new StrandsResult("raw", PERSON, null, 1, 0);
 
-        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result)).isEqualTo(SaveOutcome.WRONG_PUZZLE_NUMBER);
+        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result).outcome()).isEqualTo(SaveOutcome.WRONG_PUZZLE_NUMBER);
         verify(scoreboardRepo, never()).save(any(Scoreboard.class));
     }
 
@@ -107,7 +109,7 @@ class ScoreboardServiceTest {
         MainCrosswordResult result = new MainCrosswordResult("raw", PERSON, null,
                 "5:00", 300, TODAY);
 
-        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result)).isEqualTo(SaveOutcome.SAVED);
+        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result).outcome()).isEqualTo(SaveOutcome.SAVED);
     }
 
     @Test
@@ -119,7 +121,7 @@ class ScoreboardServiceTest {
         MainCrosswordResult result = new MainCrosswordResult("raw", PERSON, null,
                 "5:00", 300, yesterday);
 
-        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result)).isEqualTo(SaveOutcome.SAVED);
+        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result).outcome()).isEqualTo(SaveOutcome.SAVED);
         verify(scoreboardRepo).save(any(Scoreboard.class));
     }
 
@@ -132,7 +134,7 @@ class ScoreboardServiceTest {
         scoreboard.addResult(first);
 
         WordleResult second = new WordleResult("raw2", PERSON, null, expected, 4, true, false);
-        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, second)).isEqualTo(SaveOutcome.ALREADY_SUBMITTED);
+        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, second).outcome()).isEqualTo(SaveOutcome.ALREADY_SUBMITTED);
     }
 
     @Test
@@ -143,19 +145,19 @@ class ScoreboardServiceTest {
 
         MiniCrosswordResult second = new MiniCrosswordResult("raw2", PERSON, null,
                 "0:25", 25, TODAY);
-        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, second)).isEqualTo(SaveOutcome.ALREADY_SUBMITTED);
+        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, second).outcome()).isEqualTo(SaveOutcome.ALREADY_SUBMITTED);
     }
 
     @Test
     void differentGameTypesCanBothBeSaved() {
         int expectedWordle = calendar.expectedWordle();
         WordleResult wordle = new WordleResult("raw", PERSON, null, expectedWordle, 3, true, false);
-        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, wordle)).isEqualTo(SaveOutcome.SAVED);
+        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, wordle).outcome()).isEqualTo(SaveOutcome.SAVED);
 
         int expectedConnections = calendar.expectedConnections();
         ConnectionsResult connections = new ConnectionsResult("raw", PERSON, null,
                 expectedConnections, 0, true, List.of("🟩", "🟨", "🟦", "🟪"));
-        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, connections)).isEqualTo(SaveOutcome.SAVED);
+        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, connections).outcome()).isEqualTo(SaveOutcome.SAVED);
     }
 
     // ── applyResult branches ─────────────────────────────────────────────────
@@ -165,7 +167,7 @@ class ScoreboardServiceTest {
         int expected = calendar.expectedStrands();
         StrandsResult result = new StrandsResult("raw", PERSON, null, expected, 0);
 
-        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result)).isEqualTo(SaveOutcome.SAVED);
+        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result).outcome()).isEqualTo(SaveOutcome.SAVED);
         verify(scoreboardRepo).save(any(Scoreboard.class));
     }
 
@@ -174,7 +176,7 @@ class ScoreboardServiceTest {
         MidiCrosswordResult result = new MidiCrosswordResult("raw", PERSON, null,
                 "3:00", 180, TODAY);
 
-        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result)).isEqualTo(SaveOutcome.SAVED);
+        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result).outcome()).isEqualTo(SaveOutcome.SAVED);
     }
 
     @Test
@@ -182,7 +184,7 @@ class ScoreboardServiceTest {
         MiniCrosswordResult result = new MiniCrosswordResult("raw", PERSON, null,
                 "0:30", 30, TODAY);
 
-        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result)).isEqualTo(SaveOutcome.SAVED);
+        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result).outcome()).isEqualTo(SaveOutcome.SAVED);
     }
 
     @Test
@@ -191,7 +193,7 @@ class ScoreboardServiceTest {
         MiniCrosswordResult result = new MiniCrosswordResult("raw", PERSON, null,
                 "0:30", 30, null);
 
-        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result)).isEqualTo(SaveOutcome.SAVED);
+        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result).outcome()).isEqualTo(SaveOutcome.SAVED);
     }
 
     // ── Entity creation paths ────────────────────────────────────────────────
@@ -205,7 +207,7 @@ class ScoreboardServiceTest {
         int expected = calendar.expectedWordle();
         WordleResult result = new WordleResult("raw", PERSON, null, expected, 3, true, false);
 
-        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result)).isEqualTo(SaveOutcome.SAVED);
+        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result).outcome()).isEqualTo(SaveOutcome.SAVED);
         verify(userRepo).save(any(User.class));
     }
 
@@ -218,7 +220,7 @@ class ScoreboardServiceTest {
         WordleResult result = new WordleResult("raw", PERSON, null, expected, 3, true, false);
 
         // First save creates the scoreboard, second save persists the result
-        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result)).isEqualTo(SaveOutcome.SAVED);
+        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result).outcome()).isEqualTo(SaveOutcome.SAVED);
         verify(scoreboardRepo, times(2)).save(any(Scoreboard.class));
     }
 
@@ -289,6 +291,43 @@ class ScoreboardServiceTest {
         assertThat(scoreboard.isFinished()).isTrue();
     }
 
+    // ── PB recompute integration ─────────────────────────────────────────────
+
+    @Test
+    void recomputeInvokedOnceForMiniMidiMainAndSkippedForEmojiGames() {
+        PersonalBestService pbs = Mockito.mock(PersonalBestService.class);
+        when(pbs.recompute(any(), any(), any(), Mockito.anyInt(), Mockito.anyBoolean()))
+                .thenReturn(PbUpdateOutcome.NO_CHANGE);
+        ScoreboardService svc = new ScoreboardService(userRepo, scoreboardRepo, calendar, streakService, pbs,
+                Mockito.mock(com.wandocorp.nytscorebot.repository.PersonalBestRepository.class));
+
+        int expectedWordle = calendar.expectedWordle();
+        WordleResult wordle = new WordleResult("raw", PERSON, null, expectedWordle, 3, true, false);
+        MiniCrosswordResult mini = new MiniCrosswordResult("raw", PERSON, null, "1:23", 83, TODAY);
+        MidiCrosswordResult midi = new MidiCrosswordResult("raw", PERSON, null, "3:45", 225, TODAY);
+        MainCrosswordResult mainClean = new MainCrosswordResult("raw", PERSON, null, "15:00", 900, TODAY);
+        MainCrosswordResult mainAssisted = new MainCrosswordResult("raw", PERSON, null, "15:00", 900, TODAY);
+        mainAssisted.setDuo(true);
+
+        svc.saveResult(CHANNEL, PERSON, USER_ID, wordle);
+        svc.saveResult(CHANNEL, PERSON, USER_ID, mini);
+        svc.saveResult(CHANNEL, PERSON, USER_ID, midi);
+        // Reset scoreboard for second main save so we don't hit ALREADY_SUBMITTED
+        scoreboard = new Scoreboard(user, TODAY);
+        when(scoreboardRepo.findByUserAndDate(user, TODAY)).thenReturn(Optional.of(scoreboard));
+        svc.saveResult(CHANNEL, PERSON, USER_ID, mainClean);
+        scoreboard = new Scoreboard(user, TODAY);
+        when(scoreboardRepo.findByUserAndDate(user, TODAY)).thenReturn(Optional.of(scoreboard));
+        svc.saveResult(CHANNEL, PERSON, USER_ID, mainAssisted);
+
+        verify(pbs, never()).recompute(any(), eq(com.wandocorp.nytscorebot.model.GameType.WORDLE), any(), Mockito.anyInt(), Mockito.anyBoolean());
+        verify(pbs).recompute(eq(user), eq(com.wandocorp.nytscorebot.model.GameType.MINI_CROSSWORD), eq(TODAY), eq(83), eq(true));
+        verify(pbs).recompute(eq(user), eq(com.wandocorp.nytscorebot.model.GameType.MIDI_CROSSWORD), eq(TODAY), eq(225), eq(true));
+        // Main: clean=true once; assisted recompute also happens but with isClean=false
+        verify(pbs).recompute(eq(user), eq(com.wandocorp.nytscorebot.model.GameType.MAIN_CROSSWORD), eq(TODAY), eq(900), eq(true));
+        verify(pbs).recompute(eq(user), eq(com.wandocorp.nytscorebot.model.GameType.MAIN_CROSSWORD), eq(TODAY), eq(900), eq(false));
+    }
+
     // ── Finished lock ────────────────────────────────────────────────────────
 
     @Test
@@ -297,7 +336,7 @@ class ScoreboardServiceTest {
         int expected = calendar.expectedWordle();
         WordleResult result = new WordleResult("raw", PERSON, null, expected, 3, true, false);
 
-        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result)).isEqualTo(SaveOutcome.ALREADY_FINISHED);
+        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result).outcome()).isEqualTo(SaveOutcome.ALREADY_FINISHED);
         verify(scoreboardRepo, never()).save(any(Scoreboard.class));
     }
 
@@ -307,7 +346,7 @@ class ScoreboardServiceTest {
     void mainCrosswordIsStoredAsMainCrosswordResult() {
         MainCrosswordResult result = new MainCrosswordResult("raw", PERSON, null,
                 "15:00", 900, TODAY);
-        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result)).isEqualTo(SaveOutcome.SAVED);
+        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result).outcome()).isEqualTo(SaveOutcome.SAVED);
         assertThat(scoreboard.getMainCrosswordResult()).isInstanceOf(MainCrosswordResult.class);
         assertThat(scoreboard.getMainCrosswordResult().getDuo()).isNull();
     }
@@ -403,7 +442,7 @@ class ScoreboardServiceTest {
         int expected = calendar.expectedWordle();
         WordleResult result = new WordleResult("raw", PERSON, null, expected, 3, true, false);
 
-        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result)).isEqualTo(SaveOutcome.SAVED);
+        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result).outcome()).isEqualTo(SaveOutcome.SAVED);
         verify(streakService).updateStreak(eq(user), eq(result));
     }
 
@@ -414,7 +453,7 @@ class ScoreboardServiceTest {
         scoreboard.addResult(first);
 
         WordleResult second = new WordleResult("raw2", PERSON, null, expected, 4, true, false);
-        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, second)).isEqualTo(SaveOutcome.ALREADY_SUBMITTED);
+        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, second).outcome()).isEqualTo(SaveOutcome.ALREADY_SUBMITTED);
         verify(streakService, never()).updateStreak(any(), any());
     }
 
@@ -422,7 +461,7 @@ class ScoreboardServiceTest {
     void streakNotUpdatedOnWrongPuzzleNumber() {
         WordleResult result = new WordleResult("raw", PERSON, null, 1, 3, true, false);
 
-        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result)).isEqualTo(SaveOutcome.WRONG_PUZZLE_NUMBER);
+        assertThat(service.saveResult(CHANNEL, PERSON, USER_ID, result).outcome()).isEqualTo(SaveOutcome.WRONG_PUZZLE_NUMBER);
         verify(streakService, never()).updateStreak(any(), any());
     }
 

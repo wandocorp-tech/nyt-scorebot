@@ -77,7 +77,8 @@ public class ResultsChannelService {
         // Recompute crossword win streaks before rendering so the summary reflects today.
         crosswordWinStreakService.updateAll(ctx.sb1, ctx.name1, ctx.sb2, ctx.name2, puzzleCalendar.today());
 
-        Map<String, String> rendered = scoreboardRenderer.renderAll(ctx.sb1, ctx.name1, ctx.sb2, ctx.name2, ctx.streaks);
+        var pbLookup = scoreboardService.buildCrosswordPbLookup(ctx.name1, ctx.name2, puzzleCalendar.today());
+        Map<String, String> rendered = scoreboardRenderer.renderAll(ctx.sb1, ctx.name1, ctx.sb2, ctx.name2, ctx.streaks, pbLookup);
 
         for (Map.Entry<String, String> entry : rendered.entrySet()) {
             writeSlot(ctx.channelSnowflake, entry.getKey(), entry.getValue());
@@ -98,7 +99,8 @@ public class ResultsChannelService {
 
         crosswordWinStreakService.updateAll(ctx.sb1, ctx.name1, ctx.sb2, ctx.name2, date);
 
-        Map<String, String> rendered = scoreboardRenderer.renderAll(ctx.sb1, ctx.name1, ctx.sb2, ctx.name2, ctx.streaks);
+        var pbLookup = scoreboardService.buildCrosswordPbLookup(ctx.name1, ctx.name2, date);
+        Map<String, String> rendered = scoreboardRenderer.renderAll(ctx.sb1, ctx.name1, ctx.sb2, ctx.name2, ctx.streaks, pbLookup);
         for (Map.Entry<String, String> entry : rendered.entrySet()) {
             writeSlot(ctx.channelSnowflake, entry.getKey(), entry.getValue());
         }
@@ -121,7 +123,8 @@ public class ResultsChannelService {
                     puzzleCalendar.today());
         }
 
-        scoreboardRenderer.renderByGameType(gameType, ctx.sb1, ctx.name1, ctx.sb2, ctx.name2, ctx.streaks)
+        var pbLookup = scoreboardService.buildCrosswordPbLookup(ctx.name1, ctx.name2, puzzleCalendar.today());
+        scoreboardRenderer.renderByGameType(gameType, ctx.sb1, ctx.name1, ctx.sb2, ctx.name2, ctx.streaks, pbLookup)
                 .ifPresent(content -> writeSlot(ctx.channelSnowflake, gameType, content));
 
         if (crossword != null) {

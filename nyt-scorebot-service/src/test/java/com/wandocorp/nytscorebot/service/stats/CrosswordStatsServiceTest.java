@@ -241,6 +241,60 @@ class CrosswordStatsServiceTest {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
+    @Test
+    void assistedMainExcludedFromAvgAndBest() {
+        LocalDate d1 = LocalDate.of(2025, 1, 6);  // Mon
+        LocalDate d2 = LocalDate.of(2025, 1, 7);  // Tue
+        LocalDate d3 = LocalDate.of(2025, 1, 8);  // Wed
+        // Alice: clean 600, assisted 300 (should be excluded), clean 900 → avg=750, best=600
+        Scoreboard sa1 = scoreboardWithMain(alice, d1, 600, false);
+        Scoreboard sa2 = scoreboardWithMainAssisted(alice, d2, 300);
+        Scoreboard sa3 = scoreboardWithMain(alice, d3, 900, false);
+        when(scoreboardRepository.findAllByDateBetweenWithUser(any(), any()))
+                .thenReturn(List.of(sa1, sa2, sa3));
+
+        CrosswordStatsReport report = service.compute(GameTypeFilter.MAIN, d1, d3);
+
+        CrosswordStatsReport.GameStats game = findGame(report, GameType.MAIN_CROSSWORD);
+        CrosswordStatsReport.UserGameStats aliceStats = findPlayer(game, "Alice");
+        assertThat(aliceStats.gamesPlayed()).isEqualTo(2);
+        assertThat(aliceStats.avgSeconds()).hasValue(750.0);
+        assertThat(aliceStats.bestSeconds()).hasValue(600);
+        assertThat(aliceStats.excludedAssistedCount()).isEqualTo(1);
+    }
+
+    @Test
+    void assistedMainStillCountsAsForfeitWin() {
+        LocalDate day = LocalDate.of(2025, 1, 6);
+        // Only Alice submitted, with an assisted result — forfeit win still applies.
+        Scoreboard sa = scoreboardWithMainAssisted(alice, day, 600);
+        when(scoreboardRepository.findAllByDateBetweenWithUser(day, day))
+                .thenReturn(List.of(sa));
+
+        CrosswordStatsReport report = service.compute(GameTypeFilter.MAIN, day, day);
+
+        CrosswordStatsReport.GameStats game = findGame(report, GameType.MAIN_CROSSWORD);
+        CrosswordStatsReport.UserGameStats aliceStats = findPlayer(game, "Alice");
+        assertThat(aliceStats.wins()).isEqualTo(1);
+        assertThat(aliceStats.gamesPlayed()).isEqualTo(0);
+        assertThat(aliceStats.excludedAssistedCount()).isEqualTo(1);
+    }
+
+    @Test
+    void miniUnaffectedByAssistedExclusion() {
+        LocalDate day = LocalDate.of(2025, 1, 6);
+        Scoreboard sa = scoreboardWithMini(alice, day, 30);
+        when(scoreboardRepository.findAllByDateBetweenWithUser(day, day))
+                .thenReturn(List.of(sa));
+
+        CrosswordStatsReport report = service.compute(GameTypeFilter.MINI, day, day);
+
+        CrosswordStatsReport.GameStats game = findGame(report, GameType.MINI_CROSSWORD);
+        CrosswordStatsReport.UserGameStats aliceStats = findPlayer(game, "Alice");
+        assertThat(aliceStats.excludedAssistedCount()).isZero();
+        assertThat(aliceStats.gamesPlayed()).isEqualTo(1);
+    }
+
     private static Scoreboard scoreboardWithMini(User user, LocalDate date, int seconds) {
         Scoreboard sb = new Scoreboard(user, date);
         sb.addResult(new MiniCrosswordResult("raw", user.getDiscordUserId(), null,
@@ -253,6 +307,15 @@ class CrosswordStatsServiceTest {
         MainCrosswordResult result = new MainCrosswordResult("raw", user.getDiscordUserId(), null,
                 formatSeconds(seconds), seconds, date);
         result.setDuo(duo);
+        sb.addResult(result);
+        return sb;
+    }
+
+    private static Scoreboard scoreboardWithMainAssisted(User user, LocalDate date, int seconds) {
+        Scoreboard sb = new Scoreboard(user, date);
+        MainCrosswordResult result = new MainCrosswordResult("raw", user.getDiscordUserId(), null,
+                formatSeconds(seconds), seconds, date);
+        result.setLookups(2);  // marks isAssisted() == true
         sb.addResult(result);
         return sb;
     }

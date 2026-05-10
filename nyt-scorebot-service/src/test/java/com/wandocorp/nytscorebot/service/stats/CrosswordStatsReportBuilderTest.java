@@ -194,6 +194,82 @@ class CrosswordStatsReportBuilderTest {
         assertThat(result).contains(BotText.STATS_PERIOD_LABEL_CUSTOM);
     }
 
+    // ── Assisted-excluded footnote (Group 9.6) ────────────────────────────────
+
+    @Test
+    void mainRendersAssistedExcludedFootnote() {
+        CrosswordStatsReport.UserGameStats alice = new CrosswordStatsReport.UserGameStats(
+                "Alice", 5, 10,
+                OptionalDouble.of(600.0), OptionalInt.of(480),
+                Optional.of(LocalDate.of(2025, 1, 6)), 2);
+        CrosswordStatsReport.UserGameStats bob = new CrosswordStatsReport.UserGameStats(
+                "Bob", 3, 8,
+                OptionalDouble.of(720.0), OptionalInt.of(600),
+                Optional.of(LocalDate.of(2025, 1, 7)), 0);
+        CrosswordStatsReport.GameStats game = new CrosswordStatsReport.GameStats(
+                GameType.MAIN_CROSSWORD, List.of(alice, bob), Optional.empty());
+        CrosswordStatsReport report = new CrosswordStatsReport(
+                GameTypeFilter.MAIN, LocalDate.of(2025, 1, 1), LocalDate.of(2025, 1, 31),
+                "Alice", "Bob", List.of(game));
+
+        String result = builder.render(report, "Monthly");
+
+        assertThat(result).contains(String.format(BotText.STATS_FOOTNOTE_ASSISTED_EXCLUDED, 2));
+        // Bob has 0 — no footnote for him.
+        assertThat(result).doesNotContain(String.format(BotText.STATS_FOOTNOTE_ASSISTED_EXCLUDED, 0));
+    }
+
+    @Test
+    void mainOmitsFootnoteWhenNoAssistedExclusions() {
+        CrosswordStatsReport.UserGameStats alice = new CrosswordStatsReport.UserGameStats(
+                "Alice", 5, 10,
+                OptionalDouble.of(600.0), OptionalInt.of(480),
+                Optional.of(LocalDate.of(2025, 1, 6)), 0);
+        CrosswordStatsReport.GameStats game = new CrosswordStatsReport.GameStats(
+                GameType.MAIN_CROSSWORD, List.of(alice), Optional.empty());
+        CrosswordStatsReport report = new CrosswordStatsReport(
+                GameTypeFilter.MAIN, LocalDate.of(2025, 1, 1), LocalDate.of(2025, 1, 31),
+                "Alice", "Bob", List.of(game));
+
+        String result = builder.render(report, "Monthly");
+
+        assertThat(result).doesNotContain("assisted excluded");
+    }
+
+    @Test
+    void miniNeverRendersAssistedExcludedFootnote() {
+        // Even if the count is non-zero on a Mini stats row (defensive — service won't produce this),
+        // the builder must not render the footnote for non-Main games.
+        CrosswordStatsReport.UserGameStats alice = new CrosswordStatsReport.UserGameStats(
+                "Alice", 1, 1,
+                OptionalDouble.of(60.0), OptionalInt.of(60),
+                Optional.empty(), 5);
+        CrosswordStatsReport.GameStats game = new CrosswordStatsReport.GameStats(
+                GameType.MINI_CROSSWORD, List.of(alice), Optional.empty());
+        CrosswordStatsReport report = new CrosswordStatsReport(
+                GameTypeFilter.MINI, LocalDate.of(2025, 1, 1), LocalDate.of(2025, 1, 7),
+                "Alice", "Bob", List.of(game));
+
+        String result = builder.render(report, "Weekly");
+        assertThat(result).doesNotContain("assisted excluded");
+    }
+
+    @Test
+    void midiNeverRendersAssistedExcludedFootnote() {
+        CrosswordStatsReport.UserGameStats alice = new CrosswordStatsReport.UserGameStats(
+                "Alice", 1, 1,
+                OptionalDouble.of(180.0), OptionalInt.of(180),
+                Optional.empty(), 3);
+        CrosswordStatsReport.GameStats game = new CrosswordStatsReport.GameStats(
+                GameType.MIDI_CROSSWORD, List.of(alice), Optional.empty());
+        CrosswordStatsReport report = new CrosswordStatsReport(
+                GameTypeFilter.MIDI, LocalDate.of(2025, 1, 1), LocalDate.of(2025, 1, 7),
+                "Alice", "Bob", List.of(game));
+
+        String result = builder.render(report, "Weekly");
+        assertThat(result).doesNotContain("assisted excluded");
+    }
+
     // ── Helpers ────────────────────────────────────────────────────────────────
 
     private static CrosswordStatsReport emptyReport() {

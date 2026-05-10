@@ -36,8 +36,16 @@ public record CrosswordStatsReport(
             int gamesPlayed,
             OptionalDouble avgSeconds,
             OptionalInt bestSeconds,
-            Optional<LocalDate> bestDate
-    ) {}
+            Optional<LocalDate> bestDate,
+            int excludedAssistedCount
+    ) {
+        /** Convenience constructor for callers that don't track exclusions (e.g. Mini/Midi tests). */
+        public UserGameStats(String playerName, int wins, int gamesPlayed,
+                             OptionalDouble avgSeconds, OptionalInt bestSeconds,
+                             Optional<LocalDate> bestDate) {
+            this(playerName, wins, gamesPlayed, avgSeconds, bestSeconds, bestDate, 0);
+        }
+    }
 
     public record DowBlock(List<DowRow> rows) {}
 
