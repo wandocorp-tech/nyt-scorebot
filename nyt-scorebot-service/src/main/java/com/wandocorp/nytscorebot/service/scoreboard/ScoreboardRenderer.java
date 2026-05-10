@@ -285,8 +285,8 @@ public class ScoreboardRenderer {
     }
 
     private static String deltaAvgHeaderTwoPlayer() {
-        // Centre-ish between two columns; PLAYER_COL_WIDTH + 7 right-aligns the header into the gap.
-        return String.format("%" + (PLAYER_COL_WIDTH + 7) + "s", BotText.SCOREBOARD_DELTA_AVG_HEADER);
+        // Right-align header to col PLAYER_COL_WIDTH + 5 so it sits over the column gap (  |  ).
+        return String.format("%" + (PLAYER_COL_WIDTH + 5) + "s", BotText.SCOREBOARD_DELTA_AVG_HEADER);
     }
 
     private static String deltaRowTwoPlayer(CrosswordPbStats left, OptionalInt leftToday,
