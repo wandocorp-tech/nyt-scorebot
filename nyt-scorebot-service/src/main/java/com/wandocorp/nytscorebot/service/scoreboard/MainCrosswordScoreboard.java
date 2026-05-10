@@ -86,6 +86,13 @@ public class MainCrosswordScoreboard implements GameComparisonScoreboard {
     @Override public int baseGap() { return 3; }
     @Override public int maxEmojisPerRow() { return 6; }
     @Override public boolean usesScoreLabelRow() { return true; }
+    @Override public boolean isCrossword() { return true; }
+    @Override
+    public java.util.OptionalInt todaySeconds(Scoreboard scoreboard) {
+        if (!hasResult(scoreboard)) return java.util.OptionalInt.empty();
+        Integer s = scoreboard.getMainCrosswordResult().getTotalSeconds();
+        return s == null ? java.util.OptionalInt.empty() : java.util.OptionalInt.of(s);
+    }
 
     static String buildFlagsString(MainCrosswordResult r) {
         List<String> parts = new ArrayList<>();

@@ -3,15 +3,22 @@ package com.wandocorp.nytscorebot.service;
 import com.wandocorp.nytscorebot.entity.Scoreboard;
 import com.wandocorp.nytscorebot.entity.User;
 import com.wandocorp.nytscorebot.model.*;
+import com.wandocorp.nytscorebot.repository.PersonalBestRepository;
 import com.wandocorp.nytscorebot.repository.ScoreboardRepository;
 import com.wandocorp.nytscorebot.repository.UserRepository;
+import com.wandocorp.nytscorebot.service.scoreboard.CrosswordPbLookup;
+import com.wandocorp.nytscorebot.service.scoreboard.CrosswordPbStats;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.function.Function;
 
 @Slf4j
@@ -23,6 +30,8 @@ public class ScoreboardService {
     private final ScoreboardRepository scoreboardRepository;
     private final PuzzleCalendar puzzleCalendar;
     private final StreakService streakService;
+    private final PersonalBestService personalBestService;
+    private final PersonalBestRepository personalBestRepository;
 
     public List<Scoreboard> getTodayScoreboards() {
         return scoreboardRepository.findAllByDateWithUser(puzzleCalendar.today());
@@ -55,11 +64,11 @@ public class ScoreboardService {
     }
 
     @Transactional
-    public SaveOutcome saveResult(String channelId, String personName, String discordUserId, GameResult result) {
+    public SaveResult saveResult(String channelId, String personName, String discordUserId, GameResult result) {
         SaveOutcome validation = validate(result);
         if (validation != SaveOutcome.SAVED) {
             log.info("Rejected {} result for {}: {}", result.getClass().getSimpleName(), personName, validation);
-            return validation;
+            return SaveResult.of(validation);
         }
 
         LocalDate resultDate = resolveDate(result);
@@ -69,12 +78,12 @@ public class ScoreboardService {
         if (scoreboard.isFinished()) {
             log.info("Rejected {} result for {} on {}: scoreboard already finished",
                     result.getClass().getSimpleName(), personName, resultDate);
-            return SaveOutcome.ALREADY_FINISHED;
+            return SaveResult.of(SaveOutcome.ALREADY_FINISHED);
         }
 
         if (isAlreadySubmitted(scoreboard, result)) {
             log.info("Duplicate {} result for {} on {}", result.getClass().getSimpleName(), personName, resultDate);
-            return SaveOutcome.ALREADY_SUBMITTED;
+            return SaveResult.of(SaveOutcome.ALREADY_SUBMITTED);
         }
 
         applyResult(scoreboard, result);
@@ -82,8 +91,29 @@ public class ScoreboardService {
         streakService.updateStreak(user, result);
         autoFinishIfComplete(scoreboard, personName, resultDate);
 
+        PbUpdateOutcome pb = recomputePbIfCrossword(user, result, resultDate);
+
         log.info("Saved {} result for {} on {}", result.getClass().getSimpleName(), personName, resultDate);
-        return SaveOutcome.SAVED;
+        return SaveResult.saved(pb);
+    }
+
+    private PbUpdateOutcome recomputePbIfCrossword(User user, GameResult result, LocalDate resultDate) {
+        return switch (result.gameType()) {
+            case MINI_CROSSWORD, MIDI_CROSSWORD -> {
+                Integer secs = ((CrosswordResult) result).getTotalSeconds();
+                yield secs == null
+                        ? PbUpdateOutcome.NO_CHANGE
+                        : personalBestService.recompute(user, result.gameType(), resultDate, secs, true);
+            }
+            case MAIN_CROSSWORD -> {
+                MainCrosswordResult main = (MainCrosswordResult) result;
+                Integer secs = main.getTotalSeconds();
+                yield secs == null
+                        ? PbUpdateOutcome.NO_CHANGE
+                        : personalBestService.recompute(user, GameType.MAIN_CROSSWORD, resultDate, secs, !main.isAssisted());
+            }
+            default -> PbUpdateOutcome.NO_CHANGE;
+        };
     }
 
     private LocalDate resolveDate(GameResult result) {
@@ -179,5 +209,47 @@ public class ScoreboardService {
 
     private boolean allGamesPresent(Scoreboard scoreboard) {
         return scoreboard.getGameResults().size() >= GameType.values().length;
+    }
+
+    /**
+     * Builds a {@link CrosswordPbLookup} that resolves prior-clean averages and current PBs
+     * for the two named players against the given date. The lookup pre-fetches per-player /
+     * per-(game, dow) data once and serves all subsequent queries from an in-memory map.
+     *
+     * <p>Average is the arithmetic mean of clean total-seconds for that player + game (+ dow
+     * for Main) on dates strictly before {@code date}. Mini and Midi have no DoW partition.
+     * Returns an {@link CrosswordPbLookup#EMPTY} fallback when either name has no user row.
+     */
+    public CrosswordPbLookup buildCrosswordPbLookup(String name1, String name2, LocalDate date) {
+        Map<String, Map<GameType, CrosswordPbStats>> data = new HashMap<>();
+        for (String name : List.of(name1, name2)) {
+            if (name == null) continue;
+            Optional<User> userOpt = userRepository.findAll().stream()
+                    .filter(u -> name.equals(u.getName())).findFirst();
+            if (userOpt.isEmpty()) continue;
+            User user = userOpt.get();
+            Map<GameType, CrosswordPbStats> perGame = new HashMap<>();
+            perGame.put(GameType.MINI_CROSSWORD, statsFor(user, GameType.MINI_CROSSWORD, null, date));
+            perGame.put(GameType.MIDI_CROSSWORD, statsFor(user, GameType.MIDI_CROSSWORD, null, date));
+            perGame.put(GameType.MAIN_CROSSWORD, statsFor(user, GameType.MAIN_CROSSWORD, date.getDayOfWeek(), date));
+            data.put(name, perGame);
+        }
+        return (playerName, gameType) -> data.getOrDefault(playerName, Map.of())
+                .getOrDefault(gameType, CrosswordPbStats.EMPTY);
+    }
+
+    private CrosswordPbStats statsFor(User user, GameType gameType, java.time.DayOfWeek dow, LocalDate date) {
+        List<Integer> cleanSecs = (gameType == GameType.MAIN_CROSSWORD)
+                ? scoreboardRepository.findCleanMainSecondsBeforeDate(user, dow, date)
+                : scoreboardRepository.findCleanSecondsBeforeDate(user, gameType, date);
+        OptionalInt avg = cleanSecs.isEmpty()
+                ? OptionalInt.empty()
+                : OptionalInt.of((int) Math.round(cleanSecs.stream().mapToInt(Integer::intValue).average().orElse(0)));
+        String dowKey = (dow == null) ? PbDayOfWeek.ALL_DAYS_SENTINEL : dow.name();
+        OptionalInt pb = personalBestRepository
+                .findByUserAndGameTypeAndDayOfWeek(user, gameType, dowKey)
+                .map(p -> OptionalInt.of(p.getBestSeconds()))
+                .orElse(OptionalInt.empty());
+        return new CrosswordPbStats(avg, pb);
     }
 }

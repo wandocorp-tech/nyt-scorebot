@@ -236,12 +236,12 @@ class ResultsChannelServiceTest {
     void refreshGamePostsFreshWhenNoExistingMessage() {
         when(scoreboardService.areBothPlayersFinishedToday()).thenReturn(true);
         setupScoreboards();
-        when(scoreboardRenderer.renderByGameType(eq("Main"), any(), anyString(), any(), anyString(), any()))
+        when(scoreboardRenderer.renderByGameType(eq("Main"), any(), anyString(), any(), anyString(), any(), any()))
                 .thenReturn(java.util.Optional.of("```\nMain crossword\n```"));
 
         service.refreshGame("Main");
 
-        verify(scoreboardRenderer).renderByGameType(eq("Main"), any(), eq(NAME1), any(), eq(NAME2), any());
+        verify(scoreboardRenderer).renderByGameType(eq("Main"), any(), eq(NAME1), any(), eq(NAME2), any(), any());
         verify(slotWriter).editOrPost(eq(Snowflake.of(RESULTS_CHANNEL_ID)), isNull(),
                 eq("```\nMain crossword\n```"));
     }
@@ -250,7 +250,7 @@ class ResultsChannelServiceTest {
     void refreshGameEditsInPlaceWhenExistingMessageId() {
         when(scoreboardService.areBothPlayersFinishedToday()).thenReturn(true);
         setupScoreboards();
-        when(scoreboardRenderer.renderByGameType(eq("Main"), any(), anyString(), any(), anyString(), any()))
+        when(scoreboardRenderer.renderByGameType(eq("Main"), any(), anyString(), any(), anyString(), any(), any()))
                 .thenReturn(java.util.Optional.of("```\nMain crossword\n```"));
 
         Snowflake previousMsgId = Snowflake.of("22222");
@@ -267,7 +267,7 @@ class ResultsChannelServiceTest {
         // Use a non-crossword game so the win streak summary path doesn't activate.
         when(scoreboardService.areBothPlayersFinishedToday()).thenReturn(true);
         setupScoreboards();
-        when(scoreboardRenderer.renderByGameType(eq("Wordle"), any(), anyString(), any(), anyString(), any()))
+        when(scoreboardRenderer.renderByGameType(eq("Wordle"), any(), anyString(), any(), anyString(), any(), any()))
                 .thenReturn(java.util.Optional.empty());
 
         service.refreshGame("Wordle");
@@ -324,6 +324,6 @@ class ResultsChannelServiceTest {
     private void setupRendered() {
         Map<String, String> rendered = new LinkedHashMap<>();
         rendered.put("Wordle", "```\nWordle stuff\n```");
-        when(scoreboardRenderer.renderAll(any(), anyString(), any(), anyString(), any())).thenReturn(rendered);
+        when(scoreboardRenderer.renderAll(any(), anyString(), any(), anyString(), any(), any())).thenReturn(rendered);
     }
 }

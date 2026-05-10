@@ -102,6 +102,22 @@ public final class BotText {
     public static final String FLAG_LOOKUPS = "🔍×%d";
     public static final String FLAG_CHECK   = "✓";
 
+    // ── Personal-best inline rows (crossword scoreboards) ─────────────────────
+    public static final String SCOREBOARD_DELTA_AVG_HEADER = "Δ avg";
+    public static final String SCOREBOARD_PB_PREFIX       = "PB:";
+
+    // ── PB-break announcement ─────────────────────────────────────────────────
+    /** Args: %1 = player name, %2 = game label, %3 = time. Used for Mini/Midi. */
+    public static final String MSG_PB_BROKEN_FORMAT      = "🏆 New PB! %s's %s: %s";
+    /** Args: %1 = player name, %2 = game label, %3 = day-of-week label, %4 = time. Used for Main. */
+    public static final String MSG_PB_BROKEN_DOW_FORMAT  = "🏆 New PB! %s's %s (%s): %s";
+    /** Suffix appended to a PB-broken message when a prior best existed. Arg: prior time. */
+    public static final String MSG_PB_BROKEN_PRIOR_SUFFIX = " (was %s)";
+
+    // ── /stats assisted-excluded footnote ─────────────────────────────────────
+    /** Footnote rendered under a Main /stats player row when assisted results were dropped. */
+    public static final String STATS_FOOTNOTE_ASSISTED_EXCLUDED = "(%d assisted excluded)";
+
     // ── Crossword win streak summary ──────────────────────────────────────────
     public static final String WIN_STREAK_TITLE          = "Win Streaks";
     public static final String WIN_STREAK_GAME_COL_LABEL = "Game";

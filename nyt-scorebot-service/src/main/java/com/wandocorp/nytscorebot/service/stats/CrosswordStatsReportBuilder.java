@@ -118,6 +118,12 @@ public class CrosswordStatsReportBuilder {
               .append(" ").append(rpad(String.valueOf(p.wins()), winCol)).append(" |")
               .append(" ").append(rpad(avg, avgCol)).append(" |")
               .append(" ").append(best).append("\n");
+            if (game.gameType() == GameType.MAIN_CROSSWORD && p.excludedAssistedCount() > 0) {
+                sb.append("   ")
+                  .append(String.format(BotText.STATS_FOOTNOTE_ASSISTED_EXCLUDED,
+                          p.excludedAssistedCount()))
+                  .append("\n");
+            }
         }
     }
 

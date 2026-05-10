@@ -16,4 +16,13 @@ public interface GameComparisonScoreboard {
     default boolean usesStreakDisplay() { return false; }
     default boolean usesScoreLabelRow() { return false; }
     default String flagsRow(Scoreboard scoreboard) { return ""; }
+
+    /** True for Mini/Midi/Main crosswords — gates the inline PB/Δavg rows. */
+    default boolean isCrossword() { return false; }
+
+    /**
+     * Returns today's total seconds for the rendered crossword result, used to compute
+     * the {@code Δ avg} value. Default is empty for non-crossword games.
+     */
+    default java.util.OptionalInt todaySeconds(Scoreboard scoreboard) { return java.util.OptionalInt.empty(); }
 }

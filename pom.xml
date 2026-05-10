@@ -101,6 +101,8 @@
                         <exclude>com/wandocorp/nytscorebot/model/**</exclude>
                         <exclude>com/wandocorp/nytscorebot/entity/User.class</exclude>
                         <exclude>com/wandocorp/nytscorebot/entity/Scoreboard.class</exclude>
+                        <exclude>com/wandocorp/nytscorebot/entity/PersonalBest.class</exclude>
+                        <exclude>com/wandocorp/nytscorebot/entity/PersonalBestSource.class</exclude>
                         <exclude>com/wandocorp/nytscorebot/repository/**</exclude>
                         <exclude>com/wandocorp/nytscorebot/service/SaveOutcome.class</exclude>
                         <exclude>com/wandocorp/nytscorebot/NytScorebotApplication.class</exclude>

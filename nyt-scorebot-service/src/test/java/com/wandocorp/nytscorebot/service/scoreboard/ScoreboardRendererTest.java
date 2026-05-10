@@ -1,9 +1,11 @@
 package com.wandocorp.nytscorebot.service.scoreboard;
 
+import com.wandocorp.nytscorebot.BotText;
 import com.wandocorp.nytscorebot.entity.Scoreboard;
 import com.wandocorp.nytscorebot.entity.User;
 import com.wandocorp.nytscorebot.model.GameType;
 import com.wandocorp.nytscorebot.model.MainCrosswordResult;
+import com.wandocorp.nytscorebot.model.MidiCrosswordResult;
 import com.wandocorp.nytscorebot.model.MiniCrosswordResult;
 import com.wandocorp.nytscorebot.model.WordleResult;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,6 +15,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalInt;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -285,5 +288,208 @@ class ScoreboardRendererTest {
         assertThat(output).contains("☢️ Nuke!");
         assertThat(output).doesNotContain("🤝");
         assertThat(output).doesNotContain("🏆");
+    }
+
+    // ── Inline PB / Δ avg rows (Group 8.6 / 8.7) ──────────────────────────────
+
+    private static CrosswordPbLookup pbLookup(Map<String, CrosswordPbStats> byName) {
+        return (name, gt) -> byName.getOrDefault(name, CrosswordPbStats.EMPTY);
+    }
+
+    private static CrosswordPbStats stats(int avg, int pb) {
+        return new CrosswordPbStats(OptionalInt.of(avg), OptionalInt.of(pb));
+    }
+
+    private static void assertEveryLineWithinMaxWidth(String rendered) {
+        for (String line : rendered.split("\n")) {
+            // Strip Discord code fences from width consideration.
+            if (line.equals("```")) continue;
+            assertThat(line.length())
+                    .as("line exceeds %s cols: '%s' (len=%d)",
+                            com.wandocorp.nytscorebot.BotText.MAX_LINE_WIDTH, line, line.length())
+                    .isLessThanOrEqualTo(com.wandocorp.nytscorebot.BotText.MAX_LINE_WIDTH);
+        }
+    }
+
+    @Test
+    void mainTwoPlayer_bothHaveHistory_rendersDeltaAndPb() {
+        MainCrosswordScoreboard mainGame = new MainCrosswordScoreboard();
+        ScoreboardRenderer r = new ScoreboardRenderer(List.of(mainGame));
+
+        Scoreboard sb1 = new Scoreboard(new User("c1", "test", "u1"), LocalDate.now());
+        sb1.addResult(new MainCrosswordResult("raw", "a", null, "10:00", 600, LocalDate.now()));
+        Scoreboard sb2 = new Scoreboard(new User("c2", "test", "u2"), LocalDate.now());
+        sb2.addResult(new MainCrosswordResult("raw", "a", null, "12:30", 750, LocalDate.now()));
+
+        Map<String, CrosswordPbStats> data = Map.of(
+                "William", stats(720, 480),  // avg 12:00, pb 8:00; today 10:00 → -2:00
+                "Conor",   stats(900, 600)   // avg 15:00, pb 10:00; today 12:30 → -2:30
+        );
+
+        Optional<String> rendered = r.render(mainGame, sb1, "William", sb2, "Conor",
+                Map.of(), pbLookup(data));
+
+        assertThat(rendered).isPresent();
+        String out = rendered.get();
+        assertThat(out).contains(BotText.SCOREBOARD_DELTA_AVG_HEADER);
+        assertThat(out).contains("-2:00");
+        assertThat(out).contains("-2:30");
+        assertThat(out).contains("PB:8:00");
+        assertThat(out).contains("PB:10:00");
+        assertEveryLineWithinMaxWidth(out);
+    }
+
+    @Test
+    void mainTwoPlayer_oneSideEmpty_blanksThatColumn() {
+        MainCrosswordScoreboard mainGame = new MainCrosswordScoreboard();
+        ScoreboardRenderer r = new ScoreboardRenderer(List.of(mainGame));
+
+        Scoreboard sb1 = new Scoreboard(new User("c1", "test", "u1"), LocalDate.now());
+        sb1.addResult(new MainCrosswordResult("raw", "a", null, "10:00", 600, LocalDate.now()));
+        Scoreboard sb2 = new Scoreboard(new User("c2", "test", "u2"), LocalDate.now());
+        sb2.addResult(new MainCrosswordResult("raw", "a", null, "12:30", 750, LocalDate.now()));
+
+        Map<String, CrosswordPbStats> data = Map.of("William", stats(720, 480));
+
+        Optional<String> rendered = r.render(mainGame, sb1, "William", sb2, "Conor",
+                Map.of(), pbLookup(data));
+
+        assertThat(rendered).isPresent();
+        String out = rendered.get();
+        assertThat(out).contains(BotText.SCOREBOARD_DELTA_AVG_HEADER);
+        assertThat(out).contains("PB:8:00");
+        assertThat(out).doesNotContain("PB:10:00");
+        // Conor's delta cell is blank — only William's -2:00 should appear.
+        assertThat(out).contains("-2:00");
+        assertEveryLineWithinMaxWidth(out);
+    }
+
+    @Test
+    void mainTwoPlayer_bothEmpty_omitsAllPbRows() {
+        MainCrosswordScoreboard mainGame = new MainCrosswordScoreboard();
+        ScoreboardRenderer r = new ScoreboardRenderer(List.of(mainGame));
+
+        Scoreboard sb1 = new Scoreboard(new User("c1", "test", "u1"), LocalDate.now());
+        sb1.addResult(new MainCrosswordResult("raw", "a", null, "10:00", 600, LocalDate.now()));
+        Scoreboard sb2 = new Scoreboard(new User("c2", "test", "u2"), LocalDate.now());
+        sb2.addResult(new MainCrosswordResult("raw", "a", null, "12:30", 750, LocalDate.now()));
+
+        Optional<String> rendered = r.render(mainGame, sb1, "William", sb2, "Conor",
+                Map.of(), CrosswordPbLookup.EMPTY);
+
+        assertThat(rendered).isPresent();
+        String out = rendered.get();
+        assertThat(out).doesNotContain(BotText.SCOREBOARD_DELTA_AVG_HEADER);
+        assertThat(out).doesNotContain("PB:");
+        assertEveryLineWithinMaxWidth(out);
+    }
+
+    @Test
+    void mainSinglePlayer_withHistory_rendersDeltaAndPb() {
+        MainCrosswordScoreboard mainGame = new MainCrosswordScoreboard();
+        ScoreboardRenderer r = new ScoreboardRenderer(List.of(mainGame));
+
+        Scoreboard sb1 = new Scoreboard(new User("c1", "test", "u1"), LocalDate.now());
+        sb1.addResult(new MainCrosswordResult("raw", "a", null, "10:00", 600, LocalDate.now()));
+
+        Map<String, CrosswordPbStats> data = Map.of("William", stats(720, 480));
+
+        Optional<String> rendered = r.render(mainGame, sb1, "William", null, "Conor",
+                Map.of(), pbLookup(data));
+
+        assertThat(rendered).isPresent();
+        String out = rendered.get();
+        assertThat(out).contains(BotText.SCOREBOARD_DELTA_AVG_HEADER);
+        assertThat(out).contains("-2:00");
+        assertThat(out).contains("PB:8:00");
+        assertEveryLineWithinMaxWidth(out);
+    }
+
+    @Test
+    void miniTwoPlayer_withHistory_rendersDeltaAndPb() {
+        MiniCrosswordScoreboard miniGame = new MiniCrosswordScoreboard();
+        ScoreboardRenderer r = new ScoreboardRenderer(List.of(miniGame));
+
+        Scoreboard sb1 = new Scoreboard(new User("c1", "test", "u1"), LocalDate.now());
+        sb1.addResult(new MiniCrosswordResult("raw", "a", null, "0:30", 30, LocalDate.now()));
+        Scoreboard sb2 = new Scoreboard(new User("c2", "test", "u2"), LocalDate.now());
+        sb2.addResult(new MiniCrosswordResult("raw", "a", null, "1:00", 60, LocalDate.now()));
+
+        Map<String, CrosswordPbStats> data = Map.of(
+                "William", stats(45, 25),
+                "Conor",   stats(90, 50)
+        );
+
+        Optional<String> rendered = r.render(miniGame, sb1, "William", sb2, "Conor",
+                Map.of(), pbLookup(data));
+
+        assertThat(rendered).isPresent();
+        String out = rendered.get();
+        assertThat(out).contains(BotText.SCOREBOARD_DELTA_AVG_HEADER);
+        assertThat(out).contains("-0:15");  // 30-45
+        assertThat(out).contains("-0:30");  // 60-90
+        assertThat(out).contains("PB:0:25");
+        assertThat(out).contains("PB:0:50");
+        assertEveryLineWithinMaxWidth(out);
+    }
+
+    @Test
+    void midiTwoPlayer_withHistory_rendersDeltaAndPb() {
+        MidiCrosswordScoreboard midiGame = new MidiCrosswordScoreboard();
+        ScoreboardRenderer r = new ScoreboardRenderer(List.of(midiGame));
+
+        Scoreboard sb1 = new Scoreboard(new User("c1", "test", "u1"), LocalDate.now());
+        sb1.addResult(new MidiCrosswordResult("raw", "a", null, "2:00", 120, LocalDate.now()));
+        Scoreboard sb2 = new Scoreboard(new User("c2", "test", "u2"), LocalDate.now());
+        sb2.addResult(new MidiCrosswordResult("raw", "a", null, "3:30", 210, LocalDate.now()));
+
+        Map<String, CrosswordPbStats> data = Map.of(
+                "William", stats(180, 100),
+                "Conor",   stats(240, 180)
+        );
+
+        Optional<String> rendered = r.render(midiGame, sb1, "William", sb2, "Conor",
+                Map.of(), pbLookup(data));
+
+        assertThat(rendered).isPresent();
+        String out = rendered.get();
+        assertThat(out).contains(BotText.SCOREBOARD_DELTA_AVG_HEADER);
+        assertThat(out).contains("-1:00");
+        assertThat(out).contains("-0:30");
+        assertThat(out).contains("PB:1:40");
+        assertThat(out).contains("PB:3:00");
+        assertEveryLineWithinMaxWidth(out);
+    }
+
+    @Test
+    void mainAssistedToday_stillRendersAgainstAvgAndPb() {
+        // An assisted (duo/lookup/check) result today does not change the renderer's
+        // behaviour — it still computes Δ vs the lookup's avg. The lookup itself is
+        // expected to have already excluded prior assisted results when computing avg/PB.
+        MainCrosswordScoreboard mainGame = new MainCrosswordScoreboard();
+        ScoreboardRenderer r = new ScoreboardRenderer(List.of(mainGame));
+
+        MainCrosswordResult assisted = new MainCrosswordResult("raw", "a", null, "10:00", 600, LocalDate.now());
+        assisted.setDuo(true);
+        assisted.setLookups(2);
+        Scoreboard sb1 = new Scoreboard(new User("c1", "test", "u1"), LocalDate.now());
+        sb1.addResult(assisted);
+
+        Scoreboard sb2 = new Scoreboard(new User("c2", "test", "u2"), LocalDate.now());
+        sb2.addResult(new MainCrosswordResult("raw", "a", null, "12:30", 750, LocalDate.now()));
+
+        Map<String, CrosswordPbStats> data = Map.of(
+                "William", stats(720, 480),
+                "Conor",   stats(900, 600)
+        );
+
+        Optional<String> rendered = r.render(mainGame, sb1, "William", sb2, "Conor",
+                Map.of(), pbLookup(data));
+
+        assertThat(rendered).isPresent();
+        String out = rendered.get();
+        assertThat(out).contains("-2:00");
+        assertThat(out).contains("PB:8:00");
+        assertEveryLineWithinMaxWidth(out);
     }
 }

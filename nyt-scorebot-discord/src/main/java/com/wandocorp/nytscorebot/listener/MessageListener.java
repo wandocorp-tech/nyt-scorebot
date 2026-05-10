@@ -6,7 +6,9 @@ import com.wandocorp.nytscorebot.config.DiscordChannelProperties.ChannelConfig;
 import com.wandocorp.nytscorebot.model.GameResult;
 import com.wandocorp.nytscorebot.parser.GameResultParser;
 import com.wandocorp.nytscorebot.discord.ResultsChannelService;
+import com.wandocorp.nytscorebot.service.PbUpdateOutcome;
 import com.wandocorp.nytscorebot.service.SaveOutcome;
+import com.wandocorp.nytscorebot.service.SaveResult;
 import com.wandocorp.nytscorebot.service.ScoreboardService;
 import com.wandocorp.nytscorebot.discord.StatusChannelService;
 import discord4j.common.util.Snowflake;
@@ -77,8 +79,9 @@ public class MessageListener {
         return parser.parse(content, personName)
                 .map(result -> {
                     log.info("Parsed game result for {}: {}", personName, result);
-                    SaveOutcome outcome = scoreboardService.saveResult(
+                    SaveResult saveResult = scoreboardService.saveResult(
                             channelId.asString(), personName, discordUserId, result);
+                    SaveOutcome outcome = saveResult.outcome();
                     if (outcome == SaveOutcome.SAVED) {
                         String contextMessage = String.format(BotText.STATUS_CONTEXT_GAME_SUBMITTED, personName, gameLabel(result));
                         statusChannelService.refresh(contextMessage);
@@ -88,7 +91,14 @@ public class MessageListener {
                             resultsChannelService.refresh();
                         }
                     }
-                    return replyForOutcome(channelMono, outcome);
+                    Mono<Void> reply = replyForOutcome(channelMono, outcome);
+                    if (saveResult.pb() instanceof PbUpdateOutcome.NewPb npb) {
+                        Mono<Void> pbAnnounce = channelMono
+                                .flatMap(ch -> ch.createMessage(formatPbBreak(personName, npb)))
+                                .then();
+                        return reply.then(pbAnnounce);
+                    }
+                    return reply;
                 })
                 .orElseGet(() -> {
                     log.debug("Unrecognised message from channel {}: {}", channelId.asString(), content);
@@ -127,5 +137,24 @@ public class MessageListener {
 
     static String gameLabel(GameResult result) {
         return result.gameLabel();
+    }
+
+    static String formatPbBreak(String personName, PbUpdateOutcome.NewPb npb) {
+        String gameLabel = npb.gameType().label();
+        String newTime = com.wandocorp.nytscorebot.service.TimeFormatter.format(npb.newSeconds());
+        String base = npb.dayOfWeek()
+                .map(dow -> String.format(BotText.MSG_PB_BROKEN_DOW_FORMAT,
+                        personName, gameLabel, capitalize(dow.name()), newTime))
+                .orElseGet(() -> String.format(BotText.MSG_PB_BROKEN_FORMAT,
+                        personName, gameLabel, newTime));
+        if (npb.priorSeconds() != null) {
+            base += String.format(BotText.MSG_PB_BROKEN_PRIOR_SUFFIX,
+                    com.wandocorp.nytscorebot.service.TimeFormatter.format(npb.priorSeconds()));
+        }
+        return base;
+    }
+
+    private static String capitalize(String s) {
+        return s.charAt(0) + s.substring(1).toLowerCase();
     }
 }

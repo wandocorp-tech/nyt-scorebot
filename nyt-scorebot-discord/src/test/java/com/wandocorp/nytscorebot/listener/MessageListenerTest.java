@@ -4,9 +4,14 @@ import com.wandocorp.nytscorebot.config.DiscordChannelProperties;
 import com.wandocorp.nytscorebot.config.DiscordChannelProperties.ChannelConfig;
 import com.wandocorp.nytscorebot.discord.ResultsChannelService;
 import com.wandocorp.nytscorebot.discord.StatusChannelService;
+import com.wandocorp.nytscorebot.model.GameType;
+import com.wandocorp.nytscorebot.model.MainCrosswordResult;
+import com.wandocorp.nytscorebot.model.MiniCrosswordResult;
 import com.wandocorp.nytscorebot.model.WordleResult;
 import com.wandocorp.nytscorebot.parser.GameResultParser;
+import com.wandocorp.nytscorebot.service.PbUpdateOutcome;
 import com.wandocorp.nytscorebot.service.SaveOutcome;
+import com.wandocorp.nytscorebot.service.SaveResult;
 import com.wandocorp.nytscorebot.service.ScoreboardService;
 import discord4j.common.util.Snowflake;
 import discord4j.core.event.domain.message.MessageCreateEvent;
@@ -137,7 +142,7 @@ class MessageListenerTest {
     void recognisedMessageSavesResult() {
         WordleResult result = new WordleResult("raw", NAME, null, 100, 3, true, false);
         when(parser.parse(anyString(), eq(NAME))).thenReturn(Optional.of(result));
-        when(scoreboardService.saveResult(any(), any(), any(), any())).thenReturn(SaveOutcome.SAVED);
+        when(scoreboardService.saveResult(any(), any(), any(), any())).thenReturn(SaveResult.of(SaveOutcome.SAVED));
 
         listener.processMessage(CHANNEL_SNOWFLAKE, "Wordle 100 3/6", Mono.empty()).block();
 
@@ -148,7 +153,7 @@ class MessageListenerTest {
     void savedOutcomeCallsRefresh() {
         WordleResult result = new WordleResult("raw", NAME, null, 100, 3, true, false);
         when(parser.parse(anyString(), eq(NAME))).thenReturn(Optional.of(result));
-        when(scoreboardService.saveResult(any(), any(), any(), any())).thenReturn(SaveOutcome.SAVED);
+        when(scoreboardService.saveResult(any(), any(), any(), any())).thenReturn(SaveResult.of(SaveOutcome.SAVED));
 
         listener.processMessage(CHANNEL_SNOWFLAKE, "Wordle 100 3/6", Mono.empty()).block();
 
@@ -159,7 +164,7 @@ class MessageListenerTest {
     void savedOutcomeCallsRefreshGameWhenResultsAlreadyPosted() {
         WordleResult result = new WordleResult("raw", NAME, null, 100, 3, true, false);
         when(parser.parse(anyString(), eq(NAME))).thenReturn(Optional.of(result));
-        when(scoreboardService.saveResult(any(), any(), any(), any())).thenReturn(SaveOutcome.SAVED);
+        when(scoreboardService.saveResult(any(), any(), any(), any())).thenReturn(SaveResult.of(SaveOutcome.SAVED));
         when(resultsChannelService.hasPostedResults()).thenReturn(true);
 
         listener.processMessage(CHANNEL_SNOWFLAKE, "Wordle 100 3/6", Mono.empty()).block();
@@ -172,7 +177,7 @@ class MessageListenerTest {
     void savedOutcomeCallsRefreshAllWhenResultsNotYetPosted() {
         WordleResult result = new WordleResult("raw", NAME, null, 100, 3, true, false);
         when(parser.parse(anyString(), eq(NAME))).thenReturn(Optional.of(result));
-        when(scoreboardService.saveResult(any(), any(), any(), any())).thenReturn(SaveOutcome.SAVED);
+        when(scoreboardService.saveResult(any(), any(), any(), any())).thenReturn(SaveResult.of(SaveOutcome.SAVED));
         when(resultsChannelService.hasPostedResults()).thenReturn(false);
 
         listener.processMessage(CHANNEL_SNOWFLAKE, "Wordle 100 3/6", Mono.empty()).block();
@@ -185,7 +190,7 @@ class MessageListenerTest {
     void nonSavedOutcomeDoesNotCallRefresh() {
         WordleResult result = new WordleResult("raw", NAME, null, 100, 3, true, false);
         when(parser.parse(anyString(), eq(NAME))).thenReturn(Optional.of(result));
-        when(scoreboardService.saveResult(any(), any(), any(), any())).thenReturn(SaveOutcome.ALREADY_SUBMITTED);
+        when(scoreboardService.saveResult(any(), any(), any(), any())).thenReturn(SaveResult.of(SaveOutcome.ALREADY_SUBMITTED));
 
         listener.processMessage(CHANNEL_SNOWFLAKE, "Wordle 100 3/6", Mono.empty()).block();
 
@@ -197,6 +202,87 @@ class MessageListenerTest {
         when(parser.parse(anyString(), eq(NAME))).thenReturn(Optional.empty());
         listener.processMessage(CHANNEL_SNOWFLAKE, "hello world", Mono.empty()).block();
         verify(scoreboardService, never()).saveResult(any(), any(), any(), any());
+    }
+
+    // ── PB-break announcements ────────────────────────────────────────────────
+
+    @Test
+    void noChangeOutcomePostsNoExtraMessage() {
+        MiniCrosswordResult result = new MiniCrosswordResult("raw", NAME, null, "1:00", 60,
+                java.time.LocalDate.of(2026, 5, 9));
+        when(parser.parse(anyString(), eq(NAME))).thenReturn(Optional.of(result));
+        when(scoreboardService.saveResult(any(), any(), any(), any()))
+                .thenReturn(SaveResult.saved(PbUpdateOutcome.NO_CHANGE));
+        MessageChannel channel = mock(MessageChannel.class);
+
+        listener.processMessage(CHANNEL_SNOWFLAKE, "...", Mono.just(channel)).subscribe();
+
+        verify(channel, never()).createMessage(anyString());
+    }
+
+    @Test
+    void newPbWithPriorPostsAnnouncementWithWasSegment() {
+        MiniCrosswordResult result = new MiniCrosswordResult("raw", NAME, null, "0:50", 50,
+                java.time.LocalDate.of(2026, 5, 9));
+        PbUpdateOutcome.NewPb npb = new PbUpdateOutcome.NewPb(60, 50, GameType.MINI_CROSSWORD, Optional.empty());
+        when(parser.parse(anyString(), eq(NAME))).thenReturn(Optional.of(result));
+        when(scoreboardService.saveResult(any(), any(), any(), any()))
+                .thenReturn(SaveResult.saved(npb));
+        MessageChannel channel = mock(MessageChannel.class);
+        MessageCreateMono mcm = mock(MessageCreateMono.class);
+        when(mcm.then()).thenReturn(Mono.empty());
+        when(channel.createMessage(anyString())).thenReturn(mcm);
+
+        listener.processMessage(CHANNEL_SNOWFLAKE, "...", Mono.just(channel)).subscribe();
+
+        verify(channel).createMessage(contains("New PB"));
+        verify(channel).createMessage(contains("0:50"));
+        verify(channel).createMessage(contains("(was 1:00)"));
+        verify(channel).createMessage(contains(NAME));
+        verify(channel).createMessage(contains("Mini"));
+    }
+
+    @Test
+    void firstEverNewPbOmitsPriorSegment() {
+        MiniCrosswordResult result = new MiniCrosswordResult("raw", NAME, null, "1:00", 60,
+                java.time.LocalDate.of(2026, 5, 9));
+        PbUpdateOutcome.NewPb npb = new PbUpdateOutcome.NewPb(null, 60, GameType.MINI_CROSSWORD, Optional.empty());
+        when(parser.parse(anyString(), eq(NAME))).thenReturn(Optional.of(result));
+        when(scoreboardService.saveResult(any(), any(), any(), any()))
+                .thenReturn(SaveResult.saved(npb));
+        MessageChannel channel = mock(MessageChannel.class);
+        MessageCreateMono mcm = mock(MessageCreateMono.class);
+        when(mcm.then()).thenReturn(Mono.empty());
+        when(channel.createMessage(anyString())).thenReturn(mcm);
+
+        listener.processMessage(CHANNEL_SNOWFLAKE, "...", Mono.just(channel)).subscribe();
+
+        org.mockito.ArgumentCaptor<String> cap = org.mockito.ArgumentCaptor.forClass(String.class);
+        verify(channel).createMessage(cap.capture());
+        assertThat(cap.getValue()).doesNotContain("(was");
+        assertThat(cap.getValue()).contains("New PB");
+    }
+
+    @Test
+    void mainNewPbIncludesDayOfWeekToken() {
+        MainCrosswordResult result = new MainCrosswordResult("raw", NAME, null, "10:00", 600,
+                java.time.LocalDate.of(2026, 5, 9));
+        PbUpdateOutcome.NewPb npb = new PbUpdateOutcome.NewPb(700, 600, GameType.MAIN_CROSSWORD,
+                Optional.of(java.time.DayOfWeek.SATURDAY));
+        when(parser.parse(anyString(), eq(NAME))).thenReturn(Optional.of(result));
+        when(scoreboardService.saveResult(any(), any(), any(), any()))
+                .thenReturn(SaveResult.saved(npb));
+        MessageChannel channel = mock(MessageChannel.class);
+        MessageCreateMono mcm = mock(MessageCreateMono.class);
+        when(mcm.then()).thenReturn(Mono.empty());
+        when(channel.createMessage(anyString())).thenReturn(mcm);
+
+        listener.processMessage(CHANNEL_SNOWFLAKE, "...", Mono.just(channel)).subscribe();
+
+        verify(channel).createMessage(contains("Saturday"));
+        verify(channel).createMessage(contains("Main"));
+        verify(channel).createMessage(contains("10:00"));
+        verify(channel).createMessage(contains("(was 11:40)"));
     }
 
     // ── listenToEvents filter chain ───────────────────────────────────────────
@@ -220,7 +306,7 @@ class MessageListenerTest {
     void monitoredChannelAndCorrectUserProcessesEvent() {
         WordleResult result = new WordleResult("raw", NAME, null, 100, 3, true, false);
         when(parser.parse(anyString(), eq(NAME))).thenReturn(Optional.of(result));
-        when(scoreboardService.saveResult(any(), any(), any(), any())).thenReturn(SaveOutcome.SAVED);
+        when(scoreboardService.saveResult(any(), any(), any(), any())).thenReturn(SaveResult.of(SaveOutcome.SAVED));
 
         listener.listenToEvents(Flux.just(buildEvent(CHANNEL_ID, USER_ID)));
 

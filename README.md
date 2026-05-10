@@ -157,6 +157,20 @@ Once both players have finished for the day (either by submitting all games or u
 
 **In-memory message tracking:** `ResultsChannelService` holds a `Map<gameType, Snowflake>` of posted message IDs. Cleared on restart; a subsequent submission will re-trigger posting.
 
+### 9. **Crossword Personal Bests**
+
+**Purpose:** Track per-user personal-best (PB) records and prior-clean averages for each crossword variant, render them inline on daily scoreboards, and announce when a player breaks their own PB.
+
+**Storage:** A `personal_best` table (one row per `(user, game_type, day_of_week)`) holds `pb_seconds`, `pb_date`, and `source` (`COMPUTED` or `MANUAL`). For Mini and Midi the `day_of_week` slot is a sentinel meaning *all days*; Main has one slot per `DayOfWeek` so PBs and averages are tracked per puzzle difficulty.
+
+**Manual seed pattern:** Pre-existing PBs are inserted directly via SQL — the bot itself never writes `MANUAL` rows. A manual row is preserved against any equal-or-slower clean save; a strictly faster clean save replaces it and transitions the source to `COMPUTED`. See [`docs/crossword-personal-bests.md`](docs/crossword-personal-bests.md) for the seed-SQL template and precedence rules.
+
+**Assisted exclusion:** Main results flagged with duo / lookups / check (`MainCrosswordResult.isAssisted()`) never qualify as a PB and are excluded from the prior-clean average. The same exclusion applies to the periodic stats reports, which append a `(N assisted excluded)` footnote when a player has any excluded results in the window. Wins and forfeit attribution are unaffected.
+
+**Renderer integration:** Crossword scoreboards include three additional lines below the time/flags rows when at least one player has prior history: a `Δ avg` header, signed-delta-vs-average row (`±M:SS`, ASCII signs only), and a `PB:M:SS` row. A player with no history has those cells blanked. When neither player has history, the rows are omitted entirely so the layout collapses gracefully.
+
+**PB-break announcement:** When a clean save breaks the player's PB, the bot posts a celebratory message to the channel naming the player, game, new time, and prior PB (or "first ever" when none existed).
+
 ## Testing Approach
 
 ### Test Coverage Goal: 80% (instructions + branches)

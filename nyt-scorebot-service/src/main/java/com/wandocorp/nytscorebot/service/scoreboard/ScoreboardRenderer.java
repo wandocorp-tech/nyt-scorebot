@@ -3,6 +3,7 @@ package com.wandocorp.nytscorebot.service.scoreboard;
 import com.wandocorp.nytscorebot.BotText;
 import com.wandocorp.nytscorebot.entity.Scoreboard;
 import com.wandocorp.nytscorebot.model.GameType;
+import com.wandocorp.nytscorebot.service.TimeFormatter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -10,6 +11,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalInt;
 
 @RequiredArgsConstructor
 @Component
@@ -24,9 +26,15 @@ public class ScoreboardRenderer {
 
     public Map<String, String> renderAll(Scoreboard sb1, String name1, Scoreboard sb2, String name2,
                                           Map<String, Map<GameType, Integer>> streaks) {
+        return renderAll(sb1, name1, sb2, name2, streaks, CrosswordPbLookup.EMPTY);
+    }
+
+    public Map<String, String> renderAll(Scoreboard sb1, String name1, Scoreboard sb2, String name2,
+                                          Map<String, Map<GameType, Integer>> streaks,
+                                          CrosswordPbLookup pbLookup) {
         Map<String, String> result = new LinkedHashMap<>();
         for (GameComparisonScoreboard game : games) {
-            render(game, sb1, name1, sb2, name2, streaks).ifPresent(s -> result.put(game.gameType(), s));
+            render(game, sb1, name1, sb2, name2, streaks, pbLookup).ifPresent(s -> result.put(game.gameType(), s));
         }
         return result;
     }
@@ -35,10 +43,17 @@ public class ScoreboardRenderer {
     public Optional<String> renderByGameType(String gameType, Scoreboard sb1, String name1,
                                               Scoreboard sb2, String name2,
                                               Map<String, Map<GameType, Integer>> streaks) {
+        return renderByGameType(gameType, sb1, name1, sb2, name2, streaks, CrosswordPbLookup.EMPTY);
+    }
+
+    public Optional<String> renderByGameType(String gameType, Scoreboard sb1, String name1,
+                                              Scoreboard sb2, String name2,
+                                              Map<String, Map<GameType, Integer>> streaks,
+                                              CrosswordPbLookup pbLookup) {
         return games.stream()
                 .filter(g -> g.gameType().equals(gameType))
                 .findFirst()
-                .flatMap(game -> render(game, sb1, name1, sb2, name2, streaks));
+                .flatMap(game -> render(game, sb1, name1, sb2, name2, streaks, pbLookup));
     }
 
     /** Layout for a two-player comparison: the player with more emoji rows is placed on the left. */
@@ -48,6 +63,13 @@ public class ScoreboardRenderer {
     public Optional<String> render(GameComparisonScoreboard game, Scoreboard sb1, String name1,
                                     Scoreboard sb2, String name2,
                                     Map<String, Map<GameType, Integer>> streaks) {
+        return render(game, sb1, name1, sb2, name2, streaks, CrosswordPbLookup.EMPTY);
+    }
+
+    public Optional<String> render(GameComparisonScoreboard game, Scoreboard sb1, String name1,
+                                    Scoreboard sb2, String name2,
+                                    Map<String, Map<GameType, Integer>> streaks,
+                                    CrosswordPbLookup pbLookup) {
         boolean has1 = game.hasResult(sb1);
         boolean has2 = game.hasResult(sb2);
 
@@ -61,12 +83,12 @@ public class ScoreboardRenderer {
             String presentName = has1 ? name1 : name2;
             String missingName = has1 ? name2 : name1;
             return Optional.of(renderSinglePlayer(game, header, presentSb, presentName, missingName,
-                    streaks));
+                    streaks, pbLookup));
         }
 
         TwoPlayerLayout layout = determineLayout(game, sb1, name1, sb2, name2);
         ComparisonOutcome outcome = game.determineOutcome(sb1, name1, sb2, name2);
-        return Optional.of(renderTwoPlayer(game, header, layout, outcome, streaks));
+        return Optional.of(renderTwoPlayer(game, header, layout, outcome, streaks, pbLookup));
     }
 
     /** Places the player with more emoji rows on the left for better visual alignment. */
@@ -81,7 +103,8 @@ public class ScoreboardRenderer {
 
     private String renderSinglePlayer(GameComparisonScoreboard game, String header,
                                        Scoreboard presentSb, String presentName, String missingName,
-                                       Map<String, Map<GameType, Integer>> streaks) {
+                                       Map<String, Map<GameType, Integer>> streaks,
+                                       CrosswordPbLookup pbLookup) {
         String nameRow = String.format("%" + PLAYER_COL_WIDTH + "s", presentName);
         String leading = " ".repeat(game.leadingSpaces());
 
@@ -103,6 +126,9 @@ public class ScoreboardRenderer {
                 sb.append(String.format("%" + PLAYER_COL_WIDTH + "s", flags)).append("\n");
             }
         }
+
+        appendSinglePlayerPbRows(sb, game, presentSb, presentName, pbLookup);
+
         sb.append(SINGLE_SEP).append("\n");
 
         if (game.usesStreakDisplay()) {
@@ -119,7 +145,8 @@ public class ScoreboardRenderer {
     private String renderTwoPlayer(GameComparisonScoreboard game, String header,
                                     TwoPlayerLayout layout,
                                     ComparisonOutcome outcome,
-                                    Map<String, Map<GameType, Integer>> streaks) {
+                                    Map<String, Map<GameType, Integer>> streaks,
+                                    CrosswordPbLookup pbLookup) {
         List<String> leftRows = game.emojiGridRows(layout.leftSb);
         List<String> rightRows = game.emojiGridRows(layout.rightSb);
         String nameRow = String.format("%" + PLAYER_COL_WIDTH + "s  |  %s",
@@ -162,6 +189,8 @@ public class ScoreboardRenderer {
                 sb.append(flagsRow).append("\n");
             }
         }
+
+        appendTwoPlayerPbRows(sb, game, layout, pbLookup);
 
         sb.append(SEP).append("\n");
 
@@ -218,5 +247,71 @@ public class ScoreboardRenderer {
             return String.format(BotText.SCOREBOARD_WAITING, wf.missingPlayerName());
         }
         throw new IllegalStateException("Unknown ComparisonOutcome: " + outcome);
+    }
+
+    // ── Inline PB / Δ avg rows (crossword scoreboards only) ──────────────────
+
+    private void appendTwoPlayerPbRows(StringBuilder sb, GameComparisonScoreboard game,
+                                        TwoPlayerLayout layout, CrosswordPbLookup pbLookup) {
+        if (!game.isCrossword()) return;
+        GameType gt = GameType.fromLabel(game.gameType());
+        CrosswordPbStats leftStats  = pbLookup.lookup(layout.leftName, gt);
+        CrosswordPbStats rightStats = pbLookup.lookup(layout.rightName, gt);
+        if (!leftStats.hasHistory() && !rightStats.hasHistory()) return;
+
+        OptionalInt leftToday  = game.todaySeconds(layout.leftSb);
+        OptionalInt rightToday = game.todaySeconds(layout.rightSb);
+
+        sb.append(SEP).append("\n");
+        sb.append(deltaAvgHeaderTwoPlayer()).append("\n");
+        sb.append(deltaRowTwoPlayer(leftStats, leftToday, rightStats, rightToday)).append("\n");
+        sb.append(pbRowTwoPlayer(leftStats, rightStats)).append("\n");
+    }
+
+    private void appendSinglePlayerPbRows(StringBuilder sb, GameComparisonScoreboard game,
+                                           Scoreboard presentSb, String presentName,
+                                           CrosswordPbLookup pbLookup) {
+        if (!game.isCrossword()) return;
+        GameType gt = GameType.fromLabel(game.gameType());
+        CrosswordPbStats stats = pbLookup.lookup(presentName, gt);
+        if (!stats.hasHistory()) return;
+
+        OptionalInt today = game.todaySeconds(presentSb);
+
+        sb.append(SINGLE_SEP).append("\n");
+        sb.append(String.format("%" + PLAYER_COL_WIDTH + "s", BotText.SCOREBOARD_DELTA_AVG_HEADER)).append("\n");
+        sb.append(String.format("%" + PLAYER_COL_WIDTH + "s", deltaCell(stats, today))).append("\n");
+        sb.append(String.format("%" + PLAYER_COL_WIDTH + "s", pbCell(stats))).append("\n");
+    }
+
+    private static String deltaAvgHeaderTwoPlayer() {
+        // Centre-ish between two columns; PLAYER_COL_WIDTH + 7 right-aligns the header into the gap.
+        return String.format("%" + (PLAYER_COL_WIDTH + 7) + "s", BotText.SCOREBOARD_DELTA_AVG_HEADER);
+    }
+
+    private static String deltaRowTwoPlayer(CrosswordPbStats left, OptionalInt leftToday,
+                                             CrosswordPbStats right, OptionalInt rightToday) {
+        return String.format("%" + PLAYER_COL_WIDTH + "s     %s",
+                deltaCell(left, leftToday), deltaCell(right, rightToday));
+    }
+
+    private static String pbRowTwoPlayer(CrosswordPbStats left, CrosswordPbStats right) {
+        return String.format("%" + PLAYER_COL_WIDTH + "s     %s",
+                pbCell(left), pbCell(right));
+    }
+
+    /** Renders the signed delta as ±M:SS, or blank when this player has no history / no result today. */
+    private static String deltaCell(CrosswordPbStats stats, OptionalInt todaySec) {
+        if (stats.avgSeconds().isEmpty() || todaySec.isEmpty()) return "";
+        int delta = todaySec.getAsInt() - stats.avgSeconds().getAsInt();
+        char sign = delta < 0 ? '-' : '+';
+        int abs = Math.abs(delta);
+        return String.format("%c%d:%02d", sign, abs / 60, abs % 60);
+    }
+
+    /** Renders {@code PB:M:SS}, or blank when this player has no PB. */
+    private static String pbCell(CrosswordPbStats stats) {
+        if (stats.pbSeconds().isEmpty()) return "";
+        return BotText.SCOREBOARD_PB_PREFIX + TimeFormatter.format(stats.pbSeconds().getAsInt());
     }
 }
