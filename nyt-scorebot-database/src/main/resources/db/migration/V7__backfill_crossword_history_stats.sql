@@ -3,8 +3,8 @@
 -- Main: one row per (user, weekday); only "clean" results count
 --       (no check used, no lookups, no duo).
 --
--- NOTE: H2's DAY_OF_WEEK() is locale-sensitive. EXTRACT(ISO_DAY_OF_WEEK FROM d) is
--- guaranteed to return Monday=1..Sunday=7 to match Java's DayOfWeek.getValue().
+-- NOTE: H2's DAY_OF_WEEK() is locale-sensitive. ISO_DAY_OF_WEEK(d) returns
+-- Monday=1..Sunday=7 to match Java's DayOfWeek.getValue().
 
 INSERT INTO crossword_history_stats (user_id, game_type, day_of_week, sample_count, sum_seconds, pb_seconds)
 SELECT s.user_id,
@@ -35,7 +35,7 @@ GROUP BY s.user_id;
 INSERT INTO crossword_history_stats (user_id, game_type, day_of_week, sample_count, sum_seconds, pb_seconds)
 SELECT s.user_id,
        'MAIN',
-       CAST(EXTRACT(ISO_DAY_OF_WEEK FROM gr.crossword_date) AS TINYINT),
+       CAST(ISO_DAY_OF_WEEK(gr.crossword_date) AS TINYINT),
        COUNT(*),
        COALESCE(SUM(gr.total_seconds), 0),
        MIN(gr.total_seconds)
@@ -47,4 +47,4 @@ WHERE gr.game_type = 'MAIN_CROSSWORD'
   AND (gr.check_used IS NULL OR gr.check_used = FALSE)
   AND (gr.lookups IS NULL OR gr.lookups = 0)
   AND (gr.duo IS NULL OR gr.duo = FALSE)
-GROUP BY s.user_id, EXTRACT(ISO_DAY_OF_WEEK FROM gr.crossword_date);
+GROUP BY s.user_id, ISO_DAY_OF_WEEK(gr.crossword_date);
