@@ -208,8 +208,10 @@ class ScoreboardRendererTest {
         assertThat(output).contains("0:30");
         assertThat(output).contains("1:00");
         assertThat(output).doesNotContain("🔥");
-        // Time row uses spaces, not pipe divider
-        assertThat(output).contains("0:30     1:00");
+        assertThat(output).contains("William | Conor");
+        assertThat(output).contains("-----------------+---------------");
+        assertThat(output).contains("0:30 | 1:00");
+        assertThat(output).doesNotContain("0:30     1:00");
     }
 
     @Test
@@ -237,8 +239,11 @@ class ScoreboardRendererTest {
         assertThat(output).contains("7:30");
         assertThat(output).contains("👫 🔍×2");
         assertThat(output).contains("✅");
-        // Time row uses spaces, not pipe divider
-        assertThat(output).contains("5:00     7:30");
+        assertThat(output).contains("William | Conor");
+        assertThat(output).contains("-----------------+---------------");
+        assertThat(output).contains("5:00 | 7:30");
+        assertThat(output).doesNotContain("👫 🔍×2 | ✅");
+        assertThat(output).doesNotContain("5:00     7:30");
 
         // Flags row appears after time row
         int timeRowIdx = output.indexOf("5:00");
