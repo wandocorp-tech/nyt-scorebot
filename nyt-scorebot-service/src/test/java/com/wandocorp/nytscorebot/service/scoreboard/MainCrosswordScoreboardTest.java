@@ -3,16 +3,32 @@ package com.wandocorp.nytscorebot.service.scoreboard;
 import com.wandocorp.nytscorebot.entity.Scoreboard;
 import com.wandocorp.nytscorebot.entity.User;
 import com.wandocorp.nytscorebot.model.MainCrosswordResult;
+import com.wandocorp.nytscorebot.service.history.CrosswordGame;
+import com.wandocorp.nytscorebot.service.history.CrosswordHistoryService;
+import com.wandocorp.nytscorebot.service.history.CrosswordHistoryStats;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
+import java.util.OptionalInt;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
 
 class MainCrosswordScoreboardTest {
 
     private static final LocalDate DATE = LocalDate.of(2026, 3, 31);
-    private final MainCrosswordScoreboard scoreboard = new MainCrosswordScoreboard();
+    private final CrosswordHistoryService historyService = Mockito.mock(CrosswordHistoryService.class);
+    private final MainCrosswordScoreboard scoreboard = new MainCrosswordScoreboard(historyService);
+
+    {
+        Mockito.when(historyService.getStats(any(), any(), any())).thenReturn(CrosswordHistoryStats.EMPTY);
+    }
 
     private Scoreboard sbWith(MainCrosswordResult result) {
         Scoreboard sb = new Scoreboard(new User("c1", "test", "u1"), DATE);
@@ -50,7 +66,7 @@ class MainCrosswordScoreboardTest {
     @Test
     void headerContainsDateFormatted() {
         String header = scoreboard.header(sbWith(result("15:00", 900)));
-        assertThat(header).isEqualTo("Main - 3/31/2026");
+        assertThat(header).isEqualTo("Tuesday - 3/31/2026");
     }
 
     @Test
@@ -192,7 +208,7 @@ class MainCrosswordScoreboardTest {
     void checkOnlyReturnsCheckFlag() {
         MainCrosswordResult r = result("15:00", 900);
         r.setCheckUsed(true);
-        assertThat(scoreboard.flagsRow(sbWith(r))).isEqualTo("✓");
+        assertThat(scoreboard.flagsRow(sbWith(r))).isEqualTo("✅");
     }
 
     @Test
@@ -201,7 +217,7 @@ class MainCrosswordScoreboardTest {
         r.setDuo(true);
         r.setLookups(2);
         r.setCheckUsed(true);
-        assertThat(scoreboard.flagsRow(sbWith(r))).isEqualTo("👫 🔍×2 ✓");
+        assertThat(scoreboard.flagsRow(sbWith(r))).isEqualTo("👫 🔍×2 ✅");
     }
 
     @Test
@@ -216,5 +232,52 @@ class MainCrosswordScoreboardTest {
         MainCrosswordResult r = result("15:00", 900);
         r.setDuo(false);
         assertThat(scoreboard.flagsRow(sbWith(r))).isEmpty();
+    }
+
+    // ── Avg / PB extra rows ───────────────────────────────────────────────────
+
+    @Test
+    void extraRowsReturnDashWhenNoHistory() {
+        // DATE is 2026-03-31 (Tuesday); historyService already mocked to return EMPTY
+        Scoreboard sb1 = sbWith(result("15:00", 900));
+        Scoreboard sb2 = sbWith(result("16:00", 960));
+        List<ExtraRow> rows = scoreboard.extraRowsBelowOutcome(sb1, sb2);
+        assertThat(rows).hasSize(2);
+        assertThat(rows.get(0).label()).isEqualTo("avg");
+        assertThat(rows.get(0).leftValue()).isEqualTo("-");
+        assertThat(rows.get(0).rightValue()).isEqualTo("-");
+        assertThat(rows.get(1).label()).isEqualTo("pb");
+    }
+
+    @Test
+    void extraRowsShowFormattedTimesWhenHistoryPresent() {
+        User u1 = new User("c1", "Alice", "u1");
+        User u2 = new User("c2", "Bob", "u2");
+        Scoreboard sb1 = new Scoreboard(u1, DATE);
+        sb1.addResult(result("15:00", 900));
+        Scoreboard sb2 = new Scoreboard(u2, DATE);
+        sb2.addResult(result("16:00", 960));
+
+        CrosswordHistoryStats stats1 = new CrosswordHistoryStats(OptionalInt.of(840), OptionalInt.of(700));
+        CrosswordHistoryStats stats2 = new CrosswordHistoryStats(OptionalInt.of(920), OptionalInt.of(800));
+        when(historyService.getStats(eq(u1), eq(CrosswordGame.MAIN), eq(Optional.of(DayOfWeek.TUESDAY)))).thenReturn(stats1);
+        when(historyService.getStats(eq(u2), eq(CrosswordGame.MAIN), eq(Optional.of(DayOfWeek.TUESDAY)))).thenReturn(stats2);
+
+        List<ExtraRow> rows = scoreboard.extraRowsBelowOutcome(sb1, sb2);
+        assertThat(rows).hasSize(2);
+        assertThat(rows.get(0).leftValue()).isEqualTo("14:00");
+        assertThat(rows.get(0).rightValue()).isEqualTo("15:20");
+        assertThat(rows.get(1).leftValue()).isEqualTo("11:40");
+        assertThat(rows.get(1).rightValue()).isEqualTo("13:20");
+    }
+
+    @Test
+    void extraRowsQueryWithCorrectWeekday() {
+        // DATE (2026-03-31) is a Tuesday
+        Scoreboard sb1 = sbWith(result("15:00", 900));
+        Scoreboard sb2 = sbWith(result("16:00", 960));
+        scoreboard.extraRowsBelowOutcome(sb1, sb2);
+        Mockito.verify(historyService, Mockito.times(2))
+                .getStats(any(), eq(CrosswordGame.MAIN), eq(Optional.of(DayOfWeek.TUESDAY)));
     }
 }
