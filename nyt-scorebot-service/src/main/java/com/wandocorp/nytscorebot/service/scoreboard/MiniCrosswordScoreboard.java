@@ -3,17 +3,25 @@ package com.wandocorp.nytscorebot.service.scoreboard;
 import com.wandocorp.nytscorebot.BotText;
 import com.wandocorp.nytscorebot.entity.Scoreboard;
 import com.wandocorp.nytscorebot.model.CrosswordResult;
+import com.wandocorp.nytscorebot.service.history.CrosswordGame;
+import com.wandocorp.nytscorebot.service.history.CrosswordHistoryService;
+import com.wandocorp.nytscorebot.service.history.CrosswordHistoryStats;
+import lombok.RequiredArgsConstructor;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Optional;
 
 @Component
 @Order(5)
+@RequiredArgsConstructor
 public class MiniCrosswordScoreboard implements GameComparisonScoreboard {
 
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("M/d/yyyy");
+
+    private final CrosswordHistoryService historyService;
 
     @Override
     public String gameType() {
@@ -51,6 +59,13 @@ public class MiniCrosswordScoreboard implements GameComparisonScoreboard {
         if (t1 == t2) return new ComparisonOutcome.Nuke();
         if (t1 < t2) return new ComparisonOutcome.Win(name1, MainCrosswordScoreboard.formatMmSs(t2 - t1));
         return new ComparisonOutcome.Win(name2, MainCrosswordScoreboard.formatMmSs(t1 - t2));
+    }
+
+    @Override
+    public List<ExtraRow> extraRowsBelowOutcome(Scoreboard left, Scoreboard right) {
+        CrosswordHistoryStats l = historyService.getStats(left.getUser(), CrosswordGame.MINI, Optional.empty());
+        CrosswordHistoryStats r = historyService.getStats(right.getUser(), CrosswordGame.MINI, Optional.empty());
+        return CrosswordExtraRows.avgPbRows(l, r);
     }
 
     @Override public int leadingSpaces() { return 0; }

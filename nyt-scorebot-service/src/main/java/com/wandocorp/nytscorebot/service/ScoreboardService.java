@@ -5,6 +5,8 @@ import com.wandocorp.nytscorebot.entity.User;
 import com.wandocorp.nytscorebot.model.*;
 import com.wandocorp.nytscorebot.repository.ScoreboardRepository;
 import com.wandocorp.nytscorebot.repository.UserRepository;
+import com.wandocorp.nytscorebot.service.history.CrosswordGame;
+import com.wandocorp.nytscorebot.service.history.CrosswordHistoryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -23,6 +25,7 @@ public class ScoreboardService {
     private final ScoreboardRepository scoreboardRepository;
     private final PuzzleCalendar puzzleCalendar;
     private final StreakService streakService;
+    private final CrosswordHistoryService crosswordHistoryService;
 
     public List<Scoreboard> getTodayScoreboards() {
         return scoreboardRepository.findAllByDateWithUser(puzzleCalendar.today());
@@ -80,6 +83,7 @@ public class ScoreboardService {
         applyResult(scoreboard, result);
         scoreboardRepository.save(scoreboard);
         streakService.updateStreak(user, result);
+        recordCrosswordHistoryIfApplicable(user, result, resultDate);
         autoFinishIfComplete(scoreboard, personName, resultDate);
 
         log.info("Saved {} result for {} on {}", result.getClass().getSimpleName(), personName, resultDate);
@@ -131,6 +135,23 @@ public class ScoreboardService {
 
     private void applyResult(Scoreboard scoreboard, GameResult result) {
         scoreboard.addResult(result);
+    }
+
+    private void recordCrosswordHistoryIfApplicable(User user, GameResult result, LocalDate date) {
+        if (!(result instanceof CrosswordResult crossword) || crossword.getTotalSeconds() == null) {
+            return;
+        }
+        CrosswordGame game = CrosswordGame.fromGameType(result.gameType());
+        boolean duo = false;
+        boolean checkUsed = false;
+        int lookups = 0;
+        if (crossword instanceof MainCrosswordResult main) {
+            duo = Boolean.TRUE.equals(main.getDuo());
+            checkUsed = Boolean.TRUE.equals(main.getCheckUsed());
+            lookups = main.getLookups() != null ? main.getLookups() : 0;
+        }
+        crosswordHistoryService.recordSubmission(user, game, date, crossword.getTotalSeconds(),
+                checkUsed, lookups, duo);
     }
 
     @Transactional

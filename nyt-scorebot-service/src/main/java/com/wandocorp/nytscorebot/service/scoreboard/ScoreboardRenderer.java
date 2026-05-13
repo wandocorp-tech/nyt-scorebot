@@ -20,6 +20,10 @@ public class ScoreboardRenderer {
     /** Column width for player name; names longer than this will misalign the layout. */
     private static final int PLAYER_COL_WIDTH = 15;
 
+    /** Layout for the optional extra rows (avg/pb). The {@code +} positions match the {@code |} positions. */
+    private static final String EXTRA_ROW_FMT = " %-3s |%10s | %s";
+    private static final String EXTRA_DIVIDER = "-----+-----------+---------------";
+
     private final List<GameComparisonScoreboard> games;
 
     public Map<String, String> renderAll(Scoreboard sb1, String name1, Scoreboard sb2, String name2,
@@ -172,6 +176,14 @@ public class ScoreboardRenderer {
         }
 
         sb.append(SEP).append("\n");
+
+        List<ExtraRow> extras = game.extraRowsBelowOutcome(layout.leftSb, layout.rightSb);
+        for (int i = 0; i < extras.size(); i++) {
+            ExtraRow row = extras.get(i);
+            sb.append(String.format(EXTRA_ROW_FMT, row.label(), row.leftValue(), row.rightValue())).append("\n");
+            sb.append(i < extras.size() - 1 ? EXTRA_DIVIDER : SEP).append("\n");
+        }
+
         sb.append(BotText.STATUS_CODE_BLOCK_CLOSE);
         return sb.toString();
     }
