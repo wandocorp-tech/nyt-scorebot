@@ -156,10 +156,16 @@ Once both players have finished for the day (either by submitting all games or u
 Below the outcome line, every two-player crossword scoreboard appends two extra rows:
 
 ```
+         William | Conor
+-----------------+---------------
+            3:55 | 4:12
+---------------------------------
+ 🏆 William wins! (0:17)
+---------------------------------
 -----+-----------+---------------
- avg |    3:42   | 5:10
+ avg |      3:42 | 5:10
 -----+-----------+---------------
- pb  |    2:55   | 4:01
+ pb  |      2:55 | 4:01
 ---------------------------------
 ```
 
@@ -168,6 +174,7 @@ Below the outcome line, every two-player crossword scoreboard appends two extra 
 - For **Main**, only *clean* solves (no check used, no lookups, not duo) contribute to avg and pb. Stats are bucketed **per day-of-week** (Monday avg/pb differs from Sunday avg/pb).
 - For **Mini / Midi**, all submissions count regardless of flags, and there is a single avg/pb across all days of the week.
 - Stats are stored incrementally in the `crossword_history_stats` table and updated immediately on each new submission.
+- Crossword name and score rows use a centre `|`; their dividing line uses a `+` aligned with that centre divider. Emoji-grid scoreboards keep their existing spacing.
 - Extra rows are **not** shown on single-player scoreboards.
 
 **Main crossword header:** The header uses the day of the week instead of the game label (e.g., `Tuesday - 5/10/2026`). Mini and Midi keep their `Mini - <date>` / `Midi - <date>` headers.

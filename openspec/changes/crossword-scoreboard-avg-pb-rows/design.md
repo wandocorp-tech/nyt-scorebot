@@ -5,11 +5,11 @@ The bot currently renders three daily crossword scoreboards (Mini, Midi, Main) i
 ```
  Main - 5/10/2026
 ---------------------------------
-        William | Conor
-----------------+----------------
-          15:00 | 22:02
+         William | Conor
+-----------------+---------------
+           15:00 | 22:02
 ---------------------------------
-    👫 🔍×2 ✓    ✓
+       👫 🔍×2 ✓ | ✓
 ---------------------------------
  🤝 Tie!
 ---------------------------------
@@ -20,11 +20,11 @@ The bot currently renders three daily crossword scoreboards (Mini, Midi, Main) i
 ```
  Sunday - 5/10/2026
 ---------------------------------
-        William | Conor
-----------------+----------------
-          15:00 | 22:02
+         William | Conor
+-----------------+---------------
+           15:00 | 22:02
 ---------------------------------
-    👫 🔍×2 ✅    ✅
+       👫 🔍×2 ✅ | ✅
 ---------------------------------
  🤝 Tie!
 ---------------------------------
@@ -162,15 +162,18 @@ The write path encapsulates the qualifying-submission rule for Main; the read pa
 
 **Rationale**: Keeps the layout stable. After V8, seed-only rows will have `pb` set but `avg = -` until the first qualifying submission arrives.
 
-### Decision 7: Centralise alignment in a `ScoreboardLayout` helper
+### Decision 7: Centralise crossword-only alignment in `ScoreboardRenderer`
 
-**Choice**: Introduce one small helper class (in `nyt-scorebot-service`) that owns:
-- `int displayWidth(String)` — counting emojis (and their `×N` suffixes) as 2 chars per emoji, ASCII as 1 char each.
-- `String renderRow(String label, String left, String right)` — pads `left` and `right` so that each cell sits exactly 1 char from the centre `|`, computes the divider line of matching width, and (for the `avg` / `pb` rows) prefixes the label column with a `+` aligned to the centre divider.
+**Choice**: Keep the existing emoji-grid layout path unchanged, and add a crossword-only two-column layout path in `ScoreboardRenderer`. Mini, Midi, and Main opt into that path via `GameComparisonScoreboard.usesCrosswordLayout()`.
 
-All three crossword renderers call this helper. The Wordle / Connections / Strands renderers are not migrated by this change.
+The crossword path owns:
+- `displayWidth(String)` — counting emoji glyphs (and their `×N` suffixes) as 2 chars per emoji, ASCII as 1 char each.
+- A shared two-column row renderer for player names, solve times, and Main flags. The left cell is right-aligned so it ends exactly 1 character before the centre `|`; the right cell starts exactly 1 character after it.
+- A name/time divider with a `+` aligned to that centre `|`. The existing `avg` / `pb` rows keep their label-column divider and centre divider.
 
-**Rationale**: Without one place to compute widths, the three renderers will drift apart and the alignment rules from `docs/designs/main.txt` will be re-implemented inconsistently.
+The Wordle / Connections / Strands renderers are not migrated by this change.
+
+**Rationale**: Putting the opt-in layout in the shared renderer keeps the three crossword boards visually consistent while preserving the existing emoji-board output byte-for-byte.
 
 ### Decision 8: Day-of-week header for Main only
 

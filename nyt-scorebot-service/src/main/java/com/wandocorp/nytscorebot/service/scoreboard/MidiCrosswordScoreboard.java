@@ -72,4 +72,5 @@ public class MidiCrosswordScoreboard implements GameComparisonScoreboard {
     @Override public int baseGap() { return 0; }
     @Override public int maxEmojisPerRow() { return 0; }
     @Override public boolean usesScoreLabelRow() { return true; }
+    @Override public boolean usesCrosswordLayout() { return true; }
 }

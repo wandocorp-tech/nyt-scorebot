@@ -111,6 +111,7 @@ public class MainCrosswordScoreboard implements GameComparisonScoreboard {
     @Override public int baseGap() { return 3; }
     @Override public int maxEmojisPerRow() { return 6; }
     @Override public boolean usesScoreLabelRow() { return true; }
+    @Override public boolean usesCrosswordLayout() { return true; }
 
     static String buildFlagsString(MainCrosswordResult r) {
         List<String> parts = new ArrayList<>();

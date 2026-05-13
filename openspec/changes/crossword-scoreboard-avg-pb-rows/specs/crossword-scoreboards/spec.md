@@ -12,7 +12,7 @@ Today's submission (the row being rendered) SHALL be included in the calculation
 
 Times SHALL be rendered using the existing time formatter (e.g., `M:SS` under one hour, `H:MM:SS` over one hour) and `avg` SHALL be rounded to the nearest whole second before formatting.
 
-The two new rows SHALL appear in the order `avg` then `pb`, separated from the rows above and from each other by divider lines whose `+` characters align with the centre `|` of the data rows.
+The two new rows SHALL appear in the order `avg` then `pb`, separated from each other by a divider line whose `+` characters align with the `|` dividers in the surrounding rows.
 
 #### Scenario: Mini scoreboard shows avg and pb across all submitted days
 - **WHEN** a player has previously submitted Mini crossword times of 0:30, 0:50, 1:00 and submits 1:00 today
@@ -127,20 +127,25 @@ Mini and Midi crossword scoreboard headers SHALL display the crossword date in t
 ## ADDED Requirements
 
 ### Requirement: Crossword scoreboard alignment
-All three crossword scoreboards SHALL share consistent alignment rules:
+All three crossword scoreboards SHALL share consistent alignment rules for their non-emoji comparison rows. Wordle, Connections, and Strands scoreboards SHALL keep their existing emoji-grid layout unchanged.
 
-1. **Emoji width**: Every emoji glyph SHALL be counted as **2 character widths** when computing column padding. The `🔍×N` lookup indicator SHALL be counted as 2 (emoji) + the literal `×N` characters. ASCII characters SHALL be counted as 1 each.
-2. **Centre divider padding**: Each data cell (player times, flag indicators, avg, pb) SHALL sit exactly **1 character** away from the centre `|` divider on its side.
-3. **Divider plus alignment**: On rows where a `+` joins divider segments (the name/time bar divider, and the new `avg`/`pb` dividers), every `+` SHALL be vertically aligned with the centre `|` of the data rows above and below.
+1. **Name row**: The two-player name row SHALL render a centre `|` divider, with the left player name ending exactly 1 character before the divider and the right player name starting exactly 1 character after it.
+2. **Score row**: The two-player score row SHALL render the same centre `|` divider as the name row, with the left score ending exactly 1 character before the divider and the right score starting exactly 1 character after it.
+3. **Divider plus alignment**: The divider line between the name row and score row SHALL contain a `+` at the same column as the centre `|`. The `avg`/`pb` divider lines SHALL also keep their `+` characters aligned with their surrounding `|` dividers.
+4. **Flag row padding**: Main crossword flag rows SHALL use the same centre divider as the time row when flags are present. Emoji glyphs used in that row SHALL be counted as 2 character widths when computing left-side padding; the `🔍×N` lookup indicator SHALL be counted as 2 (emoji) + the literal `×N` characters. ASCII characters SHALL be counted as 1 each.
 
 #### Scenario: Lookup indicator with emoji is padded as 2-char emoji plus literal suffix
 - **WHEN** a Main flags row renders `🔍×2` for a player
 - **THEN** the column padding accounts for the indicator as 4 character widths (2 for the emoji + 2 for `×2`)
 
-#### Scenario: All data cells sit one char from the centre divider
-- **WHEN** any crossword scoreboard row is rendered (time row, flags row, outcome row, avg row, or pb row)
+#### Scenario: Name and score cells sit one char from the centre divider
+- **WHEN** any two-player crossword scoreboard name or score row is rendered
 - **THEN** the rightmost character of the left cell is followed by exactly 1 space, then `|`, then exactly 1 space, then the leftmost character of the right cell
 
+#### Scenario: Emoji scoreboards keep existing spacing
+- **WHEN** a Wordle, Connections, or Strands scoreboard is rendered
+- **THEN** its existing name/streak/emoji-grid spacing is unchanged by the crossword alignment rules
+
 #### Scenario: avg/pb dividers have aligned plus characters
-- **WHEN** a crossword scoreboard renders the divider line between the outcome row and the `avg` row, and between the `avg` and `pb` rows
+- **WHEN** a crossword scoreboard renders the divider line between the `avg` and `pb` rows
 - **THEN** the divider line contains a `+` at the same column index as the centre `|` of the surrounding data rows

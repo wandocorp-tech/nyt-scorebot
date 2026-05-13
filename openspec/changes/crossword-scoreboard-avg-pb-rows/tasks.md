@@ -75,3 +75,10 @@
 
 - [x] 12.1 Update `README.md` documenting: avg/pb rows on crossword scoreboards; Main header uses day-of-week; stats persisted in `crossword_history_stats`.
 - [x] 12.2 No changes required to `docs/designs/main.txt` — it remains the source design.
+
+## 13. Follow-up: crossword centre-divider alignment
+
+- [x] 13.1 Add an opt-in crossword layout path so Mini, Midi, and Main name rows render with a centre `|` aligned to the avg/pb rows.
+- [x] 13.2 Render crossword score rows with the same centre `|` and a `+` divider between the name and score rows.
+- [x] 13.3 Preserve the existing Wordle, Connections, and Strands emoji-grid layout.
+- [x] 13.4 Update renderer tests and OpenSpec artifacts to document the corrected alignment.

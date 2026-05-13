@@ -15,6 +15,7 @@ public interface GameComparisonScoreboard {
     int maxEmojisPerRow();
     default boolean usesStreakDisplay() { return false; }
     default boolean usesScoreLabelRow() { return false; }
+    default boolean usesCrosswordLayout() { return false; }
     default String flagsRow(Scoreboard scoreboard) { return ""; }
 
     /**
