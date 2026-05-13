@@ -33,18 +33,23 @@ WHERE gr.game_type = 'MIDI_CROSSWORD'
 GROUP BY s.user_id;
 
 INSERT INTO crossword_history_stats (user_id, game_type, day_of_week, sample_count, sum_seconds, pb_seconds)
-SELECT s.user_id,
+SELECT user_id,
        'MAIN',
-       CAST(ISO_DAY_OF_WEEK(gr.crossword_date) AS TINYINT),
+       day_of_week,
        COUNT(*),
-       COALESCE(SUM(gr.total_seconds), 0),
-       MIN(gr.total_seconds)
-FROM game_result gr
-JOIN scoreboard s ON s.id = gr.scoreboard_id
-WHERE gr.game_type = 'MAIN_CROSSWORD'
-  AND gr.total_seconds IS NOT NULL
-  AND gr.crossword_date IS NOT NULL
-  AND (gr.check_used IS NULL OR gr.check_used = FALSE)
-  AND (gr.lookups IS NULL OR gr.lookups = 0)
-  AND (gr.duo IS NULL OR gr.duo = FALSE)
-GROUP BY s.user_id, ISO_DAY_OF_WEEK(gr.crossword_date);
+       COALESCE(SUM(total_seconds), 0),
+       MIN(total_seconds)
+FROM (
+    SELECT s.user_id,
+           CAST(ISO_DAY_OF_WEEK(gr.crossword_date) AS TINYINT) AS day_of_week,
+           gr.total_seconds
+    FROM game_result gr
+    JOIN scoreboard s ON s.id = gr.scoreboard_id
+    WHERE gr.game_type = 'MAIN_CROSSWORD'
+      AND gr.total_seconds IS NOT NULL
+      AND gr.crossword_date IS NOT NULL
+      AND (gr.check_used IS NULL OR gr.check_used = FALSE)
+      AND (gr.lookups IS NULL OR gr.lookups = 0)
+      AND (gr.duo IS NULL OR gr.duo = FALSE)
+) sub
+GROUP BY user_id, day_of_week;
