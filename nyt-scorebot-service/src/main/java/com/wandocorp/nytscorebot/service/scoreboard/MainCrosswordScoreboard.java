@@ -3,18 +3,28 @@ package com.wandocorp.nytscorebot.service.scoreboard;
 import com.wandocorp.nytscorebot.BotText;
 import com.wandocorp.nytscorebot.entity.Scoreboard;
 import com.wandocorp.nytscorebot.model.MainCrosswordResult;
+import com.wandocorp.nytscorebot.service.history.CrosswordGame;
+import com.wandocorp.nytscorebot.service.history.CrosswordHistoryService;
+import com.wandocorp.nytscorebot.service.history.CrosswordHistoryStats;
+import lombok.RequiredArgsConstructor;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.time.format.DateTimeFormatter;
+import java.time.format.TextStyle;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
 
 @Component
 @Order(7)
+@RequiredArgsConstructor
 public class MainCrosswordScoreboard implements GameComparisonScoreboard {
 
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("M/d/yyyy");
+
+    private final CrosswordHistoryService historyService;
 
     @Override
     public String gameType() {
@@ -31,8 +41,11 @@ public class MainCrosswordScoreboard implements GameComparisonScoreboard {
     @Override
     public String header(Scoreboard scoreboard) {
         MainCrosswordResult r = scoreboard.getMainCrosswordResult();
-        String dateStr = r.getDate() != null ? r.getDate().format(DATE_FMT) : "?";
-        return String.format(BotText.SCOREBOARD_MAIN_HEADER, dateStr);
+        if (r.getDate() == null) {
+            return String.format(BotText.SCOREBOARD_MAIN_HEADER, "?");
+        }
+        String dayName = r.getDate().getDayOfWeek().getDisplayName(TextStyle.FULL, Locale.ENGLISH);
+        return String.format(BotText.SCOREBOARD_MAIN_HEADER, dayName + " - " + r.getDate().format(DATE_FMT));
     }
 
     @Override
@@ -69,6 +82,18 @@ public class MainCrosswordScoreboard implements GameComparisonScoreboard {
         return new ComparisonOutcome.Win(displayName(name2, r2), formatMmSs(t1 - t2));
     }
 
+    @Override
+    public List<ExtraRow> extraRowsBelowOutcome(Scoreboard left, Scoreboard right) {
+        MainCrosswordResult source = left.getMainCrosswordResult() != null
+                ? left.getMainCrosswordResult()
+                : right.getMainCrosswordResult();
+        if (source == null || source.getDate() == null) return List.of();
+        Optional<java.time.DayOfWeek> dow = Optional.of(source.getDate().getDayOfWeek());
+        CrosswordHistoryStats l = historyService.getStats(left.getUser(), CrosswordGame.MAIN, dow);
+        CrosswordHistoryStats r = historyService.getStats(right.getUser(), CrosswordGame.MAIN, dow);
+        return CrosswordExtraRows.avgPbRows(l, r);
+    }
+
     private static boolean usedAssistance(MainCrosswordResult r) {
         return Boolean.TRUE.equals(r.getCheckUsed())
                 || (r.getLookups() != null && r.getLookups() > 0);
@@ -86,6 +111,7 @@ public class MainCrosswordScoreboard implements GameComparisonScoreboard {
     @Override public int baseGap() { return 3; }
     @Override public int maxEmojisPerRow() { return 6; }
     @Override public boolean usesScoreLabelRow() { return true; }
+    @Override public boolean usesCrosswordLayout() { return true; }
 
     static String buildFlagsString(MainCrosswordResult r) {
         List<String> parts = new ArrayList<>();

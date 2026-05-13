@@ -95,12 +95,17 @@ public final class BotText {
     // ── Crossword scoreboard labels ───────────────────────────────────────────
     public static final String SCOREBOARD_MINI_HEADER   = "Mini - %s";
     public static final String SCOREBOARD_MIDI_HEADER   = "Midi - %s";
-    public static final String SCOREBOARD_MAIN_HEADER   = "Main - %s";
+    public static final String SCOREBOARD_MAIN_HEADER   = "%s";
 
     // ── Crossword flag indicators ─────────────────────────────────────────────
     public static final String FLAG_DUO     = "👫";
     public static final String FLAG_LOOKUPS = "🔍×%d";
-    public static final String FLAG_CHECK   = "✓";
+    public static final String FLAG_CHECK   = "✅";
+
+    // ── Crossword history (avg / pb) rows ─────────────────────────────────────
+    public static final String SCOREBOARD_AVG_LABEL  = "avg";
+    public static final String SCOREBOARD_PB_LABEL   = "pb";
+    public static final String SCOREBOARD_EMPTY_CELL = "-";
 
     // ── Crossword win streak summary ──────────────────────────────────────────
     public static final String WIN_STREAK_TITLE          = "Win Streaks";

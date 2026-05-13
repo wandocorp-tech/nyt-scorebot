@@ -6,8 +6,11 @@ import com.wandocorp.nytscorebot.model.GameType;
 import com.wandocorp.nytscorebot.model.MainCrosswordResult;
 import com.wandocorp.nytscorebot.model.MiniCrosswordResult;
 import com.wandocorp.nytscorebot.model.WordleResult;
+import com.wandocorp.nytscorebot.service.history.CrosswordHistoryService;
+import com.wandocorp.nytscorebot.service.history.CrosswordHistoryStats;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -15,8 +18,15 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 
 class ScoreboardRendererTest {
+
+    private static CrosswordHistoryService stubHistoryService() {
+        CrosswordHistoryService svc = Mockito.mock(CrosswordHistoryService.class);
+        Mockito.when(svc.getStats(any(), any(), any())).thenReturn(CrosswordHistoryStats.EMPTY);
+        return svc;
+    }
 
     private static final String WORDLE_6 =
             "Wordle 1738 6/6\n\n⬛⬛⬛🟨⬛\n⬛⬛⬛⬛🟨\n🟨🟨🟩⬛⬛\n🟩🟩🟩🟩⬛\n⬛🟨🟩🟨⬛\n🟩🟩🟩🟩⬛";
@@ -181,7 +191,7 @@ class ScoreboardRendererTest {
 
     @Test
     void crosswordScoreboardRendersOutcomeNotStreak() {
-        MiniCrosswordScoreboard miniGame = new MiniCrosswordScoreboard();
+        MiniCrosswordScoreboard miniGame = new MiniCrosswordScoreboard(stubHistoryService());
         ScoreboardRenderer crosswordRenderer = new ScoreboardRenderer(List.of(miniGame));
 
         Scoreboard sb1 = new Scoreboard(new User("c1", "test", "u1"), LocalDate.now());
@@ -198,13 +208,15 @@ class ScoreboardRendererTest {
         assertThat(output).contains("0:30");
         assertThat(output).contains("1:00");
         assertThat(output).doesNotContain("🔥");
-        // Time row uses spaces, not pipe divider
-        assertThat(output).contains("0:30     1:00");
+        assertThat(output).contains("William | Conor");
+        assertThat(output).contains("-----------------+---------------");
+        assertThat(output).contains("0:30 | 1:00");
+        assertThat(output).doesNotContain("0:30     1:00");
     }
 
     @Test
     void mainCrosswordRendersFlagsRowBelowTimeRow() {
-        MainCrosswordScoreboard mainGame = new MainCrosswordScoreboard();
+        MainCrosswordScoreboard mainGame = new MainCrosswordScoreboard(stubHistoryService());
         ScoreboardRenderer crosswordRenderer = new ScoreboardRenderer(List.of(mainGame));
 
         MainCrosswordResult r1 = new MainCrosswordResult("raw", "a", null, "5:00", 300, LocalDate.now());
@@ -226,9 +238,12 @@ class ScoreboardRendererTest {
         assertThat(output).contains("5:00");
         assertThat(output).contains("7:30");
         assertThat(output).contains("👫 🔍×2");
-        assertThat(output).contains("✓");
-        // Time row uses spaces, not pipe divider
-        assertThat(output).contains("5:00     7:30");
+        assertThat(output).contains("✅");
+        assertThat(output).contains("William | Conor");
+        assertThat(output).contains("-----------------+---------------");
+        assertThat(output).contains("5:00 | 7:30");
+        assertThat(output).doesNotContain("👫 🔍×2 | ✅");
+        assertThat(output).doesNotContain("5:00     7:30");
 
         // Flags row appears after time row
         int timeRowIdx = output.indexOf("5:00");
@@ -238,7 +253,7 @@ class ScoreboardRendererTest {
 
     @Test
     void crosswordScoreboardSinglePlayerRendersTime() {
-        MiniCrosswordScoreboard miniGame = new MiniCrosswordScoreboard();
+        MiniCrosswordScoreboard miniGame = new MiniCrosswordScoreboard(stubHistoryService());
         ScoreboardRenderer crosswordRenderer = new ScoreboardRenderer(List.of(miniGame));
 
         Scoreboard sb1 = new Scoreboard(new User("c1", "test", "u1"), LocalDate.now());
@@ -270,7 +285,7 @@ class ScoreboardRendererTest {
 
     @Test
     void crosswordScoreboardRendersNukeOnEqualUnaidedTimes() {
-        MiniCrosswordScoreboard miniGame = new MiniCrosswordScoreboard();
+        MiniCrosswordScoreboard miniGame = new MiniCrosswordScoreboard(stubHistoryService());
         ScoreboardRenderer crosswordRenderer = new ScoreboardRenderer(List.of(miniGame));
 
         Scoreboard sb1 = new Scoreboard(new User("c1", "test", "u1"), LocalDate.now());

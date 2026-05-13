@@ -151,6 +151,34 @@ Once both players have finished for the day (either by submitting all games or u
 - Mini & Midi crosswords: faster total time wins. Equal times trigger a special **☢️ Nuke!** message instead of the standard tie.
 - Main crossword: if both players used a check or any lookups, the result is a tie. If exactly one player used assistance, the unaided player wins regardless of time. Otherwise the faster time wins, with equal times triggering **☢️ Nuke!**. Time differentials are formatted as `MM:SS`. When the winner used the duo flag, their name is suffixed with " et al." in the win message.
 
+**Avg / PB rows (Mini, Midi, Main crosswords only):**
+
+Below the outcome line, every two-player crossword scoreboard appends two extra rows:
+
+```
+         William | Conor
+-----------------+---------------
+            3:55 | 4:12
+---------------------------------
+ 🏆 William wins! (0:17)
+---------------------------------
+-----+-----------+---------------
+ avg |      3:42 | 5:10
+-----+-----------+---------------
+ pb  |      2:55 | 4:01
+---------------------------------
+```
+
+- **avg** — rolling average of all eligible past submissions, rounded to the nearest second. Shown as `M:SS` (or `H:MM:SS` for ≥1 hour). Displays `-` when no history exists yet.
+- **pb** — personal best (lowest eligible time ever). Same format; `-` when absent.
+- For **Main**, only *clean* solves (no check used, no lookups, not duo) contribute to avg and pb. Stats are bucketed **per day-of-week** (Monday avg/pb differs from Sunday avg/pb).
+- For **Mini / Midi**, all submissions count regardless of flags, and there is a single avg/pb across all days of the week.
+- Stats are stored incrementally in the `crossword_history_stats` table and updated immediately on each new submission.
+- Crossword name and score rows use a centre `|`; their dividing line uses a `+` aligned with that centre divider. Emoji-grid scoreboards keep their existing spacing.
+- Extra rows are **not** shown on single-player scoreboards.
+
+**Main crossword header:** The header uses the day of the week instead of the game label (e.g., `Tuesday - 5/10/2026`). Mini and Midi keep their `Mini - <date>` / `Midi - <date>` headers.
+
 **Extensibility:** Adding a new game scoreboard requires only implementing `GameComparisonScoreboard` — no changes to `ScoreboardRenderer` or `ResultsChannelService`.
 
 **Note:** Strands no longer stores a `spangramPosition`; only `hintsUsed` is persisted and used for scoreboard winner determination.
@@ -198,7 +226,16 @@ mvn verify -Dtest='!com.wandocorp.nytscorebot.EndToEndTest'  # Run unit tests + 
 - `WordleScoreboardTest` — win, tie (same guesses), tie (both X), win by completion, score labels, emoji grid extraction
 - `ConnectionsScoreboardTest` — same structure for Connections
 - `StrandsScoreboardTest` — win by hints, tie
+- `MiniCrosswordScoreboardTest` / `MidiCrosswordScoreboardTest` — win/lose/nuke, avg+pb rows (populated and empty `-` state)
+- `MainCrosswordScoreboardTest` — win/lose/nuke, aided rules, duo suffix, flags row, day-of-week header, avg+pb rows (weekday-filtered, clean-only)
 - `ScoreboardRendererTest` — shared layout, column ordering by row count, column ordering by config order for ties, single-player layout, no-result no-op
+
+**CrosswordHistoryServiceTest** — History stats read/write logic
+- Empty stats → empty `OptionalInt`s
+- Avg and PB computed correctly from stored row
+- `sample_count = 0` → avg empty, pb may still be set
+- Main weekday bucketing (`DayOfWeek.getValue()` 1–7); Mini/Midi use sentinel 0
+- Main no-op for check, lookups, or duo; Mini/Midi always record
 
 **ResultsChannelServiceTest** — Results channel posting logic
 - No-op when `resultsChannelId` is null or blank
@@ -273,7 +310,16 @@ Both `statusChannelId` and `resultsChannelId` are optional. Omit either to disab
 
 ### Database
 
-H2 in-memory database with Spring Data JPA auto-configuration. Schema is auto-generated on startup (`ddl-auto=update`) to add new nullable columns when necessary.
+H2 in-memory database with Spring Data JPA auto-configuration. Schema is managed by Flyway migrations (`db/migration/V1`–`V8`):
+
+| Migration | Description |
+|---|---|
+| V1–V5 | Baseline schema, enums, renames, result normalisation, win streaks |
+| V6 | `crossword_history_stats` table (per-user/game/weekday avg+pb buckets) |
+| V7 | Backfill from existing `scoreboard` rows |
+| V8 | One-off manual seed of Main crossword PBs |
+
+**`crossword_history_stats`** — one row per `(user_id, game_type, day_of_week)` bucket. Mini/Midi use `day_of_week = 0` (one bucket per user); Main uses `day_of_week 1–7` (Java `DayOfWeek.getValue()`). Columns: `sample_count`, `sum_seconds`, `pb_seconds` (nullable). Updated atomically via a native H2 `MERGE` upsert after each qualifying submission.
 
 For persistence across restarts, configure `spring.datasource.url`:
 ```yaml
@@ -305,9 +351,15 @@ spring:
 - Validates puzzle numbers against `PuzzleCalendar`
 - Checks for duplicates
 - Persists results and creates User/Scoreboard entities as needed
+- After persisting a crossword result, delegates to `CrosswordHistoryService.recordSubmission()` to update running stats
 - Auto-sets `finished=true` when all 6 games are present
 - Returns `SaveOutcome` / `MarkFinishedOutcome` enums
 - `areBothPlayersFinishedToday()` — used by `ResultsChannelService`
+
+### `CrosswordHistoryService` (Service)
+- Reads and writes `crossword_history_stats`
+- `getStats(user, game, weekday)` — returns a `CrosswordHistoryStats` record with `avgSeconds` and `pbSeconds` as `OptionalInt`
+- `recordSubmission(...)` — upserts the bucket row; no-ops for Main when `checkUsed`, `lookups > 0`, or `duo`
 
 ### `StatusChannelService` (Service)
 - Posts/refreshes the submission status table in the configured status channel

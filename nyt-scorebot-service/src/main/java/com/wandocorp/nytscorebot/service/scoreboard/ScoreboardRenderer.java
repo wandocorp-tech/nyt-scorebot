@@ -19,6 +19,14 @@ public class ScoreboardRenderer {
     private static final String SINGLE_SEP = "-".repeat(BotText.SINGLE_PLAYER_LINE_WIDTH);
     /** Column width for player name; names longer than this will misalign the layout. */
     private static final int PLAYER_COL_WIDTH = 15;
+    private static final int CROSSWORD_LEFT_COL_WIDTH = 16;
+    private static final String CROSSWORD_DIVIDER =
+            "-".repeat(CROSSWORD_LEFT_COL_WIDTH + 1) + "+" +
+                    "-".repeat(BotText.MAX_LINE_WIDTH - CROSSWORD_LEFT_COL_WIDTH - 2);
+
+    /** Layout for the optional extra rows (avg/pb). The {@code +} positions match the {@code |} positions. */
+    private static final String EXTRA_ROW_FMT = " %-3s |%10s | %s";
+    private static final String EXTRA_DIVIDER = "-----+-----------+---------------";
 
     private final List<GameComparisonScoreboard> games;
 
@@ -122,9 +130,10 @@ public class ScoreboardRenderer {
                                     Map<String, Map<GameType, Integer>> streaks) {
         List<String> leftRows = game.emojiGridRows(layout.leftSb);
         List<String> rightRows = game.emojiGridRows(layout.rightSb);
-        String nameRow = String.format("%" + PLAYER_COL_WIDTH + "s  |  %s",
-                layout.leftName,
-                layout.rightName);
+        boolean crosswordLayout = game.usesCrosswordLayout();
+        String nameRow = crosswordLayout
+                ? crosswordTwoColumnRow(layout.leftName, layout.rightName)
+                : String.format("%" + PLAYER_COL_WIDTH + "s  |  %s", layout.leftName, layout.rightName);
         String leading = " ".repeat(game.leadingSpaces());
 
         StringBuilder sb = new StringBuilder();
@@ -133,7 +142,7 @@ public class ScoreboardRenderer {
         sb.append(" \n");
         sb.append(SEP).append("\n");
         sb.append(nameRow).append("\n");
-        sb.append(SEP).append("\n");
+        sb.append(crosswordLayout ? CROSSWORD_DIVIDER : SEP).append("\n");
 
         int maxRows = Math.max(leftRows.size(), rightRows.size());
         for (int i = 0; i < maxRows; i++) {
@@ -151,14 +160,17 @@ public class ScoreboardRenderer {
         }
 
         if (game.usesScoreLabelRow()) {
-            String scoreRow = String.format("%" + PLAYER_COL_WIDTH + "s     %s",
-                    game.scoreLabel(layout.leftSb), game.scoreLabel(layout.rightSb));
+            String leftScore = game.scoreLabel(layout.leftSb);
+            String rightScore = game.scoreLabel(layout.rightSb);
+            String scoreRow = crosswordLayout
+                    ? crosswordTwoColumnRow(leftScore, rightScore)
+                    : String.format("%" + PLAYER_COL_WIDTH + "s     %s", leftScore, rightScore);
             sb.append(scoreRow).append("\n");
             String leftFlags = game.flagsRow(layout.leftSb);
             String rightFlags = game.flagsRow(layout.rightSb);
             if (!leftFlags.isEmpty() || !rightFlags.isEmpty()) {
                 sb.append(SEP).append("\n");
-                String flagsRow = String.format("%" + PLAYER_COL_WIDTH + "s     %s", leftFlags, rightFlags);
+                String flagsRow = String.format("%" + (PLAYER_COL_WIDTH - 1) + "s    %s", leftFlags, rightFlags);
                 sb.append(flagsRow).append("\n");
             }
         }
@@ -172,8 +184,46 @@ public class ScoreboardRenderer {
         }
 
         sb.append(SEP).append("\n");
+
+        List<ExtraRow> extras = game.extraRowsBelowOutcome(layout.leftSb, layout.rightSb);
+        for (int i = 0; i < extras.size(); i++) {
+            ExtraRow row = extras.get(i);
+            sb.append(String.format(EXTRA_ROW_FMT, row.label(), row.leftValue(), row.rightValue())).append("\n");
+            sb.append(i < extras.size() - 1 ? EXTRA_DIVIDER : SEP).append("\n");
+        }
+
         sb.append(BotText.STATUS_CODE_BLOCK_CLOSE);
         return sb.toString();
+    }
+
+    private static String crosswordTwoColumnRow(String left, String right) {
+        int padding = Math.max(0, CROSSWORD_LEFT_COL_WIDTH - displayWidth(left));
+        return " ".repeat(padding) + left + " | " + right;
+    }
+
+    private static int displayWidth(String value) {
+        if (value == null || value.isEmpty()) {
+            return 0;
+        }
+        int width = 0;
+        for (int offset = 0; offset < value.length(); ) {
+            int codePoint = value.codePointAt(offset);
+            if (isVariationSelector(codePoint)) {
+                offset += Character.charCount(codePoint);
+                continue;
+            }
+            width += isWideGlyph(codePoint) ? 2 : 1;
+            offset += Character.charCount(codePoint);
+        }
+        return width;
+    }
+
+    private static boolean isWideGlyph(int codePoint) {
+        return codePoint > 0xFFFF || codePoint == 0x2705 || codePoint == 0x2622;
+    }
+
+    private static boolean isVariationSelector(int codePoint) {
+        return codePoint >= 0xFE00 && codePoint <= 0xFE0F;
     }
 
     private String buildStreakRow(GameComparisonScoreboard game,

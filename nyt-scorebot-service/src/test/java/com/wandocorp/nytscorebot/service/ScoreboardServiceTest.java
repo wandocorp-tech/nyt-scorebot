@@ -41,6 +41,7 @@ class ScoreboardServiceTest {
     private UserRepository userRepo;
     private ScoreboardRepository scoreboardRepo;
     private StreakService streakService;
+    private com.wandocorp.nytscorebot.service.history.CrosswordHistoryService crosswordHistoryService;
     private ScoreboardService service;
 
     private User user;
@@ -53,6 +54,7 @@ class ScoreboardServiceTest {
         userRepo = Mockito.mock(UserRepository.class);
         scoreboardRepo = Mockito.mock(ScoreboardRepository.class);
         streakService = Mockito.mock(StreakService.class);
+        crosswordHistoryService = Mockito.mock(com.wandocorp.nytscorebot.service.history.CrosswordHistoryService.class);
 
         user = new User(CHANNEL, PERSON, USER_ID);
         scoreboard = new Scoreboard(user, TODAY);
@@ -62,7 +64,7 @@ class ScoreboardServiceTest {
         when(scoreboardRepo.findByUserAndDate(user, TODAY)).thenReturn(Optional.of(scoreboard));
         when(scoreboardRepo.save(any(Scoreboard.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        service = new ScoreboardService(userRepo, scoreboardRepo, calendar, streakService);
+        service = new ScoreboardService(userRepo, scoreboardRepo, calendar, streakService, crosswordHistoryService);
     }
 
     // ── Puzzle number validation ─────────────────────────────────────────────

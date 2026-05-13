@@ -15,5 +15,12 @@ public interface GameComparisonScoreboard {
     int maxEmojisPerRow();
     default boolean usesStreakDisplay() { return false; }
     default boolean usesScoreLabelRow() { return false; }
+    default boolean usesCrosswordLayout() { return false; }
     default String flagsRow(Scoreboard scoreboard) { return ""; }
+
+    /**
+     * Optional rows rendered beneath the outcome row of a two-player scoreboard.
+     * Returning an empty list (the default) means no extra rows are appended.
+     */
+    default List<ExtraRow> extraRowsBelowOutcome(Scoreboard leftSb, Scoreboard rightSb) { return List.of(); }
 }
