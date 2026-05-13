@@ -170,7 +170,7 @@ public class ScoreboardRenderer {
             String rightFlags = game.flagsRow(layout.rightSb);
             if (!leftFlags.isEmpty() || !rightFlags.isEmpty()) {
                 sb.append(SEP).append("\n");
-                String flagsRow = String.format("%" + PLAYER_COL_WIDTH + "s     %s", leftFlags, rightFlags);
+                String flagsRow = String.format("%" + (PLAYER_COL_WIDTH - 1) + "s    %s", leftFlags, rightFlags);
                 sb.append(flagsRow).append("\n");
             }
         }
