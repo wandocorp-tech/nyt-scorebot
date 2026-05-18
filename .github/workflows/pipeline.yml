@@ -7,6 +7,14 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# Cancel any in-progress run for the same ref when a new push arrives.
+# For push-to-main this ensures only the latest commit waits at the approval
+# gate, so a reviewer approves once and gets all accumulated PR commits.
+# PR runs each have a unique ref so they are unaffected.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     name: Build
@@ -20,10 +28,21 @@ jobs:
     secrets:
       DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
 
-  release:
-    name: Release
+  # Manual approval gate — pauses the pipeline until a reviewer approves in the
+  # GitHub Actions UI. Requires a "production" environment configured in repo
+  # Settings → Environments with at least one required reviewer.
+  approve:
+    name: Approve Release
     needs: build
     if: github.ref == 'refs/heads/main'
+    environment: production
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Release approved"
+
+  release:
+    name: Release
+    needs: approve
     permissions:
       contents: write
     uses: ./.github/workflows/release.yml
@@ -33,7 +52,6 @@ jobs:
   deploy:
     name: Deploy
     needs: release
-    if: github.ref == 'refs/heads/main'
     uses: ./.github/workflows/deploy.yml
     secrets:
       PI_SSH_KEY: ${{ secrets.PI_SSH_KEY }}
@@ -48,7 +66,6 @@ jobs:
   announce:
     name: Announce
     needs: deploy
-    if: github.ref == 'refs/heads/main'
     uses: ./.github/workflows/announce.yml
     with:
       version: v${{ github.run_number }}
