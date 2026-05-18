@@ -188,7 +188,7 @@ class EndToEndTest {
         logSlashCommand("William", "/check");
         Thread.sleep(1000);
         scoreboardRepository.save(williamBoard);
-        statusChannelService.refresh("William set crossword flags");
+        statusChannelService.refresh(null);
         Thread.sleep(1000);
 
         williamBoard = scoreboardRepository.findByUserAndDate(william, today).orElseThrow();
@@ -227,7 +227,7 @@ class EndToEndTest {
         conorMainResult.setCheckUsed(true);
         logSlashCommand("Conor", "/check");
         scoreboardRepository.save(conorBoardPhase3);
-        statusChannelService.refresh("Conor set Main check flag");
+        statusChannelService.refresh(null);
         Thread.sleep(1000);
 
         Scoreboard conorAfterFlag = scoreboardRepository.findByUserAndDate(conor, today).orElseThrow();
