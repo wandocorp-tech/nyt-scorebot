@@ -1,7 +1,6 @@
 package com.wandocorp.nytscorebot.listener.command;
 
 import com.wandocorp.nytscorebot.BotText;
-import com.wandocorp.nytscorebot.config.DiscordChannelProperties;
 import com.wandocorp.nytscorebot.discord.ResultsChannelService;
 import com.wandocorp.nytscorebot.discord.StatusChannelService;
 import com.wandocorp.nytscorebot.service.PuzzleCalendar;
@@ -24,7 +23,6 @@ public class LookupsCommandHandler implements SlashCommandHandler {
 
     private final ScoreboardService scoreboardService;
     private final PuzzleCalendar puzzleCalendar;
-    private final DiscordChannelProperties channelProperties;
     private final StatusChannelService statusChannelService;
     private final ResultsChannelService resultsChannelService;
 
@@ -52,7 +50,7 @@ public class LookupsCommandHandler implements SlashCommandHandler {
 
         SetFlagOutcome outcome = scoreboardService.setLookups(discordUserId, puzzleCalendar.today(), countInt);
         if (outcome == SetFlagOutcome.FLAG_SET || outcome == SetFlagOutcome.FLAG_CLEARED) {
-            refreshMainCrossword(discordUserId, channelProperties, statusChannelService, resultsChannelService);
+            refreshMainCrossword(statusChannelService, resultsChannelService);
         }
         String reply = switch (outcome) {
             case FLAG_SET              -> String.format(BotText.MSG_LOOKUPS_SET, countInt);
