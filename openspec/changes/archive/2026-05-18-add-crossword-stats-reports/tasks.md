@@ -91,6 +91,6 @@ crossword-stats-reports
 - [x] 10.1 Run `mvn clean package -DskipTests` and confirm a clean build.
 - [x] 10.2 Run `mvn test -Dtest='!com.wandocorp.nytscorebot.EndToEndTest'` and confirm all tests pass.
 - [x] 10.3 Run `mvn verify -Dtest='!com.wandocorp.nytscorebot.EndToEndTest'` and confirm JaCoCo coverage check passes.
-- [ ] 10.4 Manual smoke (post-deploy): invoke `/stats game:main period:week` from a known channel and verify (a) the brief ephemeral acknowledgement appears, (b) the report appears in the stats channel.
-- [ ] 10.5 Manual smoke: invoke `/stats game:all period:all-time` and verify the confirmation prompt appears, then the `Run report` button posts the report publicly.
-- [ ] 10.6 Manual smoke: invoke `/stats game:main period:custom from:2026-01-01 to:2026-04-30` and verify the report renders and the day-of-week sub-block is present.
+- [x] 10.4 Manual smoke (post-deploy): invoke `/stats game:main period:week` from a known channel and verify (a) the brief ephemeral acknowledgement appears, (b) the report appears in the stats channel.
+- [x] 10.5 Manual smoke: invoke `/stats game:all period:all-time` and verify the confirmation prompt appears, then the `Run report` button posts the report publicly.
+- [x] 10.6 Manual smoke: invoke `/stats game:main period:custom from:2026-01-01 to:2026-04-30` and verify the report renders and the day-of-week sub-block is present.

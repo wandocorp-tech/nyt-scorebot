@@ -104,6 +104,23 @@ class MainCrosswordScoreboardTest {
     }
 
     @Test
+    void differentialOverOneHourFormatsAsHoursMinutesSeconds() {
+        Scoreboard fast = sbWith(result("10:00", 600));
+        Scoreboard slow = sbWith(result("1:10:25", 3600 + 10 * 60 + 25));
+        ComparisonOutcome outcome = scoreboard.determineOutcome(fast, "Alice", slow, "Bob");
+        ComparisonOutcome.Win win = (ComparisonOutcome.Win) outcome;
+        assertThat(win.winnerName()).isEqualTo("Alice");
+        assertThat(win.differentialLabel()).isEqualTo("1:00:25");
+    }
+
+    @Test
+    void formatTimeRendersHoursWhenAtLeastOneHour() {
+        assertThat(MainCrosswordScoreboard.formatTime(3599)).isEqualTo("59:59");
+        assertThat(MainCrosswordScoreboard.formatTime(3600)).isEqualTo("1:00:00");
+        assertThat(MainCrosswordScoreboard.formatTime(4225)).isEqualTo("1:10:25");
+    }
+
+    @Test
     void neitherAidedSameTimeIsNuke() {
         Scoreboard s1 = sbWith(result("15:00", 900));
         Scoreboard s2 = sbWith(result("15:00", 900));

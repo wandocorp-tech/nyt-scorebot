@@ -18,15 +18,15 @@ import java.util.regex.Pattern;
 public class CrosswordParser implements GameParser {
 
     private static final Pattern MINI = Pattern.compile(
-            "I solved the .+? Mini Crossword in (\\d+:\\d{2})!?",
+            "I solved the .+? Mini Crossword in ((?:\\d+:)?\\d+:\\d{2})!?",
             Pattern.CASE_INSENSITIVE
     );
     private static final Pattern MIDI = Pattern.compile(
-            "I solved the .+?[Mm]idi.+? in (\\d+:\\d{2})!?",
+            "I solved the .+?[Mm]idi.+? in ((?:\\d+:)?\\d+:\\d{2})!?",
             Pattern.CASE_INSENSITIVE
     );
     private static final Pattern DAILY = Pattern.compile(
-            "I solved the .+? Crossword in (\\d+:\\d{2})!?",
+            "I solved the .+? Crossword in ((?:\\d+:)?\\d+:\\d{2})!?",
             Pattern.CASE_INSENSITIVE
     );
 
@@ -115,6 +115,11 @@ public class CrosswordParser implements GameParser {
 
     private int parseTimeToSeconds(String time) {
         String[] parts = time.split(":");
+        if (parts.length == 3) {
+            return Integer.parseInt(parts[0]) * 3600
+                    + Integer.parseInt(parts[1]) * 60
+                    + Integer.parseInt(parts[2]);
+        }
         return Integer.parseInt(parts[0]) * 60 + Integer.parseInt(parts[1]);
     }
 }
