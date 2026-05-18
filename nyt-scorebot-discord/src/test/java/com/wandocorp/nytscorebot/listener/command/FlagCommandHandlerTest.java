@@ -1,8 +1,6 @@
 package com.wandocorp.nytscorebot.listener.command;
 
 import com.wandocorp.nytscorebot.BotText;
-import com.wandocorp.nytscorebot.config.DiscordChannelProperties;
-import com.wandocorp.nytscorebot.config.DiscordChannelProperties.ChannelConfig;
 import com.wandocorp.nytscorebot.discord.ResultsChannelService;
 import com.wandocorp.nytscorebot.discord.StatusChannelService;
 import com.wandocorp.nytscorebot.service.PuzzleCalendar;
@@ -19,13 +17,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
-import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -35,7 +32,6 @@ import static org.mockito.Mockito.when;
 class FlagCommandHandlerTest {
 
     private static final String DISCORD_USER_ID = "123456789";
-    private static final String PLAYER_NAME = "TestPlayer";
     private static final LocalDate TODAY = LocalDate.of(2026, 3, 23);
 
     private ScoreboardService scoreboardService;
@@ -55,18 +51,11 @@ class FlagCommandHandlerTest {
         resultsChannelService = mock(ResultsChannelService.class);
         when(puzzleCalendar.today()).thenReturn(TODAY);
 
-        DiscordChannelProperties channelProperties = new DiscordChannelProperties();
-        ChannelConfig ch = new ChannelConfig();
-        ch.setId("ch1");
-        ch.setName(PLAYER_NAME);
-        ch.setUserId(DISCORD_USER_ID);
-        channelProperties.setChannels(List.of(ch));
-
-        duoHandler = new DuoCommandHandler(scoreboardService, puzzleCalendar, channelProperties,
+        duoHandler = new DuoCommandHandler(scoreboardService, puzzleCalendar,
                 statusChannelService, resultsChannelService);
-        checkHandler = new CheckCommandHandler(scoreboardService, puzzleCalendar, channelProperties,
+        checkHandler = new CheckCommandHandler(scoreboardService, puzzleCalendar,
                 statusChannelService, resultsChannelService);
-        lookupsHandler = new LookupsCommandHandler(scoreboardService, puzzleCalendar, channelProperties,
+        lookupsHandler = new LookupsCommandHandler(scoreboardService, puzzleCalendar,
                 statusChannelService, resultsChannelService);
     }
 
@@ -129,7 +118,7 @@ class FlagCommandHandlerTest {
         ChatInputInteractionEvent event = buildEvent(DISCORD_USER_ID, "duo");
         duoHandler.handle(event).subscribe();
         verify(resultsChannelService).refreshGame(BotText.GAME_LABEL_MAIN);
-        verify(statusChannelService).refresh(anyString());
+        verify(statusChannelService).refresh(isNull());
     }
 
     @Test
@@ -200,7 +189,7 @@ class FlagCommandHandlerTest {
         ChatInputInteractionEvent event = buildLookupsEvent(DISCORD_USER_ID, 0);
         lookupsHandler.handle(event).subscribe();
         verify(resultsChannelService).refreshGame(BotText.GAME_LABEL_MAIN);
-        verify(statusChannelService).refresh(anyString());
+        verify(statusChannelService).refresh(isNull());
     }
 
     @Test

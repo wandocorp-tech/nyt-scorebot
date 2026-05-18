@@ -1,7 +1,6 @@
 package com.wandocorp.nytscorebot.listener.command;
 
 import com.wandocorp.nytscorebot.BotText;
-import com.wandocorp.nytscorebot.config.DiscordChannelProperties;
 import com.wandocorp.nytscorebot.discord.ResultsChannelService;
 import com.wandocorp.nytscorebot.discord.StatusChannelService;
 import com.wandocorp.nytscorebot.service.SetFlagOutcome;
@@ -24,17 +23,9 @@ final class FlagReplyHelper {
         };
     }
 
-    static void refreshMainCrossword(String discordUserId,
-                                     DiscordChannelProperties channelProperties,
-                                     StatusChannelService statusChannelService,
+    static void refreshMainCrossword(StatusChannelService statusChannelService,
                                      ResultsChannelService resultsChannelService) {
-        String playerName = channelProperties.getChannels().stream()
-                .filter(c -> c.getUserId().equals(discordUserId))
-                .map(DiscordChannelProperties.ChannelConfig::getName)
-                .findFirst()
-                .orElse(discordUserId);
-        String contextMessage = String.format(BotText.STATUS_CONTEXT_FLAG_UPDATED, playerName);
-        statusChannelService.refresh(contextMessage);
+        statusChannelService.refresh(null);
         resultsChannelService.refreshGame(BotText.GAME_LABEL_MAIN);
     }
 }
