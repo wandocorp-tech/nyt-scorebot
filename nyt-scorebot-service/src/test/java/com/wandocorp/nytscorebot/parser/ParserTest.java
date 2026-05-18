@@ -253,5 +253,41 @@ class ParserTest {
         assertThat(cr.getDate()).isEqualTo(LocalDate.of(2026, 3, 23));
         assertThat(cr.getComment()).isNull();
     }
+
+    /** Daily — solve time in H:MM:SS format (the regression case). */
+    private static final String CROSSWORD_DAILY_HOURS =
+            "I solved the Sunday 5/17/2026 New York Times Daily Crossword in 1:10:25! " +
+            "https://www.nytimes.com/crosswords/game/by-id/23999";
+
+    @Test
+    void crosswordDailyParsesHoursMinutesSeconds() {
+        Optional<GameResult> result = crosswordParser.parse(CROSSWORD_DAILY_HOURS, AUTHOR);
+        assertThat(result).isPresent();
+        MainCrosswordResult cr = (MainCrosswordResult) result.get();
+        assertThat(cr.getTimeString()).isEqualTo("1:10:25");
+        assertThat(cr.getTotalSeconds()).isEqualTo(3600 + 10 * 60 + 25);
+        assertThat(cr.getDate()).isEqualTo(LocalDate.of(2026, 5, 17));
+    }
+
+    @Test
+    void crosswordMidiParsesHoursMinutesSeconds() {
+        String content = "I solved the 5/17/2026 New York Times Midi Crossword in 0:59:59! " +
+                "https://www.nytimes.com/crosswords/game/midi";
+        Optional<GameResult> result = crosswordParser.parse(content, AUTHOR);
+        assertThat(result).isPresent();
+        MidiCrosswordResult cr = (MidiCrosswordResult) result.get();
+        assertThat(cr.getTimeString()).isEqualTo("0:59:59");
+        assertThat(cr.getTotalSeconds()).isEqualTo(59 * 60 + 59);
+    }
+
+    @Test
+    void crosswordMiniParsesHoursMinutesSeconds() {
+        String content = "I solved the 5/17/2026 New York Times Mini Crossword in 10:00:00!";
+        Optional<GameResult> result = crosswordParser.parse(content, AUTHOR);
+        assertThat(result).isPresent();
+        MiniCrosswordResult cr = (MiniCrosswordResult) result.get();
+        assertThat(cr.getTimeString()).isEqualTo("10:00:00");
+        assertThat(cr.getTotalSeconds()).isEqualTo(10 * 3600);
+    }
 }
 

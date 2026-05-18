@@ -57,8 +57,8 @@ public class MiniCrosswordScoreboard implements GameComparisonScoreboard {
         int t1 = s1.getMiniCrosswordResult().getTotalSeconds();
         int t2 = s2.getMiniCrosswordResult().getTotalSeconds();
         if (t1 == t2) return new ComparisonOutcome.Nuke();
-        if (t1 < t2) return new ComparisonOutcome.Win(name1, MainCrosswordScoreboard.formatMmSs(t2 - t1));
-        return new ComparisonOutcome.Win(name2, MainCrosswordScoreboard.formatMmSs(t1 - t2));
+        if (t1 < t2) return new ComparisonOutcome.Win(name1, MainCrosswordScoreboard.formatTime(t2 - t1));
+        return new ComparisonOutcome.Win(name2, MainCrosswordScoreboard.formatTime(t1 - t2));
     }
 
     @Override

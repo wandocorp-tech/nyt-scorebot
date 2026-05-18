@@ -78,8 +78,8 @@ public class MainCrosswordScoreboard implements GameComparisonScoreboard {
         int t1 = r1.getTotalSeconds();
         int t2 = r2.getTotalSeconds();
         if (t1 == t2) return new ComparisonOutcome.Nuke();
-        if (t1 < t2) return new ComparisonOutcome.Win(displayName(name1, r1), formatMmSs(t2 - t1));
-        return new ComparisonOutcome.Win(displayName(name2, r2), formatMmSs(t1 - t2));
+        if (t1 < t2) return new ComparisonOutcome.Win(displayName(name1, r1), formatTime(t2 - t1));
+        return new ComparisonOutcome.Win(displayName(name2, r2), formatTime(t1 - t2));
     }
 
     @Override
@@ -103,7 +103,13 @@ public class MainCrosswordScoreboard implements GameComparisonScoreboard {
         return Boolean.TRUE.equals(r.getDuo()) ? name + " et al." : name;
     }
 
-    static String formatMmSs(int totalSeconds) {
+    static String formatTime(int totalSeconds) {
+        if (totalSeconds >= 3600) {
+            int h = totalSeconds / 3600;
+            int m = (totalSeconds % 3600) / 60;
+            int s = totalSeconds % 60;
+            return String.format("%d:%02d:%02d", h, m, s);
+        }
         return String.format("%d:%02d", totalSeconds / 60, totalSeconds % 60);
     }
 
