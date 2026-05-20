@@ -16,9 +16,84 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Calculates the next semver tag from conventional commit prefixes.
+  # Only runs on push to main; skipped for PRs (build runs with SNAPSHOT version).
+  version:
+    name: Calculate Version
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    outputs:
+      new_version: ${{ steps.calc.outputs.new_version }}
+      new_tag: ${{ steps.calc.outputs.new_tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Calculate next semver
+        id: calc
+        run: |
+          set -euo pipefail
+
+          # Find the latest proper semver tag (vX.Y.Z), ignoring old run-number tags.
+          PREV_TAG=$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' | sort -V | tail -1)
+
+          if [ -z "$PREV_TAG" ]; then
+            echo "No semver tag found; bootstrapping at v1.0.0"
+            echo "new_version=1.0.0" >> "$GITHUB_OUTPUT"
+            echo "new_tag=v1.0.0"    >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "Previous tag: $PREV_TAG"
+
+          # Parse major.minor.patch from the tag.
+          VERSION="${PREV_TAG#v}"
+          MAJOR=$(echo "$VERSION" | cut -d. -f1)
+          MINOR=$(echo "$VERSION" | cut -d. -f2)
+          PATCH=$(echo "$VERSION" | cut -d. -f3)
+
+          # Analyse commit subjects since the last tag.
+          # Rules (in priority order):
+          #   feat!: / fix!: / etc.  or "BREAKING CHANGE" in body → major bump
+          #   feat:                                                → minor bump
+          #   anything else                                        → patch bump
+          BUMP="patch"
+          while IFS= read -r subject; do
+            if echo "$subject" | grep -qE '^(feat|fix|refactor|chore|ci|test|docs|build)(\(.+\))?!:'; then
+              BUMP="major"; break
+            fi
+            if echo "$subject" | grep -qi 'BREAKING CHANGE'; then
+              BUMP="major"; break
+            fi
+            if echo "$subject" | grep -qE '^feat(\(.+\))?:' && [ "$BUMP" != "major" ]; then
+              BUMP="minor"
+            fi
+          done < <(git log --no-merges --pretty=format:"%s" "${PREV_TAG}..HEAD")
+
+          echo "Bump type: $BUMP"
+
+          case "$BUMP" in
+            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+            minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+            patch) PATCH=$((PATCH + 1)) ;;
+          esac
+
+          NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+          echo "New version: v${NEW_VERSION}"
+          echo "new_version=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "new_tag=v${NEW_VERSION}"    >> "$GITHUB_OUTPUT"
+
   build:
     name: Build
+    # Wait for version on main; if: always() ensures the job still runs for PRs
+    # where version is skipped (outputs will be empty, build uses SNAPSHOT).
+    needs: [version]
+    if: always()
     uses: ./.github/workflows/build.yml
+    with:
+      version: ${{ needs.version.outputs.new_version || '' }}
 
   test:
     name: Test (E2E)
@@ -42,12 +117,12 @@ jobs:
 
   release:
     name: Release
-    needs: approve
+    needs: [approve, version]
     permissions:
       contents: write
     uses: ./.github/workflows/release.yml
     with:
-      version: v${{ github.run_number }}
+      version: ${{ needs.version.outputs.new_tag }}
 
   deploy:
     name: Deploy
@@ -65,9 +140,10 @@ jobs:
 
   announce:
     name: Announce
-    needs: deploy
+    needs: [deploy, version]
     uses: ./.github/workflows/announce.yml
     with:
-      version: v${{ github.run_number }}
+      version: ${{ needs.version.outputs.new_tag }}
     secrets:
       DISCORD_RELEASE_WEBHOOK_URL: ${{ secrets.DISCORD_RELEASE_WEBHOOK_URL }}
+

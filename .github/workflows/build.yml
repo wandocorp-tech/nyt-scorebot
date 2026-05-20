@@ -2,6 +2,12 @@ name: Build
 
 on:
   workflow_call:
+    inputs:
+      version:
+        description: 'Release version without v-prefix (e.g. 1.2.3). If provided, sets pom.xml version before building.'
+        required: false
+        type: string
+        default: ''
   workflow_dispatch:
 
 jobs:
@@ -20,6 +26,10 @@ jobs:
           distribution: temurin
           java-version: '17'
           cache: maven
+
+      - name: Set release version
+        if: inputs.version != ''
+        run: mvn versions:set -DnewVersion=${{ inputs.version }} --no-transfer-progress
 
       - name: Build and run unit tests
         run: mvn verify -Dtest='!com.wandocorp.nytscorebot.EndToEndTest' --batch-mode --no-transfer-progress
