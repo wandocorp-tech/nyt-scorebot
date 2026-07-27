@@ -8,11 +8,13 @@ import com.wandocorp.nytscorebot.service.CrosswordWinStreakService;
 import com.wandocorp.nytscorebot.service.PuzzleCalendar;
 import com.wandocorp.nytscorebot.service.ScoreboardService;
 import com.wandocorp.nytscorebot.service.StreakService;
+import com.wandocorp.nytscorebot.service.TripleCrownService;
 import com.wandocorp.nytscorebot.service.WinStreakService;
 import com.wandocorp.nytscorebot.service.scoreboard.ScoreboardRenderer;
 import discord4j.common.util.Snowflake;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import reactor.core.publisher.Mono;
@@ -25,9 +27,12 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -38,13 +43,14 @@ import static org.mockito.Mockito.when;
 class ResultsChannelServiceTest {
 
     private static final String RESULTS_CHANNEL_ID = "999";
-    private static final String NAME1 = "William";
+    private static final String NAME1 = "Will";
     private static final String NAME2 = "Conor";
 
     private ScoreboardService scoreboardService;
     private ScoreboardRenderer scoreboardRenderer;
     private DiscordChannelProperties channelProperties;
     private MessageSlotWriter slotWriter;
+    private TripleCrownService tripleCrownService;
     private ResultsChannelService service;
 
     @BeforeEach
@@ -55,6 +61,13 @@ class ResultsChannelServiceTest {
         WinStreakService winStreakService = mock(WinStreakService.class);
         when(winStreakService.getStreaks(any())).thenReturn(Map.of());
         CrosswordWinStreakService crosswordWinStreakService = mock(CrosswordWinStreakService.class);
+        when(crosswordWinStreakService.updateAll(any(), anyString(), any(), anyString(), any()))
+                .thenReturn(Map.of());
+        when(crosswordWinStreakService.computeOutcomes(any(), anyString(), any(), anyString()))
+                .thenReturn(Map.of());
+        tripleCrownService = mock(TripleCrownService.class);
+        when(tripleCrownService.detect(any(), any(), anyString(), any(), anyString()))
+                .thenReturn(java.util.Optional.empty());
         PuzzleCalendar puzzleCalendar = mock(PuzzleCalendar.class);
         when(puzzleCalendar.today()).thenReturn(LocalDate.now());
         slotWriter = mock(MessageSlotWriter.class);
@@ -83,7 +96,7 @@ class ResultsChannelServiceTest {
         channelProperties.setResultsChannelId(RESULTS_CHANNEL_ID);
 
         service = new ResultsChannelService(channelProperties, scoreboardService, scoreboardRenderer,
-                streakService, winStreakService, crosswordWinStreakService, puzzleCalendar, slotWriter);
+                streakService, winStreakService, crosswordWinStreakService, tripleCrownService, puzzleCalendar, slotWriter);
     }
 
     @Test
@@ -182,7 +195,7 @@ class ResultsChannelServiceTest {
         CrosswordWinStreakService crosswordWinStreakService = mock(CrosswordWinStreakService.class);
         ResultsChannelService svc = new ResultsChannelService(channelProperties, scoreboardService,
                 scoreboardRenderer, streakService, winStreakService, crosswordWinStreakService,
-                calendar, slotWriter);
+                mock(TripleCrownService.class), calendar, slotWriter);
         svc.setPostedMessageId("Wordle", yesterdayMsgId);
 
         svc.refresh(); // sets lastRefreshDate to yesterday
@@ -325,5 +338,232 @@ class ResultsChannelServiceTest {
         Map<String, String> rendered = new LinkedHashMap<>();
         rendered.put("Wordle", "```\nWordle stuff\n```");
         when(scoreboardRenderer.renderAll(any(), anyString(), any(), anyString(), any())).thenReturn(rendered);
+    }
+
+    // ── Triple crown ─────────────────────────────────────────────────────────
+
+    private void crownGoesTo(String name) {
+        when(tripleCrownService.detect(any(), any(), anyString(), any(), anyString()))
+                .thenReturn(java.util.Optional.ofNullable(name));
+    }
+
+    private String crownMessage(String name) {
+        return com.wandocorp.nytscorebot.BotText.TRIPLE_CROWN.formatted(name);
+    }
+
+    @Test
+    void refreshPostsTheCelebrationWhenAPlayerSweeps() {
+        when(scoreboardService.areBothPlayersFinishedToday()).thenReturn(true);
+        setupScoreboards();
+        setupRendered();
+        crownGoesTo(NAME1);
+
+        service.refresh();
+
+        verify(slotWriter).editOrPost(eq(Snowflake.of(RESULTS_CHANNEL_ID)), isNull(),
+                eq(crownMessage(NAME1)));
+        assertThat(service.getPostedMessageId(ResultsChannelService.TRIPLE_CROWN_SLOT)).isNotNull();
+    }
+
+    @Test
+    void refreshPostsNoCelebrationWhenThereIsNoSweep() {
+        when(scoreboardService.areBothPlayersFinishedToday()).thenReturn(true);
+        setupScoreboards();
+        setupRendered();
+        crownGoesTo(null);
+
+        service.refresh();
+
+        verify(slotWriter, never()).editOrPost(any(Snowflake.class), any(), contains("Triple Crown"));
+        assertThat(service.getPostedMessageId(ResultsChannelService.TRIPLE_CROWN_SLOT)).isNull();
+    }
+
+    @Test
+    void celebrationIsPostedAfterTheWinStreakSummary() {
+        when(scoreboardService.areBothPlayersFinishedToday()).thenReturn(true);
+        setupScoreboards();
+        setupRendered();
+        crownGoesTo(NAME1);
+
+        service.refresh();
+
+        InOrder order = inOrder(slotWriter);
+        order.verify(slotWriter).editOrPost(any(Snowflake.class), any(), eq("```\nWordle stuff\n```"));
+        order.verify(slotWriter).editOrPost(any(Snowflake.class), any(),
+                argThat(s -> s != null && !s.equals(crownMessage(NAME1)) && !s.contains("Wordle stuff")));
+        order.verify(slotWriter).editOrPost(any(Snowflake.class), any(), eq(crownMessage(NAME1)));
+    }
+
+    @Test
+    void celebrationIsNotRepostedWhenTheSameSweepStillStands() {
+        when(scoreboardService.areBothPlayersFinishedToday()).thenReturn(true);
+        setupScoreboards();
+        setupRendered();
+        crownGoesTo(NAME1);
+
+        service.refresh();
+        org.mockito.Mockito.clearInvocations(slotWriter);
+        service.refresh();
+
+        verify(slotWriter, never()).editOrPost(any(Snowflake.class), any(), eq(crownMessage(NAME1)));
+    }
+
+    @Test
+    void celebrationIsDeletedWhenTheSweepIsRevoked() {
+        when(scoreboardService.areBothPlayersFinishedToday()).thenReturn(true);
+        setupScoreboards();
+        setupRendered();
+        when(slotWriter.delete(any(Snowflake.class), any(Snowflake.class))).thenReturn(Mono.empty());
+        crownGoesTo(NAME1);
+        service.refresh();
+
+        // A /duo flag change breaks the sweep.
+        crownGoesTo(null);
+        service.refresh();
+
+        verify(slotWriter).delete(eq(Snowflake.of(RESULTS_CHANNEL_ID)), eq(Snowflake.of("9999")));
+        assertThat(service.getPostedMessageId(ResultsChannelService.TRIPLE_CROWN_SLOT)).isNull();
+    }
+
+    @Test
+    void celebrationCanBeReEarnedAfterBeingRevoked() {
+        when(scoreboardService.areBothPlayersFinishedToday()).thenReturn(true);
+        setupScoreboards();
+        setupRendered();
+        when(slotWriter.delete(any(Snowflake.class), any(Snowflake.class))).thenReturn(Mono.empty());
+
+        crownGoesTo(NAME1);
+        service.refresh();
+        crownGoesTo(null);
+        service.refresh();
+        org.mockito.Mockito.clearInvocations(slotWriter);
+        crownGoesTo(NAME1);
+        service.refresh();
+
+        verify(slotWriter).editOrPost(eq(Snowflake.of(RESULTS_CHANNEL_ID)), isNull(),
+                eq(crownMessage(NAME1)));
+    }
+
+    @Test
+    void celebrationIsReplacedWhenTheWinnerChanges() {
+        when(scoreboardService.areBothPlayersFinishedToday()).thenReturn(true);
+        setupScoreboards();
+        setupRendered();
+        crownGoesTo(NAME1);
+        service.refresh();
+
+        crownGoesTo(NAME2);
+        service.refresh();
+
+        verify(slotWriter).editOrPost(any(Snowflake.class), any(), eq(crownMessage(NAME2)));
+    }
+
+    @Test
+    void noDeleteIsAttemptedWhenNoCelebrationWasEverPosted() {
+        when(scoreboardService.areBothPlayersFinishedToday()).thenReturn(true);
+        setupScoreboards();
+        setupRendered();
+        crownGoesTo(null);
+
+        service.refresh();
+
+        verify(slotWriter, never()).delete(any(Snowflake.class), any(Snowflake.class));
+    }
+
+    @Test
+    void refreshTripleCrownForDatePostsWithoutTouchingTheBoards() {
+        setupScoreboards();
+        crownGoesTo(NAME1);
+
+        service.refreshTripleCrownForDate(LocalDate.now().minusDays(1));
+
+        verify(slotWriter).editOrPost(eq(Snowflake.of(RESULTS_CHANNEL_ID)), isNull(),
+                eq(crownMessage(NAME1)));
+        verify(scoreboardRenderer, never()).renderAll(any(), anyString(), any(), anyString(), any());
+    }
+
+    @Test
+    void refreshTripleCrownForDateNoOpsWhenNoResultsChannelConfigured() {
+        channelProperties.setResultsChannelId(null);
+        crownGoesTo(NAME1);
+
+        service.refreshTripleCrownForDate(LocalDate.now().minusDays(1));
+
+        verifyNoInteractions(slotWriter);
+    }
+
+    @Test
+    void dayRolloverClearsTheCrownSoTheSamePlayerCanWinAgainTomorrow() {
+        LocalDate day1 = LocalDate.of(2026, 5, 17);
+        PuzzleCalendar calendar = mock(PuzzleCalendar.class);
+        when(calendar.today()).thenReturn(day1);
+        StreakService streakService = mock(StreakService.class);
+        WinStreakService winStreakService = mock(WinStreakService.class);
+        when(winStreakService.getStreaks(any())).thenReturn(Map.of());
+        CrosswordWinStreakService crosswordWinStreakService = mock(CrosswordWinStreakService.class);
+        when(crosswordWinStreakService.updateAll(any(), anyString(), any(), anyString(), any()))
+                .thenReturn(Map.of());
+        ResultsChannelService svc = new ResultsChannelService(channelProperties, scoreboardService,
+                scoreboardRenderer, streakService, winStreakService, crosswordWinStreakService,
+                tripleCrownService, calendar, slotWriter);
+
+        when(scoreboardService.areBothPlayersFinishedToday()).thenReturn(true);
+        setupScoreboards();
+        setupRendered();
+        crownGoesTo(NAME1);
+
+        svc.refresh();
+        when(calendar.today()).thenReturn(day1.plusDays(1));
+        org.mockito.Mockito.clearInvocations(slotWriter);
+        svc.refresh();
+
+        verify(slotWriter).editOrPost(eq(Snowflake.of(RESULTS_CHANNEL_ID)), isNull(),
+                eq(crownMessage(NAME1)));
+    }
+
+    // ── Player resolution is by id, not display name ─────────────────────────
+
+    @Test
+    void scoreboardsResolveWhenThePersistedNameDiffersFromTheConfiguredName() {
+        // The persisted app_user.name is stale relative to discord.channels[n].name.
+        Scoreboard sb1 = new Scoreboard(new User("111", "William", "u1"), LocalDate.now());
+        sb1.setFinished(true);
+        Scoreboard sb2 = new Scoreboard(new User("222", "conor", "u2"), LocalDate.now());
+        sb2.setFinished(true);
+        when(scoreboardService.getScoreboardsForDate(any())).thenReturn(List.of(sb1, sb2));
+        when(scoreboardService.areBothPlayersFinishedToday()).thenReturn(true);
+        setupRendered();
+
+        service.refresh();
+
+        verify(scoreboardRenderer).renderAll(eq(sb1), eq(NAME1), eq(sb2), eq(NAME2), any());
+    }
+
+    @Test
+    void scoreboardsResolveByDiscordUserIdWhenTheChannelIdIsUnknown() {
+        Scoreboard sb1 = new Scoreboard(new User("legacy-channel", "whoever", "u1"), LocalDate.now());
+        sb1.setFinished(true);
+        Scoreboard sb2 = new Scoreboard(new User("other-legacy", "whoever2", "u2"), LocalDate.now());
+        sb2.setFinished(true);
+        when(scoreboardService.getScoreboardsForDate(any())).thenReturn(List.of(sb1, sb2));
+        when(scoreboardService.areBothPlayersFinishedToday()).thenReturn(true);
+        setupRendered();
+
+        service.refresh();
+
+        verify(scoreboardRenderer).renderAll(eq(sb1), eq(NAME1), eq(sb2), eq(NAME2), any());
+    }
+
+    @Test
+    void unresolvableScoreboardsRenderAsAbsentRatherThanBeingMisattributed() {
+        Scoreboard stranger = new Scoreboard(new User("nope", NAME1, "nope"), LocalDate.now());
+        when(scoreboardService.getScoreboardsForDate(any())).thenReturn(List.of(stranger));
+        when(scoreboardService.areBothPlayersFinishedToday()).thenReturn(true);
+        setupRendered();
+
+        service.refresh();
+
+        // Matching on the display name would have wrongly bound this scoreboard to player 1.
+        verify(scoreboardRenderer).renderAll(isNull(), eq(NAME1), isNull(), eq(NAME2), any());
     }
 }
