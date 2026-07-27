@@ -11,6 +11,7 @@ import reactor.core.CoreSubscriber;
 import reactor.core.publisher.Mono;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
@@ -121,5 +122,47 @@ class MessageSlotWriterTest {
         assertThat(writer.editOrPost(CHANNEL, EXISTING, CONTENT).block()).isEqualTo(NEW_ID);
 
         verify(channel).createMessage(CONTENT);
+    }
+
+    // ── delete ───────────────────────────────────────────────────────────────
+
+    @Test
+    void deleteRemovesTheMessage() {
+        Message existing = mock(Message.class);
+        when(existing.delete()).thenReturn(Mono.empty());
+        when(client.getMessageById(CHANNEL, EXISTING)).thenReturn(Mono.just(existing));
+
+        writer.delete(CHANNEL, EXISTING).block();
+
+        verify(existing).delete();
+    }
+
+    @Test
+    void deleteCompletesNormallyWhenTheMessageIsAlreadyGone() {
+        when(client.getMessageById(CHANNEL, EXISTING))
+                .thenReturn(Mono.error(new RuntimeException("Unknown Message")));
+
+        // Must not throw — callers clear their slot tracking unconditionally.
+        assertThatCode(() -> writer.delete(CHANNEL, EXISTING).block()).doesNotThrowAnyException();
+    }
+
+    @Test
+    void deleteCompletesNormallyWhenTheDeleteCallItselfFails() {
+        Message existing = mock(Message.class);
+        when(existing.delete()).thenReturn(Mono.error(new RuntimeException("403 Forbidden")));
+        when(client.getMessageById(CHANNEL, EXISTING)).thenReturn(Mono.just(existing));
+
+        assertThatCode(() -> writer.delete(CHANNEL, EXISTING).block()).doesNotThrowAnyException();
+
+        verify(existing).delete();
+    }
+
+    @Test
+    void deleteNeverPostsAReplacementMessage() {
+        when(client.getMessageById(CHANNEL, EXISTING)).thenReturn(Mono.empty());
+
+        writer.delete(CHANNEL, EXISTING).block();
+
+        verify(client, never()).getChannelById(any(Snowflake.class));
     }
 }

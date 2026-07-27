@@ -126,4 +126,102 @@ class CrosswordWinStreakServiceTest {
         service.updateGame(GameType.MIDI_CROSSWORD, sb1, "Alice", sb2, "Bob", TODAY);
         verify(midiSb, times(1)).determineOutcome(any(), any(), any(), any());
     }
+
+    // ── Returned outcomes ────────────────────────────────────────────────────
+
+    private void seedAllThreeGames() {
+        sb1.addResult(new MiniCrosswordResult("raw", "u1", null, "0:30", 30, TODAY));
+        sb2.addResult(new MiniCrosswordResult("raw", "u2", null, "0:45", 45, TODAY));
+        sb1.addResult(new MidiCrosswordResult("raw", "u1", null, "3:00", 180, TODAY));
+        sb2.addResult(new MidiCrosswordResult("raw", "u2", null, "4:00", 240, TODAY));
+        sb1.addResult(new MainCrosswordResult("raw", "u1", null, "15:00", 900, TODAY));
+        sb2.addResult(new MainCrosswordResult("raw", "u2", null, "20:00", 1200, TODAY));
+        when(miniSb.determineOutcome(any(), any(), any(), any()))
+                .thenReturn(new ComparisonOutcome.Win("Alice", "0:15"));
+        when(midiSb.determineOutcome(any(), any(), any(), any()))
+                .thenReturn(new ComparisonOutcome.Win("Alice", "1:00"));
+        when(mainSb.determineOutcome(any(), any(), any(), any()))
+                .thenReturn(new ComparisonOutcome.Win("Alice", "5:00"));
+    }
+
+    @Test
+    void updateAllReturnsAnOutcomeForEveryCrossword() {
+        seedAllThreeGames();
+
+        var outcomes = service.updateAll(sb1, "Alice", sb2, "Bob", TODAY);
+
+        assertThat(outcomes).containsOnlyKeys(GameType.MINI_CROSSWORD, GameType.MIDI_CROSSWORD,
+                GameType.MAIN_CROSSWORD);
+        assertThat(outcomes.values()).allSatisfy(o ->
+                assertThat(o).isInstanceOf(ComparisonOutcome.Win.class));
+    }
+
+    @Test
+    void updateAllReturnsEmptyWhenAScoreboardIsAbsent() {
+        assertThat(service.updateAll(null, "Alice", sb2, "Bob", TODAY)).isEmpty();
+        assertThat(service.updateAll(sb1, "Alice", null, "Bob", TODAY)).isEmpty();
+        verify(winStreakService, never()).applyOutcome(any(), any(), anyBoolean(), any(),
+                anyBoolean(), any(), any());
+    }
+
+    @Test
+    void updateGameReturnsTheComputedOutcome() {
+        seedAllThreeGames();
+
+        var outcome = service.updateGame(GameType.MAIN_CROSSWORD, sb1, "Alice", sb2, "Bob", TODAY);
+
+        assertThat(outcome).isPresent();
+        assertThat(outcome.get()).isInstanceOf(ComparisonOutcome.Win.class);
+        assertThat(((ComparisonOutcome.Win) outcome.get()).winnerName()).isEqualTo("Alice");
+    }
+
+    @Test
+    void updateGameReturnsEmptyForANonCrosswordOrAbsentScoreboard() {
+        assertThat(service.updateGame(GameType.WORDLE, sb1, "Alice", sb2, "Bob", TODAY)).isEmpty();
+        assertThat(service.updateGame(GameType.MINI_CROSSWORD, null, "Alice", sb2, "Bob", TODAY)).isEmpty();
+        assertThat(service.updateGame(GameType.MINI_CROSSWORD, sb1, "Alice", null, "Bob", TODAY)).isEmpty();
+    }
+
+    // ── computeOutcomes is pure ──────────────────────────────────────────────
+
+    @Test
+    void computeOutcomesReturnsTheSameOutcomesWithoutMutatingStreaks() {
+        seedAllThreeGames();
+
+        var outcomes = service.computeOutcomes(sb1, "Alice", sb2, "Bob");
+
+        assertThat(outcomes).containsOnlyKeys(GameType.MINI_CROSSWORD, GameType.MIDI_CROSSWORD,
+                GameType.MAIN_CROSSWORD);
+        assertThat(((ComparisonOutcome.Win) outcomes.get(GameType.MAIN_CROSSWORD)).winnerName())
+                .isEqualTo("Alice");
+        // The whole point of the pure variant: no win streak is applied.
+        verify(winStreakService, never()).applyOutcome(any(), any(), anyBoolean(), any(),
+                anyBoolean(), any(), any());
+    }
+
+    @Test
+    void computeOutcomesReportsMissingSubmissionsAsWaitingFor() {
+        sb1.addResult(new MiniCrosswordResult("raw", "u1", null, "0:30", 30, TODAY));
+        when(miniSb.determineOutcome(any(), any(), any(), any()))
+                .thenReturn(new ComparisonOutcome.Win("Alice", "0:15"));
+
+        var outcomes = service.computeOutcomes(sb1, "Alice", sb2, "Bob");
+
+        assertThat(outcomes.get(GameType.MINI_CROSSWORD)).isInstanceOf(ComparisonOutcome.WaitingFor.class);
+        assertThat(((ComparisonOutcome.WaitingFor) outcomes.get(GameType.MINI_CROSSWORD))
+                .missingPlayerName()).isEqualTo("Bob");
+        assertThat(outcomes.get(GameType.MAIN_CROSSWORD)).isInstanceOf(ComparisonOutcome.WaitingFor.class);
+    }
+
+    @Test
+    void computeOutcomesReturnsEmptyWhenAScoreboardIsAbsent() {
+        assertThat(service.computeOutcomes(null, "Alice", sb2, "Bob")).isEmpty();
+        assertThat(service.computeOutcomes(sb1, "Alice", null, "Bob")).isEmpty();
+    }
+
+    @Test
+    void crosswordsConstantExposesTheThreeGamesInBoardOrder() {
+        assertThat(CrosswordWinStreakService.CROSSWORDS).containsExactly(
+                GameType.MINI_CROSSWORD, GameType.MIDI_CROSSWORD, GameType.MAIN_CROSSWORD);
+    }
 }
