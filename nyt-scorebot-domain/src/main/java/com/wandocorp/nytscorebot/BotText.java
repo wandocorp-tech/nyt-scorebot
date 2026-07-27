@@ -94,7 +94,7 @@ public final class BotText {
     // ── Triple crown celebration ──────────────────────────────────────────────
     /** Posted when one player wins the Mini, Midi, and Main crosswords on the same day. */
     public static final String TRIPLE_CROWN = """
-            👑 **TRIPLE CROWN** 👑
+            👑 **TRIPLE** 👑 **CROWN** 👑
             **%s** swept the Mini, Midi, and Main crosswords today.""";
 
     // ── Crossword scoreboard labels ───────────────────────────────────────────
@@ -162,11 +162,6 @@ public final class BotText {
     public static final String STATS_DOW_FRI = "Fri";
     public static final String STATS_DOW_SAT = "Sat";
     public static final String STATS_DOW_SUN = "Sun";
-
-    // Rank medals
-    public static final String STATS_RANK_1 = "🥇";
-    public static final String STATS_RANK_2 = "🥈";
-    public static final String STATS_RANK_3 = "🥉";
 
     // Confirmation prompt
     public static final String STATS_CONFIRM_PROMPT    = "⏳ This period covers a wider window. Computation may take a few seconds — proceed? *(auto-cancels in 15 s)*";
