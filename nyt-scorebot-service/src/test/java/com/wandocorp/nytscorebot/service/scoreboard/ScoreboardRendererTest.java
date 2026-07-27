@@ -34,7 +34,7 @@ class ScoreboardRendererTest {
             "Wordle 1738 4/6\n\n⬛⬛⬛🟨⬛\n⬛⬛⬛⬛🟨\n🟨🟨🟩⬛⬛\n🟩🟩🟩🟩🟩";
 
     private static final Map<String, Map<GameType, Integer>> STREAKS = Map.of(
-            "William", Map.of(GameType.WORDLE, 5),
+            "Will", Map.of(GameType.WORDLE, 5),
             "Conor", Map.of(GameType.WORDLE, 3)
     );
 
@@ -58,11 +58,11 @@ class ScoreboardRendererTest {
     }
 
     @Test
-    void twoPlayerRender_williamSixConorFour() {
-        Scoreboard william = sbWith(wordle(WORDLE_6, 6, true));
+    void twoPlayerRender_willSixConorFour() {
+        Scoreboard will = sbWith(wordle(WORDLE_6, 6, true));
         Scoreboard conor = sbWith(wordle(WORDLE_4, 4, true));
 
-        Optional<String> rendered = renderer.render(wordleGame, william, "William", conor, "Conor", STREAKS);
+        Optional<String> rendered = renderer.render(wordleGame, will, "Will", conor, "Conor", STREAKS);
 
         assertThat(rendered).isPresent();
         String output = rendered.get();
@@ -71,21 +71,21 @@ class ScoreboardRendererTest {
         assertThat(output).endsWith("```");
         assertThat(output).contains("Wordle #1738");
         assertThat(output).contains("---------------------------------");
-        assertThat(output).contains("William  |  Conor");
+        assertThat(output).contains("Will  |  Conor");
         assertThat(output).contains("5  |  3");
         assertThat(output).doesNotContain("🔥");
     }
 
     @Test
-    void singlePlayerRender_onlyWilliamSubmitted() {
-        Scoreboard william = sbWith(wordle(WORDLE_4, 4, true));
+    void singlePlayerRender_onlyWillSubmitted() {
+        Scoreboard will = sbWith(wordle(WORDLE_4, 4, true));
 
-        Optional<String> rendered = renderer.render(wordleGame, william, "William", null, "Conor", STREAKS);
+        Optional<String> rendered = renderer.render(wordleGame, will, "Will", null, "Conor", STREAKS);
 
         assertThat(rendered).isPresent();
         String output = rendered.get();
 
-        assertThat(output).contains("William");
+        assertThat(output).contains("Will");
         assertThat(output).doesNotContain("|");
         assertThat(output).contains("5");
         assertThat(output).doesNotContain("🔥");
@@ -93,9 +93,9 @@ class ScoreboardRendererTest {
 
     @Test
     void singlePlayerRender_separatorIsHalfWidth() {
-        Scoreboard william = sbWith(wordle(WORDLE_4, 4, true));
+        Scoreboard will = sbWith(wordle(WORDLE_4, 4, true));
 
-        Optional<String> rendered = renderer.render(wordleGame, william, "William", null, "Conor", STREAKS);
+        Optional<String> rendered = renderer.render(wordleGame, will, "Will", null, "Conor", STREAKS);
 
         assertThat(rendered).isPresent();
         String halfWidthSep = "-".repeat(com.wandocorp.nytscorebot.BotText.SINGLE_PLAYER_LINE_WIDTH);
@@ -106,57 +106,57 @@ class ScoreboardRendererTest {
 
     @Test
     void noResults_returnsEmpty() {
-        Optional<String> rendered = renderer.render(wordleGame, null, "William", null, "Conor", STREAKS);
+        Optional<String> rendered = renderer.render(wordleGame, null, "Will", null, "Conor", STREAKS);
 
         assertThat(rendered).isEmpty();
     }
 
     @Test
     void columnOrdering_moreRowsGoesLeft() {
-        Scoreboard william = sbWith(wordle(WORDLE_6, 6, true));
+        Scoreboard will = sbWith(wordle(WORDLE_6, 6, true));
         Scoreboard conor = sbWith(wordle(WORDLE_4, 4, true));
 
-        Optional<String> rendered = renderer.render(wordleGame, william, "William", conor, "Conor", STREAKS);
+        Optional<String> rendered = renderer.render(wordleGame, will, "Will", conor, "Conor", STREAKS);
 
         assertThat(rendered).isPresent();
-        assertThat(rendered.get()).contains("William  |  Conor");
+        assertThat(rendered.get()).contains("Will  |  Conor");
     }
 
     @Test
-    void columnOrdering_tieInRowCount_configuredOrderWilliamLeft() {
-        Scoreboard william = sbWith(wordle(WORDLE_4, 4, true));
+    void columnOrdering_tieInRowCount_configuredOrderWillLeft() {
+        Scoreboard will = sbWith(wordle(WORDLE_4, 4, true));
         Scoreboard conor = sbWith(wordle(WORDLE_4, 4, true));
 
-        Optional<String> rendered = renderer.render(wordleGame, william, "William", conor, "Conor", STREAKS);
+        Optional<String> rendered = renderer.render(wordleGame, will, "Will", conor, "Conor", STREAKS);
 
         assertThat(rendered).isPresent();
-        assertThat(rendered.get()).contains("William  |  Conor");
+        assertThat(rendered.get()).contains("Will  |  Conor");
     }
 
     @Test
     void columnOrdering_sb2MoreRows_sb2GoesLeft() {
-        Scoreboard william = sbWith(wordle(WORDLE_4, 4, true));
+        Scoreboard will = sbWith(wordle(WORDLE_4, 4, true));
         Scoreboard conor = sbWith(wordle(WORDLE_6, 6, true));
 
-        Optional<String> rendered = renderer.render(wordleGame, william, "William", conor, "Conor", STREAKS);
+        Optional<String> rendered = renderer.render(wordleGame, will, "Will", conor, "Conor", STREAKS);
 
         assertThat(rendered).isPresent();
-        assertThat(rendered.get()).contains("Conor  |  William");
+        assertThat(rendered.get()).contains("Conor  |  Will");
     }
 
     @Test
     void renderAll_returnsMapWithGameType() {
-        Scoreboard william = sbWith(wordle(WORDLE_4, 4, true));
+        Scoreboard will = sbWith(wordle(WORDLE_4, 4, true));
         Scoreboard conor = sbWith(wordle(WORDLE_4, 4, true));
 
-        var result = renderer.renderAll(william, "William", conor, "Conor", STREAKS);
+        var result = renderer.renderAll(will, "Will", conor, "Conor", STREAKS);
 
         assertThat(result).containsKey("Wordle");
     }
 
     @Test
     void renderAll_emptyWhenNeitherHasResult() {
-        var result = renderer.renderAll(null, "William", null, "Conor", STREAKS);
+        var result = renderer.renderAll(null, "Will", null, "Conor", STREAKS);
 
         assertThat(result).isEmpty();
     }
@@ -176,10 +176,10 @@ class ScoreboardRendererTest {
 
     @Test
     void emojiScoreboardRendersStreakRowInsteadOfOutcome() {
-        Scoreboard william = sbWith(wordle(WORDLE_4, 4, true));
+        Scoreboard will = sbWith(wordle(WORDLE_4, 4, true));
         Scoreboard conor = sbWith(wordle(WORDLE_4, 4, true));
 
-        Optional<String> rendered = renderer.render(wordleGame, william, "William", conor, "Conor", STREAKS);
+        Optional<String> rendered = renderer.render(wordleGame, will, "Will", conor, "Conor", STREAKS);
 
         assertThat(rendered).isPresent();
         String output = rendered.get();
@@ -199,16 +199,16 @@ class ScoreboardRendererTest {
         Scoreboard sb2 = new Scoreboard(new User("c2", "test", "u2"), LocalDate.now());
         sb2.addResult(new MiniCrosswordResult("raw", "a", null, "1:00", 60, LocalDate.now()));
 
-        Optional<String> rendered = crosswordRenderer.render(miniGame, sb1, "William", sb2, "Conor",
-                Map.of("William", Map.of(GameType.MINI_CROSSWORD, 5), "Conor", Map.of(GameType.MINI_CROSSWORD, 3)));
+        Optional<String> rendered = crosswordRenderer.render(miniGame, sb1, "Will", sb2, "Conor",
+                Map.of("Will", Map.of(GameType.MINI_CROSSWORD, 5), "Conor", Map.of(GameType.MINI_CROSSWORD, 3)));
 
         assertThat(rendered).isPresent();
         String output = rendered.get();
-        assertThat(output).contains("🏆 William wins!");
+        assertThat(output).contains("🏆 Will wins!");
         assertThat(output).contains("0:30");
         assertThat(output).contains("1:00");
         assertThat(output).doesNotContain("🔥");
-        assertThat(output).contains("William | Conor");
+        assertThat(output).contains("Will | Conor");
         assertThat(output).contains("-----------------+---------------");
         assertThat(output).contains("0:30 | 1:00");
         assertThat(output).doesNotContain("0:30     1:00");
@@ -230,7 +230,7 @@ class ScoreboardRendererTest {
         Scoreboard sb2 = new Scoreboard(new User("c2", "test", "u2"), LocalDate.now());
         sb2.addResult(r2);
 
-        Optional<String> rendered = crosswordRenderer.render(mainGame, sb1, "William", sb2, "Conor",
+        Optional<String> rendered = crosswordRenderer.render(mainGame, sb1, "Will", sb2, "Conor",
                 Map.of());
 
         assertThat(rendered).isPresent();
@@ -239,7 +239,7 @@ class ScoreboardRendererTest {
         assertThat(output).contains("7:30");
         assertThat(output).contains("👫 🔍×2");
         assertThat(output).contains("✅");
-        assertThat(output).contains("William | Conor");
+        assertThat(output).contains("Will | Conor");
         assertThat(output).contains("-----------------+---------------");
         assertThat(output).contains("5:00 | 7:30");
         assertThat(output).doesNotContain("👫 🔍×2 | ✅");
@@ -259,23 +259,23 @@ class ScoreboardRendererTest {
         Scoreboard sb1 = new Scoreboard(new User("c1", "test", "u1"), LocalDate.now());
         sb1.addResult(new MiniCrosswordResult("raw", "a", null, "0:45", 45, LocalDate.now()));
 
-        Optional<String> rendered = crosswordRenderer.render(miniGame, sb1, "William", null, "Conor",
+        Optional<String> rendered = crosswordRenderer.render(miniGame, sb1, "Will", null, "Conor",
                 Map.of());
 
         assertThat(rendered).isPresent();
         String output = rendered.get();
-        assertThat(output).contains("William");
+        assertThat(output).contains("Will");
         assertThat(output).contains("0:45");
         assertThat(output).contains("Solo");
     }
 
     @Test
     void streakRowShowsZeroWhenNoStreakData() {
-        Scoreboard william = sbWith(wordle(WORDLE_4, 4, true));
+        Scoreboard will = sbWith(wordle(WORDLE_4, 4, true));
         Scoreboard conor = sbWith(wordle(WORDLE_4, 4, true));
 
         Map<String, Map<GameType, Integer>> emptyStreaks = Map.of();
-        Optional<String> rendered = renderer.render(wordleGame, william, "William", conor, "Conor", emptyStreaks);
+        Optional<String> rendered = renderer.render(wordleGame, will, "Will", conor, "Conor", emptyStreaks);
 
         assertThat(rendered).isPresent();
         String output = rendered.get();
@@ -293,7 +293,7 @@ class ScoreboardRendererTest {
         Scoreboard sb2 = new Scoreboard(new User("c2", "test", "u2"), LocalDate.now());
         sb2.addResult(new MiniCrosswordResult("raw", "a", null, "0:30", 30, LocalDate.now()));
 
-        Optional<String> rendered = crosswordRenderer.render(miniGame, sb1, "William", sb2, "Conor", Map.of());
+        Optional<String> rendered = crosswordRenderer.render(miniGame, sb1, "Will", sb2, "Conor", Map.of());
 
         assertThat(rendered).isPresent();
         String output = rendered.get();

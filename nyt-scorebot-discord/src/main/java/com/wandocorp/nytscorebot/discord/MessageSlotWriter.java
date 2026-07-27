@@ -52,4 +52,23 @@ public class MessageSlotWriter {
                 .flatMap(ch -> ch.createMessage(content))
                 .map(Message::getId);
     }
+
+    /**
+     * Deletes the message identified by {@code messageId}. Used for conditional slots whose
+     * content can cease to apply (for example a revoked triple crown), where editing the
+     * message to a placeholder would leave an unwanted trace in the channel.
+     *
+     * <p>A message that no longer exists is not an error — the failure is logged and the
+     * returned {@link Mono} completes normally, so callers can unconditionally clear their
+     * slot tracking.
+     */
+    public Mono<Void> delete(Snowflake channelId, Snowflake messageId) {
+        return client.getMessageById(channelId, messageId)
+                .flatMap(Message::delete)
+                .onErrorResume(e -> {
+                    log.warn("Delete failed for message {} in channel {} (already removed?): {}",
+                            messageId.asString(), channelId.asString(), e.toString());
+                    return Mono.empty();
+                });
+    }
 }

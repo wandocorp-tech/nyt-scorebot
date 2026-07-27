@@ -1,11 +1,10 @@
 package com.wandocorp.nytscorebot.discord;
 
-import com.wandocorp.nytscorebot.service.PuzzleCalendar;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
 
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -13,77 +12,52 @@ import static org.mockito.Mockito.when;
 
 class StatusBoardMidnightJobTest {
 
-    private static final LocalDate TODAY = LocalDate.of(2026, 5, 4);
-    private static final LocalDate YESTERDAY = TODAY.minusDays(1);
+    private static final LocalDate CLOSING_DATE = LocalDate.of(2026, 5, 3);
 
-    private StatusBoardMidnightJob job(StatusChannelService statusService,
-                                       ResultsChannelService resultsService,
-                                       PuzzleCalendar calendar) {
-        return new StatusBoardMidnightJob(statusService, resultsService, calendar);
-    }
+    private ResultsChannelService resultsService;
+    private StatusBoardMidnightJob job;
 
-    private PuzzleCalendar calendarReturning(LocalDate today) {
-        PuzzleCalendar cal = mock(PuzzleCalendar.class);
-        when(cal.today()).thenReturn(today);
-        return cal;
+    @BeforeEach
+    void setUp() {
+        resultsService = mock(ResultsChannelService.class);
+        job = new StatusBoardMidnightJob(resultsService);
     }
 
     @Test
-    void runDelegatesToStatusChannelService() {
-        StatusChannelService statusService = mock(StatusChannelService.class);
-        ResultsChannelService resultsService = mock(ResultsChannelService.class);
-        when(resultsService.hasPostedResultsForDate(YESTERDAY)).thenReturn(true);
+    void forcePostsWhenTheDateWasNeverPosted() {
+        when(resultsService.hasPostedResultsForDate(CLOSING_DATE)).thenReturn(false);
 
-        job(statusService, resultsService, calendarReturning(TODAY)).run();
+        job.forcePostIfNeeded(CLOSING_DATE);
 
-        verify(statusService).resetForNewDay();
+        verify(resultsService).forceRefreshForDate(CLOSING_DATE);
     }
 
     @Test
-    void runForcePostsYesterdayResultsWhenNotYetPosted() {
-        StatusChannelService statusService = mock(StatusChannelService.class);
-        ResultsChannelService resultsService = mock(ResultsChannelService.class);
-        when(resultsService.hasPostedResultsForDate(YESTERDAY)).thenReturn(false);
+    void skipsForcePostWhenTheDateWasAlreadyPosted() {
+        when(resultsService.hasPostedResultsForDate(CLOSING_DATE)).thenReturn(true);
 
-        job(statusService, resultsService, calendarReturning(TODAY)).run();
+        job.forcePostIfNeeded(CLOSING_DATE);
 
-        verify(resultsService).forceRefreshForDate(YESTERDAY);
+        verify(resultsService, never()).forceRefreshForDate(CLOSING_DATE);
     }
 
     @Test
-    void runSkipsForcePostWhenYesterdayAlreadyPosted() {
-        StatusChannelService statusService = mock(StatusChannelService.class);
-        ResultsChannelService resultsService = mock(ResultsChannelService.class);
-        when(resultsService.hasPostedResultsForDate(YESTERDAY)).thenReturn(true);
+    void evaluatesTheTripleCrownForTheGivenDate() {
+        job.evaluateTripleCrown(CLOSING_DATE);
 
-        job(statusService, resultsService, calendarReturning(TODAY)).run();
-
-        verify(resultsService, never()).forceRefreshForDate(YESTERDAY);
+        verify(resultsService).refreshTripleCrownForDate(CLOSING_DATE);
     }
 
     @Test
-    void runSwallowsExceptionsFromStatusChannelService() {
-        StatusChannelService statusService = mock(StatusChannelService.class);
-        ResultsChannelService resultsService = mock(ResultsChannelService.class);
-        when(resultsService.hasPostedResultsForDate(YESTERDAY)).thenReturn(true);
-        doThrow(new RuntimeException("boom")).when(statusService).resetForNewDay();
+    void tripleCrownIsEvaluatedIndependentlyOfThePostedGuard() {
+        when(resultsService.hasPostedResultsForDate(CLOSING_DATE)).thenReturn(true);
 
-        // Must not throw — failure is logged and swallowed
-        job(statusService, resultsService, calendarReturning(TODAY)).run();
+        job.forcePostIfNeeded(CLOSING_DATE);
+        job.evaluateTripleCrown(CLOSING_DATE);
 
-        verify(statusService).resetForNewDay();
-    }
-
-    @Test
-    void runSwallowsExceptionsFromResultsChannelService() {
-        StatusChannelService statusService = mock(StatusChannelService.class);
-        ResultsChannelService resultsService = mock(ResultsChannelService.class);
-        when(resultsService.hasPostedResultsForDate(YESTERDAY)).thenReturn(false);
-        doThrow(new RuntimeException("boom")).when(resultsService).forceRefreshForDate(YESTERDAY);
-
-        // Must not throw — failure is logged and swallowed, and reset still runs
-        job(statusService, resultsService, calendarReturning(TODAY)).run();
-
-        verify(statusService).resetForNewDay();
+        // A sweep that only completes once forfeits are applied must still be recognised,
+        // even on a day whose boards were already published during the day.
+        verify(resultsService, never()).forceRefreshForDate(CLOSING_DATE);
+        verify(resultsService).refreshTripleCrownForDate(CLOSING_DATE);
     }
 }

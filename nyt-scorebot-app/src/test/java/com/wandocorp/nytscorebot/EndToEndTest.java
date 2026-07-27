@@ -48,10 +48,10 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Both player channels use the bot's own user-id so messages the bot posts
  * pass the userId filter and are processed normally.
  * <p>
- * Scenario: William submits 6 games (auto-finishes), sets Main crossword flags,
+ * Scenario: Will submits 6 games (auto-finishes), sets Main crossword flags,
  * Conor submits 5 games (no Midi), sets Main check flag (both aided → draw),
  * marks finished → scoreboards render (Mini = time win, Main = draw),
- * then Conor submits Midi late at the same time as William → Midi board renders Nuke!.
+ * then Conor submits Midi late at the same time as Will → Midi board renders Nuke!.
  */
 @SpringBootTest
 @ActiveProfiles("e2e")
@@ -61,7 +61,7 @@ class EndToEndTest {
 
     // ── Channel IDs (injected from application-e2e.properties) ───────────────
 
-    @Value("${discord.channels[0].id}")   private String williamChannelId;
+    @Value("${discord.channels[0].id}")   private String willChannelId;
     @Value("${discord.channels[1].id}")   private String conorChannelId;
     @Value("${discord.statusChannelId}")   private String statusChannelId;
     @Value("${discord.resultsChannelId}")  private String resultsChannelId;
@@ -85,11 +85,11 @@ class EndToEndTest {
     @Test
     @DisplayName("E2E: Full day scenario — two players, flags, and late submission")
     void fullDayScenario() throws InterruptedException {
-        Snowflake williamChannel = Snowflake.of(williamChannelId);
+        Snowflake willChannel = Snowflake.of(willChannelId);
         Snowflake conorChannel   = Snowflake.of(conorChannelId);
 
         // ── Setup: clear channels and DB ─────────────────────────────────────
-        clearChannel(williamChannel);
+        clearChannel(willChannel);
         clearChannel(conorChannel);
         clearChannel(Snowflake.of(statusChannelId));
         clearChannel(Snowflake.of(resultsChannelId));
@@ -105,26 +105,26 @@ class EndToEndTest {
         int connections = puzzleCalendar.expectedConnections();
         int strands = puzzleCalendar.expectedStrands();
 
-        // William: Wordle 3/6 (3 emoji rows)
-        String williamWordle = "Wordle " + String.format(Locale.US, "%,d", wordle) +
+        // Will: Wordle 3/6 (3 emoji rows)
+        String willWordle = "Wordle " + String.format(Locale.US, "%,d", wordle) +
                 " 3/6\n\n🟨⬛⬛⬛⬛\n🟩⬛🟩🟩🟩\n🟩🟩🟩🟩🟩";
 
-        // William: Connections 0 mistakes / perfect (4 emoji rows)
-        String williamConnections = "Connections\nPuzzle #" + connections +
+        // Will: Connections 0 mistakes / perfect (4 emoji rows)
+        String willConnections = "Connections\nPuzzle #" + connections +
                 "\n🟩🟩🟩🟩\n🟪🟪🟪🟪\n🟨🟨🟨🟨\n🟦🟦🟦🟦";
 
-        // William: Strands 1 hint (2 emoji rows) — 💡 = hint
-        String williamStrands = "Strands #" + strands +
+        // Will: Strands 1 hint (2 emoji rows) — 💡 = hint
+        String willStrands = "Strands #" + strands +
                 "\n\"Test Theme\"\n💡🔵🟡🔵\n🔵🔵🔵";
 
-        // William: Mini 1:23
-        String williamMini = "I solved the " + dateStr + " New York Times Mini Crossword in 1:23!";
+        // Will: Mini 1:23
+        String willMini = "I solved the " + dateStr + " New York Times Mini Crossword in 1:23!";
 
-        // William: Midi 3:45
-        String williamMidi = "I solved the " + dateStr + " New York Times Midi Crossword in 3:45!";
+        // Will: Midi 3:45
+        String willMidi = "I solved the " + dateStr + " New York Times Midi Crossword in 3:45!";
 
-        // William: Main 15:00
-        String williamMain = "I solved the " + dayOfWeek + " " + dateStr +
+        // Will: Main 15:00
+        String willMain = "I solved the " + dayOfWeek + " " + dateStr +
                 " New York Times Daily Crossword in 15:00!";
 
         // Conor: Wordle 4/6 (4 emoji rows)
@@ -139,7 +139,7 @@ class EndToEndTest {
         String conorStrands = "Strands #" + strands +
                 "\n\"Test Theme\"\n🔵🟡🔵\n🔵🔵\n🔵🔵";
 
-        // Conor: Mini 1:42 (William wins time-based)
+        // Conor: Mini 1:42 (Will wins time-based)
         String conorMini = "I solved the " + dateStr + " New York Times Mini Crossword in 1:42!";
 
         // Conor: Midi 3:45 (Nuke! — equal times, both unaided; submitted late in Phase 5)
@@ -149,52 +149,52 @@ class EndToEndTest {
         String conorMain = "I solved the " + dayOfWeek + " " + dateStr +
                 " New York Times Daily Crossword in 22:02!";
 
-        // ── Phase 1: William submits 6 games → auto-finishes ────────────────
+        // ── Phase 1: Will submits 6 games → auto-finishes ────────────────
 
-        postTo(williamChannel, williamWordle);
+        postTo(willChannel, willWordle);
         Thread.sleep(1000);
-        postTo(williamChannel, williamConnections);
+        postTo(willChannel, willConnections);
         Thread.sleep(1000);
-        postTo(williamChannel, williamStrands);
+        postTo(willChannel, willStrands);
         Thread.sleep(1000);
-        postTo(williamChannel, williamMini);
+        postTo(willChannel, willMini);
         Thread.sleep(1000);
-        postTo(williamChannel, williamMidi);
+        postTo(willChannel, willMidi);
         Thread.sleep(1000);
-        postTo(williamChannel, williamMain);
+        postTo(willChannel, willMain);
 
         Thread.sleep(5000);
-        User william = userRepository.findByChannelId(williamChannelId).orElseThrow();
-        Scoreboard williamBoardPhase1 = scoreboardRepository.findByUserAndDate(william, today).orElseThrow();
-        assertThat(williamBoardPhase1.isFinished()).as("William auto-finished with 6 games").isTrue();
-        assertThat(williamBoardPhase1.getWordleResult().getAttempts()).isEqualTo(3);
-        assertThat(williamBoardPhase1.getConnectionsResult().getMistakes()).isEqualTo(0);
-        assertThat(williamBoardPhase1.getStrandsResult().getHintsUsed()).isEqualTo(1);
-        assertThat(williamBoardPhase1.getMiniCrosswordResult().getTimeString()).isEqualTo("1:23");
-        assertThat(williamBoardPhase1.getMidiCrosswordResult().getTimeString()).isEqualTo("3:45");
-        assertThat(williamBoardPhase1.getMainCrosswordResult().getTimeString()).isEqualTo("15:00");
+        User will = userRepository.findByChannelId(willChannelId).orElseThrow();
+        Scoreboard willBoardPhase1 = scoreboardRepository.findByUserAndDate(will, today).orElseThrow();
+        assertThat(willBoardPhase1.isFinished()).as("Will auto-finished with 6 games").isTrue();
+        assertThat(willBoardPhase1.getWordleResult().getAttempts()).isEqualTo(3);
+        assertThat(willBoardPhase1.getConnectionsResult().getMistakes()).isEqualTo(0);
+        assertThat(willBoardPhase1.getStrandsResult().getHintsUsed()).isEqualTo(1);
+        assertThat(willBoardPhase1.getMiniCrosswordResult().getTimeString()).isEqualTo("1:23");
+        assertThat(willBoardPhase1.getMidiCrosswordResult().getTimeString()).isEqualTo("3:45");
+        assertThat(willBoardPhase1.getMainCrosswordResult().getTimeString()).isEqualTo("15:00");
 
-        // ── Phase 2: William sets Main crossword flags ──────────────────────
+        // ── Phase 2: Will sets Main crossword flags ──────────────────────
 
-        Scoreboard williamBoard = scoreboardRepository.findByUserAndDate(william, today).orElseThrow();
-        MainCrosswordResult mainResult = williamBoard.getMainCrosswordResult();
+        Scoreboard willBoard = scoreboardRepository.findByUserAndDate(will, today).orElseThrow();
+        MainCrosswordResult mainResult = willBoard.getMainCrosswordResult();
         mainResult.setDuo(true);
-        logSlashCommand("William", "/duo");
+        logSlashCommand("Will", "/duo");
         Thread.sleep(1000);
         mainResult.setLookups(2);
-        logSlashCommand("William", "/lookups 2");
+        logSlashCommand("Will", "/lookups 2");
         Thread.sleep(1000);
         mainResult.setCheckUsed(true);
-        logSlashCommand("William", "/check");
+        logSlashCommand("Will", "/check");
         Thread.sleep(1000);
-        scoreboardRepository.save(williamBoard);
+        scoreboardRepository.save(willBoard);
         statusChannelService.refresh(null);
         Thread.sleep(1000);
 
-        williamBoard = scoreboardRepository.findByUserAndDate(william, today).orElseThrow();
-        assertThat(williamBoard.getMainCrosswordResult().getDuo()).isTrue();
-        assertThat(williamBoard.getMainCrosswordResult().getLookups()).isEqualTo(2);
-        assertThat(williamBoard.getMainCrosswordResult().getCheckUsed()).isTrue();
+        willBoard = scoreboardRepository.findByUserAndDate(will, today).orElseThrow();
+        assertThat(willBoard.getMainCrosswordResult().getDuo()).isTrue();
+        assertThat(willBoard.getMainCrosswordResult().getLookups()).isEqualTo(2);
+        assertThat(willBoard.getMainCrosswordResult().getCheckUsed()).isTrue();
 
         // ── Phase 3: Conor submits 5 games (no Midi) ────────────────────────
 
@@ -243,12 +243,12 @@ class EndToEndTest {
         resultsChannelService.refresh();
         Thread.sleep(1000);
 
-        williamBoard = scoreboardRepository.findByUserAndDate(william, today).orElseThrow();
+        willBoard = scoreboardRepository.findByUserAndDate(will, today).orElseThrow();
         conorBoard = scoreboardRepository.findByUserAndDate(conor, today).orElseThrow();
-        assertThat(williamBoard.isFinished()).isTrue();
+        assertThat(willBoard.isFinished()).isTrue();
         assertThat(conorBoard.isFinished()).isTrue();
 
-        scoreboardRenderer.renderAll(williamBoard, "William", conorBoard, "Conor", null)
+        scoreboardRenderer.renderAll(willBoard, "Will", conorBoard, "Conor", null)
                 .forEach(this::logScoreboard);
 
         // ── Phase 5: Conor submits Midi late → blocked by finished lock ─────────
@@ -259,15 +259,15 @@ class EndToEndTest {
         Scoreboard conorBoardPhase5 = scoreboardRepository.findByUserAndDate(conor, today).orElseThrow();
         assertThat(conorBoardPhase5.getMidiCrosswordResult()).as("Midi result rejected: scoreboard is finished").isNull();
 
-        williamBoard = scoreboardRepository.findByUserAndDate(william, today).orElseThrow();
-        scoreboardRenderer.renderAll(williamBoard, "William", conorBoardPhase5, "Conor", null)
+        willBoard = scoreboardRepository.findByUserAndDate(will, today).orElseThrow();
+        scoreboardRenderer.renderAll(willBoard, "Will", conorBoardPhase5, "Conor", null)
                 .forEach(this::logScoreboard);
 
         // ── Phase 6: Insert historical data and invoke /stats for week + month ─
 
         // Seed 30 days of Mini, Midi, and Main results for both players
         // (excludes today so they fall entirely in the "yesterday and earlier" window)
-        seedHistoricalCrosswordData(william, conor, today);
+        seedHistoricalCrosswordData(will, conor, today);
         Thread.sleep(1000);
 
         // ── Phase 6a: /stats game:all period:week ────────────────────────────
@@ -308,26 +308,26 @@ class EndToEndTest {
     /**
      * Seeds 30 days of Mini, Midi, and Main crossword results for both players,
      * ending on {@code today.minusDays(1)} so all rows fall within the "week" and
-     * "month" stats windows. William consistently beats Conor on Mini; times vary
+     * "month" stats windows. Will consistently beats Conor on Mini; times vary
      * daily to produce non-trivial averages and day-of-week data.
      */
-    private void seedHistoricalCrosswordData(User william, User conor, LocalDate today) {
+    private void seedHistoricalCrosswordData(User will, User conor, LocalDate today) {
         for (int i = 1; i <= 30; i++) {
             LocalDate date = today.minusDays(i);
 
             // Vary times slightly day-by-day for realistic averages
-            int williamMiniSecs = 60 + (i % 5) * 10;       // 60–100 s
+            int willMiniSecs = 60 + (i % 5) * 10;       // 60–100 s
             int conorMiniSecs   = 80 + (i % 7) * 10;       // 80–140 s
-            int williamMidiSecs = 200 + (i % 6) * 15;      // 200–275 s
+            int willMidiSecs = 200 + (i % 6) * 15;      // 200–275 s
             int conorMidiSecs   = 220 + (i % 6) * 15;      // 220–295 s
-            int williamMainSecs = 900 + (i % 8) * 60;      // 15–22 min
+            int willMainSecs = 900 + (i % 8) * 60;      // 15–22 min
             int conorMainSecs   = 1000 + (i % 9) * 60;     // ~17–24 min
 
-            // William
-            Scoreboard wb = new Scoreboard(william, date);
-            wb.addResult(miniResult(williamMiniSecs, date));
-            wb.addResult(midiResult(williamMidiSecs, date));
-            wb.addResult(mainResult(williamMainSecs, date));
+            // Will
+            Scoreboard wb = new Scoreboard(will, date);
+            wb.addResult(miniResult(willMiniSecs, date));
+            wb.addResult(midiResult(willMidiSecs, date));
+            wb.addResult(mainResult(willMainSecs, date));
             wb.setFinished(true);
             scoreboardRepository.save(wb);
 

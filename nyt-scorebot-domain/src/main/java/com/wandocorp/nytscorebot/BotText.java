@@ -91,6 +91,12 @@ public final class BotText {
     public static final String SCOREBOARD_WAITING_SINGLE = "💪 Solo";
     public static final String SCOREBOARD_STREAK         = "%d";
 
+    // ── Triple crown celebration ──────────────────────────────────────────────
+    /** Posted when one player wins the Mini, Midi, and Main crosswords on the same day. */
+    public static final String TRIPLE_CROWN = """
+            👑 **TRIPLE CROWN** 👑
+            **%s** swept the Mini, Midi, and Main crosswords today.""";
+
     // ── Crossword scoreboard labels ───────────────────────────────────────────
     public static final String SCOREBOARD_MINI_HEADER   = "Mini - %s";
     public static final String SCOREBOARD_MIDI_HEADER   = "Midi - %s";

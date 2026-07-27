@@ -133,4 +133,44 @@ class WinStreakMidnightJobTest {
 
         verify(client, never()).getMessageById(any(), any());
     }
+
+    // ── User resolution must not depend on the mutable display name ──────────
+
+    @Test
+    void resolvesPlayersByChannelIdInPreferenceToDiscordUserId() {
+        User byChannel = new User("111", "RenamedSinceSignup", "u1");
+        when(userRepository.findByChannelId("111")).thenReturn(Optional.of(byChannel));
+        when(userRepository.findByChannelId("222")).thenReturn(Optional.of(bob));
+        when(scoreboardRepository.findByUserAndDate(any(), eq(YESTERDAY))).thenReturn(Optional.empty());
+
+        job.applyForfeitsFor(YESTERDAY);
+
+        verify(winStreakService).applyForfeit(eq(GameType.MINI_CROSSWORD), eq(byChannel),
+                anyBoolean(), eq(bob), anyBoolean(), eq(YESTERDAY));
+        verify(userRepository, never()).findByDiscordUserId(any());
+    }
+
+    @Test
+    void fallsBackToDiscordUserIdWhenChannelIdIsUnknown() {
+        when(userRepository.findByChannelId(any())).thenReturn(Optional.empty());
+        when(scoreboardRepository.findByUserAndDate(any(), eq(YESTERDAY))).thenReturn(Optional.empty());
+
+        job.applyForfeitsFor(YESTERDAY);
+
+        verify(winStreakService).applyForfeit(eq(GameType.MINI_CROSSWORD), eq(alice),
+                anyBoolean(), eq(bob), anyBoolean(), eq(YESTERDAY));
+    }
+
+    @Test
+    void applyForfeitsForUsesTheSuppliedDateNotYesterday() {
+        LocalDate explicitDate = LocalDate.of(2026, 1, 9);
+        when(scoreboardRepository.findByUserAndDate(any(), any())).thenReturn(Optional.empty());
+
+        job.applyForfeitsFor(explicitDate);
+
+        verify(winStreakService, times(3)).applyForfeit(any(), any(), anyBoolean(), any(),
+                anyBoolean(), eq(explicitDate));
+        verify(winStreakService, never()).applyForfeit(any(), any(), anyBoolean(), any(),
+                anyBoolean(), eq(YESTERDAY));
+    }
 }
