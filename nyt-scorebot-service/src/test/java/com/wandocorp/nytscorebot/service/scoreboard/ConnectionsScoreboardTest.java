@@ -32,11 +32,11 @@ class ConnectionsScoreboardTest {
     }
 
     @Test
-    void williamTwoMistakesVsConorZero_returnsDummyTie() {
-        Scoreboard william = sbWith(result(CONNECTIONS_2, 2, true));
+    void willTwoMistakesVsConorZero_returnsDummyTie() {
+        Scoreboard will = sbWith(result(CONNECTIONS_2, 2, true));
         Scoreboard conor = sbWith(result(CONNECTIONS_0, 0, true));
 
-        ComparisonOutcome outcome = scoreboard.determineOutcome(william, "William", conor, "Conor");
+        ComparisonOutcome outcome = scoreboard.determineOutcome(will, "Will", conor, "Conor");
 
         assertThat(outcome).isInstanceOf(ComparisonOutcome.Tie.class);
     }
@@ -46,7 +46,7 @@ class ConnectionsScoreboardTest {
         Scoreboard p1 = sbWith(result(CONNECTIONS_0, 0, true));
         Scoreboard p2 = sbWith(result(CONNECTIONS_0, 0, true));
 
-        ComparisonOutcome outcome = scoreboard.determineOutcome(p1, "William", p2, "Conor");
+        ComparisonOutcome outcome = scoreboard.determineOutcome(p1, "Will", p2, "Conor");
 
         assertThat(outcome).isInstanceOf(ComparisonOutcome.Tie.class);
     }
@@ -56,7 +56,7 @@ class ConnectionsScoreboardTest {
         Scoreboard p1 = sbWith(result(CONNECTIONS_2, 1, true));
         Scoreboard p2 = sbWith(result(CONNECTIONS_2, 2, true));
 
-        ComparisonOutcome outcome = scoreboard.determineOutcome(p1, "William", p2, "Conor");
+        ComparisonOutcome outcome = scoreboard.determineOutcome(p1, "Will", p2, "Conor");
 
         assertThat(outcome).isInstanceOf(ComparisonOutcome.Tie.class);
     }
@@ -66,7 +66,7 @@ class ConnectionsScoreboardTest {
         Scoreboard p1 = sbWith(result(CONNECTIONS_FAILED, 0, false));
         Scoreboard p2 = sbWith(result(CONNECTIONS_FAILED, 0, false));
 
-        ComparisonOutcome outcome = scoreboard.determineOutcome(p1, "William", p2, "Conor");
+        ComparisonOutcome outcome = scoreboard.determineOutcome(p1, "Will", p2, "Conor");
 
         assertThat(outcome).isInstanceOf(ComparisonOutcome.Tie.class);
     }
@@ -76,7 +76,7 @@ class ConnectionsScoreboardTest {
         Scoreboard completed = sbWith(result(CONNECTIONS_0, 0, true));
         Scoreboard failed = sbWith(result(CONNECTIONS_FAILED, 0, false));
 
-        ComparisonOutcome outcome = scoreboard.determineOutcome(completed, "William", failed, "Conor");
+        ComparisonOutcome outcome = scoreboard.determineOutcome(completed, "Will", failed, "Conor");
 
         assertThat(outcome).isInstanceOf(ComparisonOutcome.Tie.class);
     }
@@ -86,7 +86,7 @@ class ConnectionsScoreboardTest {
         Scoreboard failed = sbWith(result(CONNECTIONS_FAILED, 0, false));
         Scoreboard completed = sbWith(result(CONNECTIONS_0, 0, true));
 
-        ComparisonOutcome outcome = scoreboard.determineOutcome(failed, "William", completed, "Conor");
+        ComparisonOutcome outcome = scoreboard.determineOutcome(failed, "Will", completed, "Conor");
 
         assertThat(outcome).isInstanceOf(ComparisonOutcome.Tie.class);
     }

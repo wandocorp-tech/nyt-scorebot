@@ -28,21 +28,21 @@ class StrandsScoreboardTest {
     }
 
     @Test
-    void williamTwoHintsVsConorZero_returnsDummyTie() {
-        Scoreboard william = sbWith(result(2));
+    void willTwoHintsVsConorZero_returnsDummyTie() {
+        Scoreboard will = sbWith(result(2));
         Scoreboard conor = sbWith(result(0));
 
-        ComparisonOutcome outcome = scoreboard.determineOutcome(william, "William", conor, "Conor");
+        ComparisonOutcome outcome = scoreboard.determineOutcome(will, "Will", conor, "Conor");
 
         assertThat(outcome).isInstanceOf(ComparisonOutcome.Tie.class);
     }
 
     @Test
-    void conorZeroHintsVsWilliamTwoHints_returnsDummyTie() {
+    void conorZeroHintsVsWillTwoHints_returnsDummyTie() {
         Scoreboard conor = sbWith(result(0));
-        Scoreboard william = sbWith(result(2));
+        Scoreboard will = sbWith(result(2));
 
-        ComparisonOutcome outcome = scoreboard.determineOutcome(conor, "Conor", william, "William");
+        ComparisonOutcome outcome = scoreboard.determineOutcome(conor, "Conor", will, "Will");
 
         assertThat(outcome).isInstanceOf(ComparisonOutcome.Tie.class);
     }
@@ -52,7 +52,7 @@ class StrandsScoreboardTest {
         Scoreboard p1 = sbWith(result(1));
         Scoreboard p2 = sbWith(result(1));
 
-        ComparisonOutcome outcome = scoreboard.determineOutcome(p1, "William", p2, "Conor");
+        ComparisonOutcome outcome = scoreboard.determineOutcome(p1, "Will", p2, "Conor");
 
         assertThat(outcome).isInstanceOf(ComparisonOutcome.Tie.class);
     }
@@ -62,7 +62,7 @@ class StrandsScoreboardTest {
         Scoreboard p1 = sbWith(result(0));
         Scoreboard p2 = sbWith(result(0));
 
-        ComparisonOutcome outcome = scoreboard.determineOutcome(p1, "William", p2, "Conor");
+        ComparisonOutcome outcome = scoreboard.determineOutcome(p1, "Will", p2, "Conor");
 
         assertThat(outcome).isInstanceOf(ComparisonOutcome.Tie.class);
     }

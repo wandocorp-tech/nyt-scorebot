@@ -32,11 +32,11 @@ class WordleScoreboardTest {
     }
 
     @Test
-    void williamSixVsConorFour_returnsDummyTie() {
-        Scoreboard william = sbWith(result(WORDLE_6, 6, true));
+    void willSixVsConorFour_returnsDummyTie() {
+        Scoreboard will = sbWith(result(WORDLE_6, 6, true));
         Scoreboard conor = sbWith(result(WORDLE_4, 4, true));
 
-        ComparisonOutcome outcome = scoreboard.determineOutcome(william, "William", conor, "Conor");
+        ComparisonOutcome outcome = scoreboard.determineOutcome(will, "Will", conor, "Conor");
 
         assertThat(outcome).isInstanceOf(ComparisonOutcome.Tie.class);
     }
@@ -46,7 +46,7 @@ class WordleScoreboardTest {
         Scoreboard p1 = sbWith(result(WORDLE_4, 4, true));
         Scoreboard p2 = sbWith(result(WORDLE_4, 4, true));
 
-        ComparisonOutcome outcome = scoreboard.determineOutcome(p1, "William", p2, "Conor");
+        ComparisonOutcome outcome = scoreboard.determineOutcome(p1, "Will", p2, "Conor");
 
         assertThat(outcome).isInstanceOf(ComparisonOutcome.Tie.class);
     }
@@ -56,7 +56,7 @@ class WordleScoreboardTest {
         Scoreboard p1 = sbWith(result(WORDLE_FAILED, 0, false));
         Scoreboard p2 = sbWith(result(WORDLE_FAILED, 0, false));
 
-        ComparisonOutcome outcome = scoreboard.determineOutcome(p1, "William", p2, "Conor");
+        ComparisonOutcome outcome = scoreboard.determineOutcome(p1, "Will", p2, "Conor");
 
         assertThat(outcome).isInstanceOf(ComparisonOutcome.Tie.class);
     }
@@ -66,7 +66,7 @@ class WordleScoreboardTest {
         Scoreboard completed = sbWith(result(WORDLE_4, 4, true));
         Scoreboard failed = sbWith(result(WORDLE_FAILED, 0, false));
 
-        ComparisonOutcome outcome = scoreboard.determineOutcome(completed, "William", failed, "Conor");
+        ComparisonOutcome outcome = scoreboard.determineOutcome(completed, "Will", failed, "Conor");
 
         assertThat(outcome).isInstanceOf(ComparisonOutcome.Tie.class);
     }
@@ -76,7 +76,7 @@ class WordleScoreboardTest {
         Scoreboard failed = sbWith(result(WORDLE_FAILED, 0, false));
         Scoreboard completed = sbWith(result(WORDLE_4, 4, true));
 
-        ComparisonOutcome outcome = scoreboard.determineOutcome(failed, "William", completed, "Conor");
+        ComparisonOutcome outcome = scoreboard.determineOutcome(failed, "Will", completed, "Conor");
 
         assertThat(outcome).isInstanceOf(ComparisonOutcome.Tie.class);
     }

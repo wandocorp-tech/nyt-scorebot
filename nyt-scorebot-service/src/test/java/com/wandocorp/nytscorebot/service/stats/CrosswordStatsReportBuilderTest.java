@@ -217,7 +217,7 @@ class CrosswordStatsReportBuilderTest {
         ));
 
         CrosswordStatsReport.UserGameStats alice = new CrosswordStatsReport.UserGameStats(
-                "William", 5, 10,
+                "Will", 5, 10,
                 OptionalDouble.of(90.0), OptionalInt.of(60), Optional.empty());
         CrosswordStatsReport.UserGameStats bob = new CrosswordStatsReport.UserGameStats(
                 "Conor", 3, 10,
@@ -234,7 +234,7 @@ class CrosswordStatsReportBuilderTest {
                 GameTypeFilter.ALL,
                 LocalDate.of(2025, 1, 1),
                 LocalDate.of(2025, 1, 7),
-                "William", "Conor",
+                "Will", "Conor",
                 List.of(mini, midi, main));
     }
 

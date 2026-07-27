@@ -131,7 +131,7 @@ Once both players have finished for the day (either by submitting all games or u
  Wordle #1234
  
 -----------------------------------
-     William - 6  |  Conor - 4
+       Will - 6  |  Conor - 4
 -----------------------------------
     ⬛⬛⬛🟨⬛     ⬛⬛⬛🟨⬛
     ⬛⬛⬛⬛🟨     ⬛⬛⬛⬛🟨
@@ -156,11 +156,11 @@ Once both players have finished for the day (either by submitting all games or u
 Below the outcome line, every two-player crossword scoreboard appends two extra rows:
 
 ```
-         William | Conor
+            Will | Conor
 -----------------+---------------
             3:55 | 4:12
 ---------------------------------
- 🏆 William wins! (0:17)
+ 🏆 Will wins! (0:17)
 ---------------------------------
 -----+-----------+---------------
  avg |      3:42 | 5:10
@@ -184,6 +184,37 @@ Below the outcome line, every two-player crossword scoreboard appends two extra 
 **Note:** Strands no longer stores a `spangramPosition`; only `hintsUsed` is persisted and used for scoreboard winner determination.
 
 **In-memory message tracking:** `ResultsChannelService` holds a `Map<gameType, Snowflake>` of posted message IDs. Cleared on restart; a subsequent submission will re-trigger posting.
+
+### Triple Crown
+
+When one player wins **all three crosswords** (Mini, Midi, and Main) on the same day, a celebration message is posted immediately below the win streak summary:
+
+```
+👑 **TRIPLE CROWN** 👑
+**Will** swept the Mini, Midi, and Main crosswords today.
+```
+
+Rules:
+
+- **Crosswords only.** Wordle, Connections, and Strands never affect the crown.
+- **All three must be outright wins.** A tie, a ☢️ Nuke!, or a game still waiting on a submission blocks the crown.
+- **Wins by forfeit count.** If the opponent never submits, the resulting win is worth the same as a win on time.
+- **The winner's own duo flag blocks the crown** — a sweep achieved with help on the Main crossword is not awarded. The *loser's* duo flag is irrelevant; a win is still a win.
+- **The crown is revocable.** If a later `/duo`, `/check`, or `/lookups` change breaks the sweep, the celebration message is **deleted** rather than edited, leaving no trace. If the sweep is subsequently restored, a fresh message is posted.
+- **Evaluated again at midnight**, after forfeits are applied, so a sweep that only completes once the day closes is still recognised.
+
+Crown tracking is in-memory, matching the rest of the results channel state: after a restart the bot no longer knows it posted a celebration.
+
+### Midnight rollover
+
+`MidnightRolloverJob` is the single scheduled entry point at 00:00 (`discord.timezone`, default `Europe/London`). It runs four steps in a fixed order, each independently guarded so one failure cannot suppress the rest:
+
+1. **Apply crossword win-streak forfeits** for the closing date — a non-submission only becomes a forfeit win here.
+2. **Force-post the closing date's boards**, so a day where *neither* player submitted everything or used `/finished` still publishes. Skipped if the boards were already posted during the day.
+3. **Evaluate the triple crown** for the closing date.
+4. **Reset the status board** for the new day.
+
+The order matters: steps 2 and 3 both depend on the forfeits from step 1 being applied first.
 
 ## Testing Approach
 
@@ -310,7 +341,7 @@ Both `statusChannelId` and `resultsChannelId` are optional. Omit either to disab
 
 ### Database
 
-H2 in-memory database with Spring Data JPA auto-configuration. Schema is managed by Flyway migrations (`db/migration/V1`–`V8`):
+H2 in-memory database with Spring Data JPA auto-configuration. Schema is managed by Flyway migrations (`db/migration/V1`–`V11`):
 
 | Migration | Description |
 |---|---|
@@ -318,6 +349,10 @@ H2 in-memory database with Spring Data JPA auto-configuration. Schema is managed
 | V6 | `crossword_history_stats` table (per-user/game/weekday avg+pb buckets) |
 | V7 | Backfill from existing `scoreboard` rows |
 | V8 | One-off manual seed of Main crossword PBs |
+| V9–V10 | Superseded attempts to correct the 2026-05-17 Main crossword time (both matched zero rows — see V11) |
+| V11 | Corrects the 2026-05-17 Main crossword time, re-applies the Main PB seeds V8 missed, and rebuilds the affected Sunday bucket |
+
+> **Gate one-off data migrations on `channel_id`, never on `app_user.name`.** The name column is written from the mutable `discord.channels[n].name` property, so V8, V9 and V10 all matched zero rows while Flyway recorded them as successful. Any migration touching a specific player's data needs a test that seeds the pre-migration state — `FlywayMigrationTest` runs against an empty schema, where "corrected the data" and "matched nothing" are indistinguishable. See `V11DataFixMigrationTest`.
 
 **`crossword_history_stats`** — one row per `(user_id, game_type, day_of_week)` bucket. Mini/Midi use `day_of_week = 0` (one bucket per user); Main uses `day_of_week 1–7` (Java `DayOfWeek.getValue()`). Columns: `sample_count`, `sum_seconds`, `pb_seconds` (nullable). Updated atomically via a native H2 `MERGE` upsert after each qualifying submission.
 
