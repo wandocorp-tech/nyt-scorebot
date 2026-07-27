@@ -13,7 +13,6 @@ import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
@@ -24,12 +23,15 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Finalizes crossword win streaks at midnight in the puzzle timezone.
+ * Finalizes crossword win streaks for a closing date.
  *
- * <p>For each crossword game, classifies yesterday's pair as both-submitted,
+ * <p>For each crossword game, classifies the day's pair as both-submitted,
  * one-submitted, or neither-submitted and applies forfeit rules via
  * {@link WinStreakService#applyForfeit}. After processing, edits the previous
  * day's win streak summary message in place to show the finalized values.
+ *
+ * <p>Not scheduled directly — {@link MidnightRolloverJob} invokes this first, because a
+ * non-submission only becomes a forfeit win here and the results render depends on it.
  */
 @Slf4j
 @RequiredArgsConstructor
@@ -47,42 +49,53 @@ public class WinStreakMidnightJob {
     private final ResultsChannelService resultsChannelService;
     private final GatewayDiscordClient client;
 
-    /**
-     * Runs at 00:00 in the configured puzzle timezone (defaulting to Europe/London).
-     */
-    @Scheduled(cron = "0 0 0 * * *", zone = "${discord.timezone:Europe/London}")
-    public void finalizeYesterday() {
-        run();
+    /** Visible for testing — finalizes yesterday synchronously. */
+    void run() {
+        applyForfeitsFor(puzzleCalendar.today().minusDays(1));
     }
 
-    /** Visible for testing — performs the rollover synchronously. */
-    void run() {
-        LocalDate yesterday = puzzleCalendar.today().minusDays(1);
-
+    /**
+     * Applies forfeit rules for every crossword on the given date and refreshes the
+     * win streak summary message.
+     */
+    public void applyForfeitsFor(LocalDate date) {
         List<DiscordChannelProperties.ChannelConfig> channels = channelProperties.getChannels();
         if (channels.size() < 2) {
+            log.warn("Skipping midnight finalize — {} channel(s) configured, need at least 2",
+                    channels.size());
             return;
         }
 
-        Optional<User> u1Opt = userRepository.findByDiscordUserId(channels.get(0).getUserId());
-        Optional<User> u2Opt = userRepository.findByDiscordUserId(channels.get(1).getUserId());
+        Optional<User> u1Opt = resolveUser(channels.get(0));
+        Optional<User> u2Opt = resolveUser(channels.get(1));
         if (u1Opt.isEmpty() || u2Opt.isEmpty()) {
-            log.debug("Skipping midnight finalize — players not yet registered");
+            log.debug("Skipping midnight finalize for {} — players not yet registered", date);
             return;
         }
         User u1 = u1Opt.get();
         User u2 = u2Opt.get();
 
-        Optional<Scoreboard> sb1 = scoreboardRepository.findByUserAndDate(u1, yesterday);
-        Optional<Scoreboard> sb2 = scoreboardRepository.findByUserAndDate(u2, yesterday);
+        Optional<Scoreboard> sb1 = scoreboardRepository.findByUserAndDate(u1, date);
+        Optional<Scoreboard> sb2 = scoreboardRepository.findByUserAndDate(u2, date);
 
         for (GameType gameType : CROSSWORDS) {
             boolean submitted1 = sb1.map(s -> s.hasResult(gameType)).orElse(false);
             boolean submitted2 = sb2.map(s -> s.hasResult(gameType)).orElse(false);
-            winStreakService.applyForfeit(gameType, u1, submitted1, u2, submitted2, yesterday);
+            winStreakService.applyForfeit(gameType, u1, submitted1, u2, submitted2, date);
         }
 
         editSummaryIfPresent(u1, channels.get(0).getName(), u2, channels.get(1).getName());
+    }
+
+    /**
+     * Resolves a configured channel to its player. Keyed on the immutable channel ID first —
+     * the same identity {@code ScoreboardService.findOrCreateUser} uses — falling back to the
+     * Discord user ID. The mutable display name is never used as a lookup key.
+     */
+    private Optional<User> resolveUser(DiscordChannelProperties.ChannelConfig channel) {
+        Optional<User> byChannel = userRepository.findByChannelId(channel.getId());
+        if (byChannel.isPresent()) return byChannel;
+        return userRepository.findByDiscordUserId(channel.getUserId());
     }
 
     private void editSummaryIfPresent(User u1, String name1, User u2, String name2) {
